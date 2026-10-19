@@ -49,7 +49,7 @@
                     return `
                         <div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
                             <div class="flex flex-wrap justify-between items-center text-sm font-medium gap-3">
-                                <span>${this.escapeHtml(cat)}</span>
+                                <span class="cat-name"><i class="cat-dot" style="--c:${this.categoryColor(cat)}"></i>${this.escapeHtml(cat)}</span>
                                 <div class="flex flex-wrap items-center justify-end gap-3">
                                     <span class="text-right">${CUR()}${spent.toLocaleString('en-IN')} / ${CUR()}${budgetLimit.toLocaleString('en-IN')}</span>
                                     <button type="button" onclick='app.editBudget(${JSON.stringify(cat)})' class="text-xs text-blue-600 hover:underline">Edit</button>

@@ -173,7 +173,39 @@
                     this.charts.cat=new Chart(canvas.getContext('2d'),{type:'pie',data:{labels:['No expenses'],datasets:[{data:[1],backgroundColor:['#cbd5e1']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false},title:{display:true,text:'No expenses for this period'}}}});
                     return;
                 }
-                this.charts.cat=new Chart(canvas.getContext('2d'),{type:'pie',data:{labels:categories,datasets:[{data:categories.map(c=>catTotals[c])}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},onClick:(event,elements)=>{if(!elements.length)return;const category=categories[elements[0].index];if(category)this.openDashboardDrilldown(`${category} — ${period}`,'category-period',{category,year,month});}}});
+                this.charts.cat=new Chart(canvas.getContext('2d'),{type:'pie',data:{labels:categories,datasets:[{data:categories.map(c=>catTotals[c]),backgroundColor:categories.map(c=>this.categoryColor(c)),borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},onClick:(event,elements)=>{if(!elements.length)return;const category=categories[elements[0].index];if(category)this.openDashboardDrilldown(`${category} — ${period}`,'category-period',{category,year,month});}}});
+            }
+
+            // ---------- Stats: where the money went (or came from) in a month or a year ----------
+            statsState(){ this.stats ||= {mode:'month',kind:'expense',key:this.todayISO().slice(0,7)}; return this.stats; }
+            setStatsMode(mode){ const s=this.statsState(); if(mode===s.mode)return; s.key=mode==='year'?s.key.slice(0,4):(s.key.slice(0,4)===this.todayISO().slice(0,4)?this.todayISO().slice(0,7):`${s.key.slice(0,4)}-12`); s.mode=mode; this.renderStats(); }
+            setStatsKind(kind){ this.statsState().kind=kind; this.renderStats(); }
+            setStatsPeriod(key){ const s=this.statsState(); s.key=key==='now'?(s.mode==='year'?this.todayISO().slice(0,4):this.todayISO().slice(0,7)):key; this.renderStats(); }
+            shiftStatsPeriod(step){ const s=this.statsState(); if(s.mode==='year'){ s.key=String(Number(s.key)+step); } else { const [y,m]=s.key.split('-').map(Number); s.key=this.todayISO(new Date(y,m-1+step,1)).slice(0,7); } this.renderStats(); }
+            /** Category totals for the chosen period: [{category, amount, share, count}], largest first. Excluded entries are not counted. */
+            statsRows(){
+                const s=this.statsState(); const types=s.kind==='income'?['Income']:['Expense','EMI','Installment']; const by=new Map(); let total=0;
+                this.countedTx().forEach(t=>{ if(!types.includes(t.type))return; const iso=this.normalizeLedgerDate(t.date); if(!iso.startsWith(s.key))return; const a=Math.max(0,Number(t.amount)||0); const c=t.category||'Uncategorized'; const o=by.get(c)||{category:c,amount:0,count:0}; o.amount+=a; o.count++; by.set(c,o); total+=a; });
+                return {total,rows:[...by.values()].sort((a,b)=>b.amount-a.amount).map(o=>({...o,share:total?o.amount/total*100:0}))};
+            }
+            renderStats(){
+                const panel=document.getElementById('panel-stats'); if(!panel||!this.data)return; const s=this.statsState();
+                const label=document.getElementById('stats-period-label'); if(label)label.textContent=s.mode==='year'?s.key:this.monthLabel(s.key);
+                panel.querySelectorAll('.st-mode [data-mode]').forEach(b=>{ const on=b.dataset.mode===s.mode; b.classList.toggle('on',on); b.setAttribute('aria-selected',String(on)); });
+                panel.querySelectorAll('.st-kind [data-kind]').forEach(b=>{ const on=b.dataset.kind===s.kind; b.classList.toggle('on',on); b.setAttribute('aria-selected',String(on)); });
+                const sumOf=kind=>{ const types=kind==='income'?['Income']:['Expense','EMI','Installment']; return this.countedTx().filter(t=>types.includes(t.type)&&this.normalizeLedgerDate(t.date).startsWith(s.key)).reduce((n,t)=>n+Math.max(0,Number(t.amount)||0),0); };
+                const setText=(id,v)=>{ const el=document.getElementById(id); if(el)el.textContent=v; };
+                setText('stats-total-expense',this.fmtMoney(sumOf('expense'))); setText('stats-total-income',this.fmtMoney(sumOf('income')));
+                const {total,rows}=this.statsRows(); const period=s.mode==='year'?s.key:this.monthLabel(s.key,true);
+                const center=document.getElementById('stats-center'); if(center)center.innerHTML=rows.length?`<span>${s.kind==='income'?'Income':'Spent'}</span><b>${this.fmtMoney0(total)}</b><small>${rows.length} categor${rows.length===1?'y':'ies'}</small>`:'';
+                const list=document.getElementById('stats-list'); const esc=v=>this.escapeHtml(String(v??'')); const attrJs=v=>JSON.stringify(v).replace(/&/g,'&amp;').replace(/'/g,'&#39;');
+                if(list)list.innerHTML=rows.length?rows.map(r=>`<button type="button" class="st-row" onclick='app.openLedgerCategory(${attrJs(r.category)},${attrJs(s.key)})' title="Show these entries in Core Ledger"><span class="st-pct" style="--c:${this.categoryColor(r.category)}">${r.share>=10?Math.round(r.share):r.share.toFixed(1)}%</span><span class="st-cat"><b>${esc(r.category)}</b><small>${r.count} entr${r.count===1?'y':'ies'}</small></span><span class="st-amt">${this.fmtMoney(r.amount)}</span></button>`).join(''):`<p class="lx-none">No ${s.kind==='income'?'income':'expenses'} in ${esc(period)}.</p>`;
+                const canvas=document.getElementById('chart-stats'); if(!canvas||typeof Chart==='undefined')return;
+                this.charts ||= {}; if(this.charts.stats)this.charts.stats.destroy();
+                const dark=document.documentElement.classList.contains('dark');
+                this.charts.stats=new Chart(canvas.getContext('2d'),{type:'doughnut',data:{labels:rows.length?rows.map(r=>r.category):['None'],datasets:[{data:rows.length?rows.map(r=>r.amount):[1],backgroundColor:rows.length?rows.map(r=>this.categoryColor(r.category)):[dark?'#334155':'#e2e8f0'],borderColor:dark?'#0f172a':'#fff',borderWidth:2}]},
+                    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',animation:{duration:250},plugins:{legend:{display:false},tooltip:{enabled:!!rows.length,callbacks:{label:c=>` ${c.label}: ${this.fmtMoney(c.raw)} (${rows[c.dataIndex]?.share.toFixed(1)}%)`}}},
+                    onClick:(e,els)=>{ if(!els.length||!rows.length)return; const r=rows[els[0].index]; if(r)this.openLedgerCategory(r.category,s.key); }}});
             }
 
         }

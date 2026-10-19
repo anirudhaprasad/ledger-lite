@@ -473,7 +473,7 @@
              * Handles the swipe pages workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: none. Side effects, if any, are described by the statements below.
              */
-            swipePages(){ return ['dashboard','ledger','budgets','accounts','yearly','goals','shared','guide','configuration','settings','sms'].filter(t=>document.getElementById('panel-'+t)&&(t!=='projects'||this.isDeveloper())&&(this.isPro()||!['yearly','goals','shared','sms'].includes(t))); }
+            swipePages(){ return ['dashboard','ledger','stats','budgets','accounts','yearly','goals','shared','guide','configuration','settings','sms'].filter(t=>document.getElementById('panel-'+t)&&(t!=='projects'||this.isDeveloper())&&(this.isPro()||!['yearly','goals','shared','sms'].includes(t))); }
             /**
              * Handles the swipe enabled workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: ){ try{ return localStorage.getItem('aifico_swipe')!=='off'; }catch(e. Side effects, if any, are described by the statements below.
@@ -615,7 +615,8 @@
                     shared:()=>{ const t=(D.splitShare?.trips||[]); return `${plural(t.filter(x=>!x.closed).length,'open event')}`; },
                     configuration:()=>plural((D.categories||[]).length,'category').replace('categorys','categories'),
                     sms:()=>plural((D.smsInbox||[]).filter(x=>(x.status||'pending')==='pending').length,'SMS')+' to review',
-                    settings:()=>'', guide:()=>'', importer:()=>'', dashboard:()=>month};
+                    settings:()=>'', guide:()=>'', importer:()=>'', dashboard:()=>month,
+                    stats:()=>{ const s=this.statsState?.(); if(!s)return ''; return (s.mode==='year'?s.key:this.monthLabel(s.key,true))+' · '+(s.kind==='income'?'Income':'Expenses'); }};
                 if(meta){ try{ meta.textContent=(metaFor[tab]||(()=>''))(); }catch(e){ meta.textContent=''; } }
                 if(tab==='dashboard'&&this.data){
                     const now=new Date(); const key=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`; let inc=0,exp=0,trf=0;
@@ -683,7 +684,7 @@
              * Parameters: tab. Side effects, if any, are described by the statements below.
              */
             syncBottomNav(tab){
-                tab=tab||this.currentTab||'dashboard'; const main=['ledger','dashboard','accounts',this.isPro()?'yearly':'budgets'];
+                tab=tab||this.currentTab||'dashboard'; const main=['ledger','stats','dashboard','accounts'];
                 document.querySelectorAll('#bottom-nav button').forEach(b=>{ const on=b.dataset.tab===tab||(b.dataset.tab==='more'&&!main.includes(tab)); b.classList.toggle('active',on); if(on)b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
             }
             /**
@@ -691,10 +692,10 @@
              * Parameters: none. Side effects, if any, are described by the statements below.
              */
             openMoreSheet(){
-                const items=[['budgets','pie-chart','Budgets'],['goals','target','Goals'],...(this.isDeveloper()?[['projects','clipboard-list','Projects']]:[]),['shared','users','Shared & Split'],['sms','message-square-text','SMS messages'],['configuration','sliders-horizontal','Categories'],['settings','shield-check','Backup & Settings'],['guide','book-open','User Guide']];
+                const items=[['yearly','calendar-range','Schedules'],['budgets','pie-chart','Budgets'],['goals','target','Goals'],...(this.isDeveloper()?[['projects','clipboard-list','Projects']]:[]),['shared','users','Shared & Split'],['sms','message-square-text','SMS messages'],['configuration','sliders-horizontal','Categories'],['settings','shield-check','Backup & Settings'],['guide','book-open','User Guide']];
                 const dark=document.documentElement.classList.contains('dark');
                 const box=document.getElementById('modal-box');
-                box.innerHTML=`<div class="more-head"><h3 class="font-bold text-lg">More</h3><button type="button" onclick="app.closeModal()" aria-label="Close">✕</button></div><div class="more-grid">${(this.isPro()?items:[['yearly','calendar-range','Schedules'],...items.filter(x=>x[0]!=='budgets')]).map(([t,icon,label])=>`<button type="button" class="more-item ${this.currentTab===t?'active':''}" onclick="app.closeModal();app.switchTab('${t}')"><i data-lucide="${icon}"></i><span>${label}</span>${!this.isPro()&&['yearly','goals','shared','sms'].includes(t)?'<em class="pro-badge pro-badge-sm">PRO</em>':''}</button>`).join('')}</div><div class="more-row"><button type="button" class="s-btn s-secondary" onclick="app.toggleTheme();app.closeModal()"><i data-lucide="${dark?'sun':'moon'}"></i><span>${dark?'Light mode':'Dark mode'}</span></button><button type="button" class="s-btn s-danger-outline" onclick="app.closeModal();app.lockVault()"><i data-lucide="lock"></i><span>Lock</span></button></div>`;
+                box.innerHTML=`<div class="more-head"><h3 class="font-bold text-lg">More</h3><button type="button" onclick="app.closeModal()" aria-label="Close">✕</button></div><div class="more-grid">${items.map(([t,icon,label])=>`<button type="button" class="more-item ${this.currentTab===t?'active':''}" onclick="app.closeModal();app.switchTab('${t}')"><i data-lucide="${icon}"></i><span>${label}</span>${!this.isPro()&&['yearly','goals','shared','sms'].includes(t)?'<em class="pro-badge pro-badge-sm">PRO</em>':''}</button>`).join('')}</div><div class="more-row"><button type="button" class="s-btn s-secondary" onclick="app.toggleTheme();app.closeModal()"><i data-lucide="${dark?'sun':'moon'}"></i><span>${dark?'Light mode':'Dark mode'}</span></button><button type="button" class="s-btn s-danger-outline" onclick="app.closeModal();app.lockVault()"><i data-lucide="lock"></i><span>Lock</span></button></div>`;
                 document.getElementById('modal-container').classList.add('more-sheet');
                 document.getElementById('modal-container').classList.remove('hidden');
                 window.lucide?.createIcons?.();
@@ -761,7 +762,7 @@
                 
                 const titles = {
                     dashboard: 'Dashboard Overview',
-                    ledger: 'Core Ledger',
+                    ledger: 'Core Ledger', stats: 'Stats',
                     importer: 'Unified Bank Importer',
                     budgets: 'Monthly Budgets',
                     accounts: 'Accounts & Wallets',
@@ -775,6 +776,7 @@
                 };
                 document.getElementById('tab-title').innerText = titles[tabId] || 'Dashboard';
                 if(tabId==='sms') this.renderSmsReconciliation();
+                if(tabId==='stats') { try{ this.renderStats(); }catch(e){ console.error('Stats could not be shown', e); } }
                 window.lucide?.createIcons?.();
             }
 
@@ -890,6 +892,7 @@
             renderAll() {
                 try { if (this.ensureUids()) this.saveVault(); } catch (e) { console.error('UUID check failed', e); }
                 try { if (this.repairSubcategoriesOnce()) this.saveVault(); } catch (e) { console.error('Subcategory repair failed', e); }
+                try { if (this.ensureCategoryColors()) this.saveVault(); } catch (e) { console.error('Category colours could not be set', e); }
                 this.data.smsInbox ||= [];
                 try { this.renderInterestPlans(); } catch (e) { console.error('Loans & deposits could not be shown', e); }
                 try { this.renderReconSettings(); } catch (e) {}
@@ -909,6 +912,7 @@
                 this.renderGoals();
                 this.renderShared();
                 this.renderCategoriesManager();
+                if (this.currentTab === 'stats') { try { this.renderStats(); } catch (e) { console.error('Stats could not be shown', e); } }
                 window.lucide?.createIcons?.();
             }
 
@@ -1015,6 +1019,8 @@
              * Parameters: none. Side effects, if any, are described by the statements below.
              */
             closeModal() {
+                // Bottom-sheet styling (More, row actions) belongs to that sheet only, not to the next dialog.
                 document.getElementById('modal-container').classList.add('hidden');
+                document.getElementById('modal-container').classList.remove('more-sheet');
             }
         }
