@@ -202,7 +202,7 @@
                 if(!want.length&&!this.ssLedgerAccount(false))return;
                 const acc=this.ssLedgerAccount(true);
                 want.forEach(w=>{ if(keep.has(w.key)||this.isLockedDate(w.date))return; const c=carry.get(w.key)||{}; const tx={id:'ss_'+w.key.replace(/[^a-z0-9:_-]/gi,''),uid:c.uid||this.newUid(),date:w.date,type:w.type,amount:w.amount,account:w.account==='@split'?acc.name:w.account,...(w.destinationAccount?{destinationAccount:w.destinationAccount==='@split'?acc.name:w.destinationAccount}:{}),payee:w.payee,category:w.category,subcategory:w.subcategory,notes:`Shared & Split · ${w.ev}`,source:'split',splitKey:w.key,...(c.verifiedBy?{verifiedBy:c.verifiedBy,bankDate:c.bankDate,bankRef:c.bankRef,verifiedAt:c.verifiedAt}:{})};
-                    this.data.tx.unshift(tx); this.applyTxEffects(tx,1); });
+                    this.data.tx.unshift(tx); this.applyTxEffects(tx,1); this.ensureCategoryAndSubcategory(tx.category,tx.subcategory); });
             }
             /**
              * Handles the ss changed workflow. See the implementation below for its inputs, state changes, and side effects.

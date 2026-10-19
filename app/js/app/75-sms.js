@@ -237,7 +237,13 @@ Type REMOVE SMS to continue:`);
                 for(const msg of messages){
                     const line=String(msg.body||'').trim(); if(!line)continue;
                     const amountMatch=line.match(/(?:INR|Rs\.?|₹)\s*([0-9,]+(?:\.\d{1,2})?)/i)||line.match(/(?:debited|credited|spent|received|paid|purchase of)\D{0,12}([0-9,]+(?:\.\d{1,2})?)/i);
-                    const baseType=/\b(credited|received|deposited|salary|refund|cashback)\b/i.test(line)?'Income':(/\b(debited|debit|auto[ -]?debit|autodebit|spent|withdrawn|paid|purchase|sent|payment of|transferred|nach|ecs debit|mandate debit|standing instruction)\b/i.test(line)?'Expense':null);
+                    // Promotional SMS mention amounts and words like "cashback" but no money moved: skip them.
+                    const movedMoney=/\b(a\/c|acct|account|card|upi|vpa|neft|imps|rtgs|ref(?:erence)?|txn|avl\.?\s*bal|available balance|debited|credited|withdrawn|spent)\b/i.test(line);
+                    const promotional=/\b(t\s*&\s*c|offer|hurry|click|download|apply now|recharge now|shop now|use code|coupon|on your next|win)\b/i.test(line)&&!/\b(debited|credited|withdrawn|spent)\b/i.test(line);
+                    if(!movedMoney||promotional){ignored++;continue;}
+                    // "Acct XX1234 debited ...; Spotify credited": the first direction word is the account holder's side.
+                    const creditAt=line.search(/\b(credited|received|deposited|salary|refund|cashback)\b/i), debitAt=line.search(/\b(debited|debit|auto[ -]?debit|autodebit|spent|withdrawn|paid|purchase|sent|payment of|transferred|nach|ecs debit|mandate debit|standing instruction)\b/i);
+                    const baseType=creditAt>=0&&(debitAt<0||creditAt<debitAt)?'Income':(debitAt>=0?'Expense':null);
                     const typeMatch=baseType||(/\b(transfer|neft|imps|rtgs|sip|investment|premium|insurance|emi|installment|instalment|mandate|subscription renewal)\b/i.test(line)?'Expense':null);
                     if(!amountMatch||!typeMatch){ignored++;continue;}
                     const amount=Number(amountMatch[1].replace(/,/g,''));if(!Number.isFinite(amount)||amount<=0){ignored++;continue;}

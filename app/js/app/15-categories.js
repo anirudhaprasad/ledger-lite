@@ -64,8 +64,21 @@
                 if(!cat)return;
                 if(!Array.isArray(this.data.categories))this.data.categories=[];
                 if(!this.data.categories.some(c=>String(c).toLowerCase()===cat.toLowerCase()))this.data.categories.push(cat);
-                if(!Array.isArray(this.data.subcategories))this.data.subcategories={};
-                if(!this.data.subcategories[cat])this.data.subcategories[cat]=[];
-                if(sub&&!this.data.subcategories[cat].some(s=>String(s).toLowerCase()===sub.toLowerCase()))this.data.subcategories[cat].push(sub);
+                // subcategories is a {category: [names]} map. (An Array.isArray check here used to reset it on every call,
+                // so each new subcategory wiped all the others.)
+                const subs=this.categorySubcategoryMap();
+                if(!Array.isArray(subs[cat]))subs[cat]=[];
+                if(sub&&!subs[cat].some(s=>String(typeof s==='string'?s:s.name).toLowerCase()===sub.toLowerCase()))subs[cat].push(sub);
+            }
+            /**
+             * One-time repair: rebuild subcategories lost to the old reset bug from the ones transactions still use.
+             * Runs once per vault, so subcategories the user deleted later are not brought back.
+             */
+            repairSubcategoriesOnce(){
+                this.data.settings ||= {};
+                if(this.data.settings.subcategoriesRepaired)return false;
+                (this.data.tx||[]).forEach(t=>{ if(t&&t.category&&t.subcategory)this.ensureCategoryAndSubcategory(t.category,t.subcategory); });
+                this.data.settings.subcategoriesRepaired=1;
+                return true;
             }
         }

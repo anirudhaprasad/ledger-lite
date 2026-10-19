@@ -183,12 +183,16 @@
                 setText('ledger-total-expense',money(expense));
                 setText('ledger-total-transfer',money(transfers));
                 setText('ledger-total-net',money(income-expense));
+                // Long ledgers are shown 150 entries at a time ("Show more" adds the next 150). Drawing thousands of rows at once
+                // took 15+ seconds on mid-range phones. Totals above still cover every matching entry.
+                const pageSize=150; if(!this.ledgerShown)this.ledgerShown=pageSize;
+                const shownList=filtered.slice(0,this.ledgerShown);
                 // Selection only ever covers rows currently on screen, so bulk actions never touch hidden or excluded entries by accident.
-                const visibleIds=new Set(filtered.map(t=>String(t.id)));
+                const visibleIds=new Set(shownList.map(t=>String(t.id)));
                 this.selectedTransactionIds=new Set([...(this.selectedTransactionIds||[])].filter(id=>visibleIds.has(id)));
                 const jsId=id=>this.escapeHtml(String(id??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"));
 
-                tbody.innerHTML = this.ledgerRowsWithDayHeaders(filtered, t => `
+                tbody.innerHTML = this.ledgerRowsWithDayHeaders(shownList, t => `
                     <tr class="${t.excludedFromLedger?'opacity-60 bg-amber-50/50 dark:bg-amber-950/10':''} cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-500" title="Click to open transaction" tabindex="0" role="button" onclick="if(!event.target.closest('button,input,label,a,select')) app.editTransaction('${jsId(t.id)}')" onkeydown="if((event.key==='Enter'||event.key===' ') && !event.target.closest('button,input,label,a,select')){event.preventDefault();app.editTransaction('${jsId(t.id)}')}">
                         <td class="py-3"><input type="checkbox" class="ledger-row-select" value="${this.escapeHtml(String(t.id))}" ${this.selectedTransactionIds?.has(String(t.id))?'checked':''} onchange="app.toggleTransactionSelection('${jsId(t.id)}',this.checked)" aria-label="Select transaction" onclick="event.stopPropagation()"></td>
                         <td class="py-3 text-slate-500">${this.escapeHtml(t.date||'')}</td>
@@ -202,11 +206,12 @@
                         </td>
                     </tr>
                 `);
+                if(filtered.length>shownList.length){ const left=filtered.length-shownList.length; tbody.insertAdjacentHTML('beforeend',`<tr class="ledger-more"><td colspan="8" class="py-4 text-center"><button type="button" class="s-btn s-secondary" onclick="app.showMoreLedger()">Show ${Math.min(pageSize,left)} more · ${left.toLocaleString('en-IN')} older entr${left===1?'y':'ies'}</button></td></tr>`); }
                 // Empty filtered view: say so instead of leaving a blank list.
                 if(!filtered.length){ const mode=document.getElementById('ledger-excluded-filter')?.value||'active'; const msg={excluded:'No excluded transactions. Entries you exclude appear here so you can restore them.',duplicates:'No SMS duplicates found.'}[mode]||'No transactions match the current filters.'; tbody.innerHTML=`<tr><td colspan="8" class="py-8 text-center text-sm text-slate-500">${msg}</td></tr>`; }
                 const bulkBar=document.getElementById('ledger-bulk-bar'); if(bulkBar)bulkBar.hidden=!filtered.length;
                 const selectAll=document.getElementById('ledger-select-all');
-                if(selectAll){selectAll.checked=filtered.length>0 && filtered.every(t=>this.selectedTransactionIds?.has(String(t.id)));selectAll.indeterminate=filtered.some(t=>this.selectedTransactionIds?.has(String(t.id)))&&!selectAll.checked;}
+                if(selectAll){selectAll.checked=shownList.length>0 && shownList.every(t=>this.selectedTransactionIds?.has(String(t.id)));selectAll.indeterminate=shownList.some(t=>this.selectedTransactionIds?.has(String(t.id)))&&!selectAll.checked;}
                 const count=document.getElementById('ledger-selected-count');
                 if(count)count.textContent=`${this.selectedTransactionIds?.size||0} selected`; this.syncLedgerBulkBar();
                 window.lucide?.createIcons?.();
@@ -254,7 +259,7 @@
              * Changes the select all and refreshes dependent UI.
              * Parameters: checked. Side effects, if any, are described by the statements below.
              */
-            toggleSelectAll(checked){this.selectedTransactionIds ||= new Set();this.getFilteredLedger().forEach(t=>{if(checked)this.selectedTransactionIds.add(String(t.id));else this.selectedTransactionIds.delete(String(t.id));});this.renderLedger();}
+            toggleSelectAll(checked){this.selectedTransactionIds ||= new Set();this.getFilteredLedger().slice(0,this.ledgerShown||150).forEach(t=>{if(checked)this.selectedTransactionIds.add(String(t.id));else this.selectedTransactionIds.delete(String(t.id));});this.renderLedger();}
             /**
              * Handles the clear transaction selection workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: none. Side effects, if any, are described by the statements below.
@@ -360,7 +365,11 @@
              * Handles the filter ledger workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: none. Side effects, if any, are described by the statements below.
              */
-            filterLedger() { this.renderLedger(); }
+            filterLedger() { this.ledgerShown = 0; this.renderLedger(); }
+            /** Search box: wait until typing pauses, then filter (re-filtering on every keystroke was slow with long ledgers). */
+            filterLedgerSoon() { clearTimeout(this._ledgerSearchTimer); this._ledgerSearchTimer = setTimeout(() => this.filterLedger(), 250); }
+            /** "Show more" at the end of the ledger: adds the next 150 entries. */
+            showMoreLedger() { this.ledgerShown = (this.ledgerShown || 150) + 150; this.renderLedger(); }
 
             /**
              * Updates transaction.

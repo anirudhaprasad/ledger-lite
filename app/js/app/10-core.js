@@ -889,6 +889,7 @@
             }
             renderAll() {
                 try { if (this.ensureUids()) this.saveVault(); } catch (e) { console.error('UUID check failed', e); }
+                try { if (this.repairSubcategoriesOnce()) this.saveVault(); } catch (e) { console.error('Subcategory repair failed', e); }
                 this.data.smsInbox ||= [];
                 try { this.renderInterestPlans(); } catch (e) { console.error('Loans & deposits could not be shown', e); }
                 try { this.renderReconSettings(); } catch (e) {}
