@@ -1,0 +1,43 @@
+      #bottom-nav { display: none; }
+      body.nav-bottom #bottom-nav { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 45; background: #fff; border-top: 1px solid #e2e8f0; padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px)); }
+      .dark body.nav-bottom #bottom-nav, body.nav-bottom.dark #bottom-nav { background: #0f172a; border-color: #1e293b; }
+      #bottom-nav button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 52px; font-size: 11px; font-weight: 500; color: #64748b; border-radius: 12px; }
+      #bottom-nav button svg { width: 22px; height: 22px; }
+      #bottom-nav button.active { color: #059669; font-weight: 700; }
+      #bottom-nav button.active svg { stroke-width: 2.4; }
+      body.nav-bottom #nav-toggle { display: none !important; }
+      body.nav-bottom #app-scroll { padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
+      /* Add button becomes a floating action button above the bar */
+      body.nav-bottom #app-main-header button[onclick="app.openTransactionModal()"] { position: fixed; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 46; width: 58px; height: 58px; padding: 0; border-radius: 999px; justify-content: center; box-shadow: 0 8px 22px rgba(5,150,105,.35); }
+      body.nav-bottom #app-main-header button[onclick="app.openTransactionModal()"] svg { width: 26px; height: 26px; margin: 0; }
+      body.nav-bottom #app-main-header button[onclick="app.openTransactionModal()"] .header-add-label { display: none !important; }
+      body.nav-bottom #app-main-header button[onclick="app.openTransactionModal()"] > * + * { margin-left: 0 !important; }
+      /* Ledger selection bar sits above the bottom bar and hides the floating button */
+      body.nav-bottom #ledger-bulk-bar[data-has-selection="1"] #ledger-bulk-actions { bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important; }
+      body.nav-bottom:has(#ledger-bulk-bar[data-has-selection="1"]:not(.hidden)) #app-main-header button[onclick="app.openTransactionModal()"] { display: none; }
+      /* "More" opens as a bottom sheet */
+      #modal-container.more-sheet { align-items: flex-end !important; padding: 0 !important; }
+      #modal-container.more-sheet #modal-box { width: 100%; max-width: 640px; border-radius: 20px 20px 0 0; padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+      .more-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+      .more-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+      .more-item { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 4px; border-radius: 14px; font-size: 12px; text-align: center; color: #334155; background: #f8fafc; }
+      .dark .more-item { background: #1e293b; color: #e2e8f0; }
+      .more-item svg { width: 22px; height: 22px; color: #059669; }
+      .more-item.active { outline: 2px solid #10b981; }
+      .more-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+      .more-row .s-btn svg { width: 18px; height: 18px; }
+      /* Core Ledger day headers */
+      #ledger-tbody > tr.ledger-day > td { padding: 14px 4px 6px !important; border-bottom: 1px solid #e2e8f0; }
+      .dark #ledger-tbody > tr.ledger-day > td { border-color: #1e293b; }
+      .ld { display: flex; align-items: center; gap: 8px; }
+      .ld-day { font-size: 22px; font-weight: 800; line-height: 1; }
+      .ld-dow { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 6px; background: #e2e8f0; color: #334155; }
+      .dark .ld-dow { background: #334155; color: #e2e8f0; }
+      .ld-my { font-size: 12px; color: #64748b; }
+      .ld-sp { flex: 1; }
+      .ld-in { font-size: 13px; font-weight: 700; color: #059669; }
+      .ld-out { font-size: 13px; font-weight: 700; color: #e11d48; }
+      @container ledger (max-width: 760px) {
+        #ledger-tbody > tr.ledger-day { display: block; padding: 0; }
+        #ledger-tbody > tr.ledger-day > td { display: block; }
+      }

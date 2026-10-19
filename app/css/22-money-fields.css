@@ -1,0 +1,6 @@
+      .ip-field.has-calc > input { padding-right: 46px; }
+      .ip-field.fl.has-calc > span:first-child { max-width: calc(100% - 52px); overflow: hidden; }
+      .fl-calc { position: absolute; right: 4px; top: 4px; width: 38px; height: 36px; border-radius: 10px; font-size: 17px; line-height: 1; display: flex; align-items: center; justify-content: center; background: transparent; }
+      .fl-calc:hover, .fl-calc:focus-visible { background: #ecfdf5; outline: 2px solid #10b981; outline-offset: -2px; }
+      .dark .fl-calc:hover, .dark .fl-calc:focus-visible { background: rgba(16,185,129,.15); }
+      #aifico-calculator-overlay { z-index: 10001 !important; }

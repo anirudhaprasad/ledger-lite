@@ -1,0 +1,32 @@
+      .gp-cta { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 14px 16px; border-radius: 16px; background: linear-gradient(135deg,#ecfdf5,#d1fae5); border: 1px solid #a7f3d0; }
+      .dark .gp-cta { background: rgba(16,185,129,.12); border-color: #065f46; }
+      .gp-cta > svg:first-child { width: 26px; height: 26px; color: #059669; flex-shrink: 0; }
+      .gp-cta span { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+      .gp-cta small { font-size: 12px; color: #475569; } .dark .gp-cta small { color: #cbd5e1; }
+      .gp-types { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+      .gp-type input { position: absolute; opacity: 0; pointer-events: none; }
+      .gp-type span { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; }
+      .dark .gp-type span { border-color: #334155; }
+      .gp-type span svg { width: 20px; height: 20px; color: #059669; }
+      .gp-type input:checked + span { border-color: #059669; background: #ecfdf5; color: #065f46; box-shadow: 0 0 0 1px #059669 inset; }
+      .dark .gp-type input:checked + span { background: rgba(16,185,129,.15); color: #a7f3d0; }
+      .gp-type input:focus-visible + span { outline: 2px solid #10b981; outline-offset: 2px; }
+      .gp-hint { display: block; font-size: 11px; color: #64748b; font-weight: 400; }
+      #gp-form .ip-two { align-items: start; }
+      #gp-loan legend label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #334155; }
+      .dark #gp-loan legend label { color: #e2e8f0; }
+      #gp-loan:has(input[name=useLoan]:not(:checked)) > :not(legend) { display: none; }
+      .gp-res { display: flex; flex-direction: column; gap: 10px; }
+      .gp-big { font-size: 18px !important; color: #047857; } .dark .gp-big { color: #6ee7b7; }
+      .gp-verdict { font-size: 13px; font-weight: 600; padding: 10px 12px; border-radius: 12px; }
+      .gp-ok { background: #d1fae5; color: #065f46; } .gp-warn { background: #fef3c7; color: #92400e; } .gp-bad { background: #ffe4e6; color: #9f1239; } .gp-neutral { background: #f1f5f9; color: #334155; }
+      .gp-ways { font-size: 13px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; } .dark .gp-ways { border-color: #334155; }
+      .gp-ways ul { list-style: disc; padding-left: 18px; margin-top: 6px; display: flex; flex-direction: column; gap: 4px; }
+      .gp-spend { font-size: 13px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; } .dark .gp-spend { border-color: #334155; }
+      .gp-spend summary { cursor: pointer; font-weight: 600; }
+      .gp-row, .gp-cats li { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; }
+      .gp-row { margin-top: 4px; } .gp-cats { margin-top: 6px; border-top: 1px dashed #cbd5e1; padding-top: 6px; }
+      .gp-flex { font-style: normal; font-size: 10px; font-weight: 700; color: #92400e; background: #fef3c7; padding: 1px 5px; border-radius: 5px; margin-left: 4px; }
+      .gp-card { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px dashed #cbd5e1; padding-top: 10px; font-size: 12px; }
+      .gp-card span, .gp-card small { display: block; color: #64748b; } .gp-card b { display: block; font-size: 13px; overflow-wrap: anywhere; }
+      .gp-card .s-btn { min-height: 38px; font-size: 13px; flex-shrink: 0; }

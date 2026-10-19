@@ -1,0 +1,11 @@
+/* The page title and its one-line summary live in the top bar; the band below only carries page tools (ledger search/filters/totals, dashboard totals) */
+.hdr-title { display: flex; flex-direction: column; justify-content: center; min-width: 0; line-height: 1.15; }
+.hdr-title #tab-title { font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0; }
+.hdr-title #ptb-meta { font-size: 11.5px; font-weight: 500; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hdr-title #ptb-meta:empty { display: none; }
+#page-title-bar .ptb-row { display: none !important; }
+#page-title-bar:not(:has(#ptb-tools > [data-ptb]:not([hidden]))) { display: none !important; }
+#page-title-bar { padding-top: 8px !important; }
+#app-main-header #header-page-action { display: flex; align-items: center; }
+#app-main-header #header-page-action[hidden] { display: none; }
+@media (max-width: 640px) { .hdr-title #tab-title { font-size: 16px; } #app-main-header .hdr-action span { display: none; } #app-main-header .hdr-action { padding: 0 10px; } }

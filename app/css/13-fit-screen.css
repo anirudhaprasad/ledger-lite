@@ -1,0 +1,19 @@
+      /* Use the screen's full height on phones whose browser bars come and go */
+      @supports (height: 100dvh) { html, body { height: 100dvh; } }
+      /* Page gutters scale with the screen: 8px phones, 16px tablets, 24px PC */
+      #app-scroll { padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); padding-top: 24px; }
+      @media (max-width: 1023px) { #app-scroll { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-top: 16px; } }
+      @media (max-width: 639px) {
+        #app-scroll { padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); padding-top: 8px; }
+        .tab-panel .p-6 { padding: 12px !important; }
+        .tab-panel.space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 12px !important; }
+        .tab-panel .rounded-2xl { border-radius: 14px; }
+        .set-stack { gap: 12px; }
+        .set-card { padding: 14px 12px; }
+        #app-main-header { padding-left: max(12px, env(safe-area-inset-left, 0px)) !important; padding-right: max(12px, env(safe-area-inset-right, 0px)) !important; }
+      }
+      .set-stack { max-width: none; }
+      /* PC: settings use the full width in two columns instead of one narrow column */
+      @media (min-width: 1024px) {
+        .set-stack { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); align-items: start; max-width: none; }
+      }

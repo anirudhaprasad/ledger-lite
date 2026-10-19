@@ -1,0 +1,11 @@
+      /* Project step information: the detail name sits on the box border like a field label; the value fills the box */
+      .pj-frow { display: block !important; position: relative; margin: 14px 0 8px; border: 0 !important; padding: 0 !important; }
+      .pj-frow .pj-fvalue { display: block; width: 100%; min-height: 48px !important; padding: 10px 46px 6px 12px; border-radius: 12px; border: 1px solid #cbd5e1; font-size: 15px !important; background: #fff; }
+      .pj-frow .pj-flabel { position: absolute; left: 10px; top: -9px; z-index: 1; height: 18px; min-height: 0 !important; padding: 0 4px; border: 0; border-radius: 4px; background: #fff; font-size: 11px !important; font-weight: 600; color: #475569; field-sizing: content; min-width: 96px; max-width: calc(100% - 64px); }
+      .pj-frow .pj-flabel::placeholder { font-size: 11px; font-weight: 500; color: #94a3b8; }
+      .pj-frow .pj-flabel:focus { outline: 2px solid #10b981; outline-offset: 1px; color: #047857; }
+      .pj-frow:focus-within .pj-fvalue { border-color: #10b981; box-shadow: 0 0 0 1px #10b981; }
+      .pj-frow .pj-x { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; }
+      .dark .pj-frow .pj-fvalue { background: #1e293b; border-color: #334155; color: #f1f5f9; }
+      .dark .pj-frow .pj-flabel { background: #0f172a; color: #cbd5e1; }
+      .dark .pj-frow .pj-flabel:focus { color: #6ee7b7; }

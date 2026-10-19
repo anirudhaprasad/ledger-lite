@@ -1,0 +1,50 @@
+/* Shared & Split → "Who owes whom?" and "Suggested payments": fit the screen instead of scrolling sideways.
+   Fonts and cell spacing shrink with the screen; amounts never break; names may wrap. Other tables are unchanged. */
+#panel-shared .ss-tablewrap:has(> table.ss-fit) { overflow-x: visible !important; }
+#panel-shared table.ss-fit { min-width: 0 !important; width: 100% !important; table-layout: auto; }
+#panel-shared table.ss-fit th, #panel-shared table.ss-fit td { white-space: normal !important; padding: 7px 10px !important; font-size: 13px !important; line-height: 1.25; vertical-align: middle; }
+#panel-shared table.ss-fit th { font-size: 12px !important; }
+#panel-shared table.ss-fit td.r, #panel-shared table.ss-fit th.r { white-space: nowrap !important; }
+#panel-shared table.ss-fit td:first-child, #panel-shared table.ss-fit th:first-child { min-width: 0 !important; overflow-wrap: anywhere !important; }
+#panel-shared table.ss-fit small { display: block; font-size: 10px; font-weight: 600; letter-spacing: .02em; opacity: .75; line-height: 1.1; }
+#panel-shared table.ss-pay td:last-child { width: 1%; white-space: nowrap !important; }
+#panel-shared table.ss-pay .ss-btn { min-height: 30px; padding: 0 10px; font-size: 12px; }
+@media (max-width: 640px) {
+  #panel-shared .ss-card:has(table.ss-fit) { padding: 10px !important; gap: 8px; }
+  #panel-shared table.ss-fit th, #panel-shared table.ss-fit td { padding: 6px 4px !important; font-size: clamp(10.5px, 3.1vw, 12.5px) !important; }
+  #panel-shared table.ss-fit th { font-size: clamp(10px, 2.8vw, 11.5px) !important; }
+  #panel-shared table.ss-fit th:first-child, #panel-shared table.ss-fit td:first-child { padding-left: 8px !important; }
+  #panel-shared table.ss-fit th:last-child, #panel-shared table.ss-fit td:last-child { padding-right: 8px !important; }
+  #panel-shared table.ss-fit small { font-size: 9px; }
+  #panel-shared table.ss-pay .ss-btn { min-height: 28px; padding: 0 7px; font-size: 11px; border-radius: 8px; }
+}
+
+/* Names wrap between words only, never inside a word */
+#panel-shared table.ss-fit td:first-child, #panel-shared table.ss-fit th:first-child, #panel-shared table.ss-pay td:nth-child(2) { overflow-wrap: normal !important; word-break: normal !important; hyphens: none; }
+/* Phones: each person becomes a compact row (name on top, four figures below) so nothing is squeezed */
+@media (max-width: 480px) {
+  #panel-shared table.ss-owes, #panel-shared table.ss-owes tbody { display: block; width: 100%; }
+  #panel-shared table.ss-owes thead { display: none; }
+  #panel-shared table.ss-owes tbody tr { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px 6px; padding: 8px 10px; border-top: 1px solid #f1f5f9; }
+  .dark #panel-shared table.ss-owes tbody tr { border-color: #1e293b; }
+  #panel-shared table.ss-owes tbody tr:first-child { border-top: 0; }
+  #panel-shared table.ss-owes td { padding: 0 !important; border: 0 !important; text-align: left !important; font-size: clamp(11px, 3.2vw, 12.5px) !important; }
+  #panel-shared table.ss-owes td:first-child { grid-column: 1 / -1; font-size: 13px !important; padding: 0 0 2px 0 !important; }
+  #panel-shared table.ss-owes td[data-label]::before { content: attr(data-label); display: block; font-size: 9.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #94a3b8; line-height: 1.3; }
+  #panel-shared table.ss-owes td[data-label="Settled"] small { display: inline; margin-right: 3px; }
+  #panel-shared table.ss-owes td.ss-bal small { font-size: 9.5px; text-transform: uppercase; letter-spacing: .04em; line-height: 1.3; }
+}
+
+@media (max-width: 480px) {
+  #panel-shared table.ss-pay, #panel-shared table.ss-pay tbody { display: block; width: 100%; }
+  #panel-shared table.ss-pay thead { display: none; }
+  #panel-shared table.ss-pay tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 8px 10px; border-top: 1px solid #f1f5f9; }
+  .dark #panel-shared table.ss-pay tbody tr { border-color: #1e293b; }
+  #panel-shared table.ss-pay tbody tr:first-child { border-top: 0; }
+  #panel-shared table.ss-pay td { padding: 0 !important; border: 0 !important; }
+  #panel-shared table.ss-pay td:nth-child(1) { grid-column: 1; grid-row: 1; font-weight: 600; font-size: 13px !important; padding-left: 0 !important; }
+  #panel-shared table.ss-pay td:nth-child(2) { grid-column: 1; grid-row: 2; font-size: 11.5px !important; color: #64748b; }
+  #panel-shared table.ss-pay td:nth-child(2)::before { content: "pays → "; }
+  #panel-shared table.ss-pay td:nth-child(3) { grid-column: 2; grid-row: 1; text-align: right; font-size: 13px !important; }
+  #panel-shared table.ss-pay td:nth-child(4) { grid-column: 2; grid-row: 2; text-align: right; width: auto; padding-right: 0 !important; }
+}

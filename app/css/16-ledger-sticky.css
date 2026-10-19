@@ -1,0 +1,19 @@
+      /* Search and totals stay pinned while the transaction list scrolls */
+      #ledger-sticky { position: sticky; top: -24px; z-index: 25; display: flex; flex-direction: column; gap: 8px; background: #fff; padding: 8px 0; margin-top: -8px; border-bottom: 1px solid #e2e8f0; }
+      .dark #ledger-sticky { background: #0f172a; border-color: #1e293b; }
+      @media (max-width: 1023px) { #ledger-sticky { top: -16px; } }
+      @media (max-width: 639px) { #ledger-sticky { top: -8px; } }
+      #ledger-sticky { box-shadow: 0 -24px 0 0 #fff; }
+      .dark #ledger-sticky { box-shadow: 0 -24px 0 0 #0f172a; }
+      #ledger-sticky #ledger-search { padding-right: 56px; }
+      .ledger-count { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 700; color: #475569; background: #f1f5f9; border-radius: 999px; padding: 2px 8px; }
+      .dark .ledger-count { background: #1e293b; color: #cbd5e1; }
+      #ledger-totals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px 12px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px 12px; }
+      .dark #ledger-totals { border-color: #334155; }
+      #ledger-totals > div { min-width: 0; }
+      #ledger-totals span { display: block; font-size: 11px; color: #64748b; }
+      #ledger-totals b { display: block; font-size: 15px; font-weight: 700; overflow-wrap: anywhere; line-height: 1.25; }
+      @container ledger (max-width: 760px) {
+        #ledger-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 6px 10px; }
+        #ledger-totals b { font-size: 14px; }
+      }

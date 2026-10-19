@@ -1,0 +1,6 @@
+      .pro-badge { display: inline-block; font-style: normal; font-size: 11px; font-weight: 800; letter-spacing: .04em; color: #fff; background: linear-gradient(135deg,#10b981,#047857); padding: 2px 8px; border-radius: 999px; }
+      .pro-badge-sm { font-size: 9px; padding: 1px 6px; margin-left: auto; }
+      .more-item .pro-badge-sm { margin: 0; }
+      .pro-gate { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+      .pro-gate .ip-form-actions { width: 100%; margin-top: 6px; }
+      body.edition-lite .edition-pro-only { display: none !important; }

@@ -1,0 +1,20 @@
+      @media (max-width: 640px) { .tab-panel .p-6 { padding: 14px !important; } }
+      #panel-ledger { container-type: inline-size; container-name: ledger; }
+      @container ledger (max-width: 760px) {
+        #ledger-filter-bar > select, #ledger-filter-bar > label { flex: 1 1 45%; min-width: 0; }
+        #ledger-filter-bar select, #ledger-filter-bar input[type=date] { width: 100%; min-width: 0; }
+        #ledger-table { min-width: 0 !important; }
+        #ledger-table thead { display: none; }
+        #ledger-tbody { display: block; }
+        #ledger-tbody > tr { display: grid; grid-template-columns: 28px minmax(0,1fr) auto; column-gap: 8px; row-gap: 2px; padding: 10px 0; }
+        #ledger-tbody > tr > td { padding: 0 !important; min-width: 0; overflow-wrap: anywhere; }
+        #ledger-tbody > tr > td:nth-child(1) { grid-column: 1; grid-row: 1 / 5; padding-top: 2px !important; }
+        #ledger-tbody > tr > td:nth-child(4) { grid-column: 2; grid-row: 1; font-weight: 500; }
+        #ledger-tbody > tr > td:nth-child(7) { grid-column: 3; grid-row: 1; text-align: right; white-space: nowrap; font-weight: 600; }
+        #ledger-tbody > tr > td:nth-child(2) { grid-column: 2; grid-row: 2; font-size: 12px; color: #64748b; white-space: nowrap; }
+        #ledger-tbody > tr > td:nth-child(3) { grid-column: 3; grid-row: 2; text-align: right; }
+        #ledger-tbody > tr > td:nth-child(5) { grid-column: 2; grid-row: 3; font-size: 12px; }
+        #ledger-tbody > tr > td:nth-child(6) { grid-column: 3; grid-row: 3; text-align: right; font-size: 12px; max-width: 42vw; }
+        #ledger-tbody > tr > td:nth-child(8) { grid-column: 2 / 4; grid-row: 4; text-align: left; }
+        #ledger-tbody > tr > td[colspan] { grid-column: 1 / 4; grid-row: auto; text-align: center; }
+            }

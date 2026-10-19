@@ -1,0 +1,41 @@
+/* ---------- Device fit ---------- */
+/* Stop Android Chrome "font boosting" from enlarging text in wide blocks (the cause of oversized, overflowing text on phones) */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+h1, h2, h3, h4, .set-title, .ss-card h4 { overflow-wrap: anywhere; }
+/* Dashboard: Recent Transactions and Payment Reminders stack on phones and tablets */
+@media (max-width: 1023px) { #panel-dashboard #dash-bottom { grid-template-columns: minmax(0, 1fr) !important; } #panel-dashboard #dash-bottom > * { grid-column: auto !important; min-width: 0; } }
+#dash-bottom .flex.items-center.justify-between { flex-wrap: wrap; gap: 6px; }
+#dash-bottom table { table-layout: auto; }
+@media (max-width: 640px) {
+  #dash-bottom table thead th:nth-child(3), #dash-bottom table thead th:nth-child(4),
+  #dashboard-tx-tbody td:nth-child(3), #dashboard-tx-tbody td:nth-child(4) { display: none; }
+  #dash-bottom table th, #dashboard-tx-tbody td { padding-right: 6px; font-size: 12.5px; }
+  #dash-bottom .overflow-x-auto { overflow-x: visible; }
+}
+/* ---------- Minimal, Notion-like surface (light theme) ---------- */
+html:not(.dark) body, html:not(.dark) #app-scroll, html:not(.dark) main { background: #fbfbfa !important; }
+html:not(.dark) body { color: #37352f; }
+html:not(.dark) .tab-panel .rounded-2xl, html:not(.dark) .set-card, html:not(.dark) .ss-card, html:not(.dark) .pj-card, html:not(.dark) .ip-card, html:not(.dark) .kpi-tile, html:not(.dark) #kpi-grid > button, html:not(.dark) #cmp-grid > button {
+  border-color: #ebebea !important; box-shadow: none !important; border-radius: 12px !important; background: #fff; }
+html:not(.dark) #kpi-grid > button, html:not(.dark) .kpi-tile { border-left-width: 1px !important; border-left-color: #ebebea !important; }
+html:not(.dark) .tab-panel h2, html:not(.dark) .tab-panel h3, html:not(.dark) .tab-panel h4, html:not(.dark) .set-title, html:not(.dark) .hdr-title #tab-title { font-weight: 600 !important; color: #37352f; letter-spacing: -.005em; }
+html:not(.dark) .text-slate-500, html:not(.dark) .set-desc, html:not(.dark) .ss-sub, html:not(.dark) .ip-hint, html:not(.dark) .hdr-title #ptb-meta { color: #787774 !important; }
+html:not(.dark) #app-main-header, html:not(.dark) #page-title-bar { background: #fff !important; border-color: #ebebea !important; box-shadow: none !important; }
+html:not(.dark) .s-secondary, html:not(.dark) .ss-btn, html:not(.dark) .lh-btn { border-color: #e3e3e1 !important; box-shadow: none !important; }
+html:not(.dark) .s-secondary:hover, html:not(.dark) .ss-btn:hover, html:not(.dark) .lh-btn:hover { background: #f1f1ef !important; }
+html:not(.dark) .s-btn, html:not(.dark) .hdr-action, html:not(.dark) .ss-btn { border-radius: 8px !important; font-weight: 500 !important; }
+html:not(.dark) .tab-panel input:not([type=checkbox]):not([type=radio]), html:not(.dark) .tab-panel select, html:not(.dark) #modal-box input:not([type=checkbox]):not([type=radio]), html:not(.dark) #modal-box select { border-color: #e3e3e1 !important; border-radius: 8px !important; box-shadow: none !important; }
+html:not(.dark) #modal-box { border-radius: 14px !important; box-shadow: 0 8px 30px rgba(15,15,15,.12) !important; border: 1px solid #ebebea; }
+html:not(.dark) #bottom-nav { background: #fff !important; border-top-color: #ebebea !important; box-shadow: none !important; }
+html:not(.dark) #bottom-nav button.active { background: #f1f1ef !important; color: #37352f !important; }
+html:not(.dark) .ss-table th, html:not(.dark) #ledger-table thead th { background: #fbfbfa !important; color: #787774 !important; }
+/* Categories: compact Edit button */
+#cat-edit-toggle { min-height: 34px; padding: 0 14px; white-space: nowrap; flex-shrink: 0; }
+
+/* Notion-like tokens for the light theme: flat, warm-neutral, no drop shadows, no coloured accent bars */
+html:not(.dark) { --af-bg:#fbfbfa; --af-card:#fff; --af-line:#ebebea; --af-ink:#37352f; --af-muted:#787774; --af-shadow:none; }
+html:not(.dark) #panel-dashboard #kpi-grid > button:before { display: none !important; }
+html:not(.dark) .tab-panel [class*="rounded-2xl"] { border-radius: 12px !important; }
+html:not(.dark) #panel-dashboard #dashboard-month-comparison { border-radius: 12px !important; }
+html:not(.dark) .tab-panel .font-bold { font-weight: 600 !important; }
+html:not(.dark) .tab-panel .uppercase { letter-spacing: .04em; }

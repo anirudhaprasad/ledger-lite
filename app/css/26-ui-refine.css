@@ -1,0 +1,32 @@
+      /* Title bar: page action at the far right; the transaction "+ Add" stays to its left on PC (it is the floating + on phones) */
+      #app-main-header > div:last-child { display: flex; align-items: center; gap: 10px; flex-direction: row-reverse; }
+      #header-page-action[hidden] { display: none; }
+      .hdr-action { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 12px; background: #059669; color: #fff; font-size: 14px; font-weight: 600; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+      .hdr-action:hover { background: #047857; } .hdr-action svg { width: 16px; height: 16px; }
+      body.has-page-action:not(.nav-bottom) #app-main-header button[onclick="app.openTransactionModal()"] { background: transparent; color: #047857; border: 1px solid #a7f3d0; box-shadow: none; }
+      body.has-page-action:not(.nav-bottom) #app-main-header button[onclick="app.openTransactionModal()"] .header-add-label::after { content: " transaction"; }
+      .moved-to-header, .dup-title { display: none !important; }
+      .gp-cta small { display: none; }
+      /* Summary cards: one style on Dashboard and Accounts */
+      #kpi-grid > button, #cmp-grid > button, .kpi-tile { display: flex; flex-direction: column; justify-content: flex-start; gap: 4px; min-height: 112px; padding: 16px !important; border-radius: 16px; border: 1px solid #e2e8f0; background: #fff; text-align: left; }
+      .dark #kpi-grid > button, .dark #cmp-grid > button, .dark .kpi-tile { background: #0f172a !important; border-color: #1e293b !important; }
+      #kpi-grid > button > span:first-child, .kpi-tile > div:first-child { font-size: 11px !important; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #64748b !important; }
+      #kpi-grid > button > div:nth-child(2), .kpi-tile > div:nth-child(2) { font-size: 22px !important; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
+      #kpi-grid > button > div:nth-child(3), .kpi-tile > div:nth-child(3) { font-size: 11px !important; color: #64748b !important; margin-top: auto; }
+      #kpi-grid { gap: 16px !important; }
+      .kpi-row { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 4px; }
+      #acct-kpis .kpi-tile:nth-child(1) > div:nth-child(2) { color: #059669; } #acct-kpis .kpi-tile:nth-child(2) > div:nth-child(2) { color: #e11d48; }
+      #acct-kpis .kpi-tile:nth-child(3) > div:nth-child(2) { color: #d97706; } #acct-kpis .kpi-tile:nth-child(4) > div:nth-child(2) { color: #0f172a; } .dark #acct-kpis .kpi-tile:nth-child(4) > div:nth-child(2) { color: #f1f5f9; }
+      @media (max-width: 1023px) and (min-width: 641px) { .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+      /* Phones: cards side by side, compact */
+      @media (max-width: 640px) {
+        #kpi-grid, .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+        #cmp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+        #cmp-grid > button:last-child:nth-child(odd) { grid-column: 1 / -1; }
+        #kpi-grid > button, #cmp-grid > button, .kpi-tile { min-height: 88px; padding: 12px !important; }
+        #kpi-grid > button > div:nth-child(2), .kpi-tile > div:nth-child(2), #cmp-grid > button > div:nth-child(2) { font-size: 17px !important; }
+        #kpi-grid > button > div:nth-child(3), .kpi-tile > div:nth-child(3) { display: none; }
+        #cmp-grid > button { font-size: 12px; }
+        .hdr-action { min-height: 36px; padding: 0 10px; font-size: 13px; }
+        .hdr-action span { max-width: 32vw; overflow: hidden; text-overflow: ellipsis; }
+      }

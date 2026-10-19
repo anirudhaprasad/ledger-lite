@@ -1,0 +1,38 @@
+      .ip-add-one { width: 100%; }
+      @media (min-width: 640px) { .ip-add-one { width: auto; justify-self: start; } }
+      .ip-state { font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 10px; background: #f1f5f9; color: #475569; overflow-wrap: anywhere; }
+      .ip-state-active { background: #d1fae5; color: #047857; }
+      .ip-state-matured, .ip-state-closed { background: #e0f2fe; color: #0369a1; }
+      .dark .ip-state { background: #1e293b; color: #cbd5e1; }
+      .ip-actions-2 { grid-template-columns: 1fr 1fr; }
+      .yr-item > .min-w-0 { flex: 1 1 220px; }
+      .yr-item p { overflow-wrap: anywhere; }
+      .yr-side { margin-left: auto; }
+      #panel-yearly div:has(> h3 + div.flex.gap-2) { flex-wrap: wrap; gap: 12px; }
+      @media (max-width: 640px) {
+        #panel-yearly h3 + div.flex.gap-2 { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+        #panel-yearly h3 + div.flex.gap-2 > button { min-height: 44px; }
+      }
+      .cb { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 6px; font-size: 10px; font-weight: 700; vertical-align: middle; }
+      .cb-settled { background: #d1fae5; color: #047857; } .cb-unsettled { background: #fef3c7; color: #92400e; } .cb-unbilled { background: #e0f2fe; color: #0369a1; } .cb-payment { background: #e2e8f0; color: #334155; }
+      .cs-acc { border-top: 1px dashed #cbd5e1; padding-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+      .cs-acc-figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px 10px; }
+      .cs-acc-figs span, .cs-figs span { display: block; font-size: 11px; color: #64748b; }
+      .cs-acc-figs b { font-size: 14px; }
+      .cs-acc-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .cs-acc-btns .s-btn { min-height: 40px; font-size: 13px; }
+      .cs-acc-btns .s-btn:only-child { grid-column: 1 / -1; }
+      .cs-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; max-height: 50dvh; overflow: auto; }
+      .cs-stmt { border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; }
+      .dark .cs-stmt { border-color: #1e293b; }
+      .cs-stmt summary { display: flex; justify-content: space-between; gap: 10px; cursor: pointer; list-style: none; }
+      .cs-stmt summary::-webkit-details-marker { display: none; }
+      .cs-stmt summary small { display: block; font-size: 11px; color: #64748b; }
+      .cs-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+      .cs-state { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 6px; }
+      .cs-paid { background: #d1fae5; color: #047857; } .cs-due { background: #fef3c7; color: #92400e; } .cs-overdue { background: #ffe4e6; color: #be123c; } .cs-unbilled { background: #e0f2fe; color: #0369a1; }
+      .cs-figs { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin-top: 8px; font-size: 13px; }
+      .cs-figs span { font-size: 12px; }
+      .cs-tx { margin-top: 8px; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+      .cs-tx li { display: flex; justify-content: space-between; gap: 8px; } .cs-tx li span { min-width: 0; overflow-wrap: anywhere; color: #475569; }
+      .dark .cs-tx li span { color: #cbd5e1; }

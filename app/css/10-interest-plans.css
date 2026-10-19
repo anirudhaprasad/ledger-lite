@@ -1,0 +1,41 @@
+      .ip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 16px; }
+      .ip-empty { font-size: 14px; color: #64748b; }
+      .ip-card { border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+      .dark .ip-card { border-color: #1e293b; }
+      .ip-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+      .ip-name { font-weight: 700; overflow-wrap: anywhere; }
+      .ip-sub { font-size: 12px; color: #64748b; }
+      .ip-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+      .ip-loan { background: #ffe4e6; color: #be123c; } .ip-fd { background: #d1fae5; color: #047857; } .ip-rd { background: #e0f2fe; color: #0369a1; }
+      .ip-facts { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px 12px; }
+      .ip-fact span { display: block; font-size: 11px; color: #64748b; }
+      .ip-fact b { font-size: 14px; overflow-wrap: anywhere; }
+      .ip-pos { color: #059669; } .ip-neg { color: #e11d48; }
+      .ip-actions { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+      .ip-actions .s-btn { min-height: 40px; font-size: 13px; padding: 0 6px; }
+      .ip-form { display: flex; flex-direction: column; gap: 12px; padding-top: 12px; }
+      .ip-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 500; min-width: 0; }
+      .ip-field input, .ip-field select { min-height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid #cbd5e1; background: #fff; font-size: 15px; width: 100%; }
+      .dark .ip-field input, .dark .ip-field select { background: #1e293b; border-color: #334155; color: #f1f5f9; }
+      .ip-two { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; }
+      .ip-fieldset { border: 1px dashed #cbd5e1; border-radius: 12px; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+      .ip-fieldset legend { font-size: 12px; color: #64748b; padding: 0 4px; }
+      .ip-preview { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; padding: 12px; border-radius: 12px; background: #ecfdf5; font-size: 13px; }
+      .dark .ip-preview { background: rgba(16,185,129,.12); }
+      .ip-preview span { display: block; font-size: 11px; color: #64748b; }
+      .ip-preview b { font-size: 15px; }
+      .ip-preview > span { grid-column: 1 / -1; }
+      .ip-hint { font-size: 12px; color: #64748b; }
+      .ip-form-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .ip-table-wrap { margin-top: 12px; max-height: 55dvh; overflow: auto; border: 1px solid #e2e8f0; border-radius: 12px; }
+      .dark .ip-table-wrap { border-color: #1e293b; }
+      .ip-table { width: 100%; font-size: 12px; border-collapse: collapse; }
+      .ip-table th { position: sticky; top: 0; background: #f8fafc; text-align: left; padding: 8px; font-weight: 600; color: #475569; white-space: nowrap; }
+      .dark .ip-table th { background: #1e293b; color: #cbd5e1; }
+      .ip-table td { padding: 6px 8px; border-top: 1px solid #f1f5f9; white-space: nowrap; }
+      .dark .ip-table td { border-color: #1e293b; }
+      .ip-table .r { text-align: right; }
+      .ip-table tr.ip-done td { background: #f8fafc; color: #64748b; }
+      .dark .ip-table tr.ip-done td { background: rgba(30,41,59,.5); }
+      .ip-pre { font-size: 11px; color: #059669; }
+      @media (max-width: 440px) { .ip-table .ip-emi, .ip-table .ip-k { display: none; } .ip-table td, .ip-table th { padding-left: 6px; padding-right: 6px; } }

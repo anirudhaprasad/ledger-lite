@@ -1,0 +1,98 @@
+/* Accounts & Wallets: cards size to content; use a consistent grid without stretching
+   every card to the height of the tallest card in the row. */
+#accounts-grid {
+  align-items: start !important;
+  grid-auto-flow: row;
+  gap: 12px !important;
+}
+#accounts-grid > #acct-kpis {
+  grid-column: 1 / -1 !important;
+  width: 100%;
+  min-width: 0;
+}
+#accounts-grid > div:not(#acct-kpis) {
+  align-self: start !important;
+  height: auto !important;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 12px !important;
+}
+#accounts-grid > div:not(#acct-kpis) > .flex.flex-wrap {
+  gap: 6px 12px;
+}
+#accounts-grid > div:not(#acct-kpis) > .flex.flex-wrap button {
+  min-height: 26px;
+  line-height: 1.25;
+}
+#accounts-grid > div:not(#acct-kpis) > .flex.items-center.justify-between {
+  align-items: flex-start;
+}
+#accounts-grid > div:not(#acct-kpis) > .flex.items-center.justify-between > span {
+  flex: 0 1 auto;
+  max-width: 52%;
+  white-space: normal;
+  text-align: center;
+  overflow-wrap: normal; /* wrap between words only, never mid-word */
+}
+/* Shared & Split: the card and grid must be allowed to shrink to the viewport.
+   Keep the table inside a horizontal scroller on small screens so text never wraps
+   one character per line. */
+#panel-shared .ss-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)) !important;
+  align-items: start;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+#panel-shared .ss-card,
+#panel-shared .ss-card.ss-wide {
+  min-width: 0 !important;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+#panel-shared .ss-tablewrap {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+}
+#panel-shared .ss-table {
+  width: 100%;
+  min-width: 560px;
+  table-layout: auto;
+  border-collapse: collapse;
+}
+#panel-shared .ss-table th,
+#panel-shared .ss-table td {
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+#panel-shared .ss-table th:first-child,
+#panel-shared .ss-table td:first-child {
+  min-width: 105px;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
+}
+#panel-shared .ss-table th {
+  line-height: 1.35;
+}
+@media (max-width: 640px) {
+  #accounts-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)) !important;
+  }
+  #panel-shared .ss-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  #panel-shared .ss-table th,
+  #panel-shared .ss-table td {
+    padding: 8px 7px;
+    font-size: 12px;
+  }
+}

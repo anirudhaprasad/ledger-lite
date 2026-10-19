@@ -1,0 +1,38 @@
+/* v1.2610.84M: richer, consistent icon colors inspired by the approved visual reference.
+   CSS-only presentation layer; no financial logic, data, or navigation handlers changed. */
+:root{--ico-blue:#2878e8;--ico-teal:#079b91;--ico-green:#16a875;--ico-red:#ef476f;--ico-orange:#f59e0b;--ico-purple:#8555ef;--ico-cyan:#0ea5e9;--ico-pink:#ec4899}
+/* Sidebar and bottom navigation use clear, consistent semantic colors. */
+#app-sidebar .nav-btn[data-tab="dashboard"] i,#bottom-nav button[data-tab="dashboard"] svg{color:var(--ico-teal)!important}
+#app-sidebar .nav-btn[data-tab="ledger"] i,#bottom-nav button[data-tab="ledger"] svg{color:var(--ico-blue)!important}
+#app-sidebar .nav-btn[data-tab="budgets"] i{color:var(--ico-orange)!important}
+#app-sidebar .nav-btn[data-tab="accounts"] i,#bottom-nav button[data-tab="accounts"] svg{color:var(--ico-green)!important}
+#app-sidebar .nav-btn[data-tab="yearly"] i,#bottom-nav button[data-tab="yearly"] svg{color:var(--ico-purple)!important}
+#app-sidebar .nav-btn[data-tab="shared"] i{color:var(--ico-pink)!important}
+#app-sidebar .nav-btn[data-tab="settings"] i,#app-sidebar .nav-btn[data-tab="configuration"] i{color:var(--ico-cyan)!important}
+#bottom-nav button.active svg{filter:drop-shadow(0 2px 4px currentColor)}
+/* Existing icon-bearing square/circle elements become softly tinted icon tiles. */
+#panel-dashboard button i[data-lucide],#panel-dashboard button svg[data-lucide],
+#panel-accounts [class*="rounded"]>i[data-lucide],#panel-accounts [class*="rounded"]>svg[data-lucide],
+#panel-settings [class*="rounded"]>i[data-lucide],#panel-settings [class*="rounded"]>svg[data-lucide],
+#panel-budgets [class*="rounded"]>i[data-lucide],#panel-budgets [class*="rounded"]>svg[data-lucide],
+#panel-yearly [class*="rounded"]>i[data-lucide],#panel-yearly [class*="rounded"]>svg[data-lucide]{stroke-width:2.2}
+/* Add visual hierarchy without changing the dimensions of controls or cards. */
+#panel-dashboard [data-lucide="trending-up"],#panel-dashboard [data-lucide="chart-no-axes-combined"],#panel-dashboard [data-lucide="chart-line"]{color:var(--ico-green)!important}
+#panel-dashboard [data-lucide="wallet"],#panel-accounts [data-lucide="wallet"]{color:var(--ico-teal)!important}
+#panel-dashboard [data-lucide="receipt"],#panel-ledger [data-lucide="receipt"]{color:var(--ico-blue)!important}
+#panel-dashboard [data-lucide="pie-chart"],#panel-budgets [data-lucide="pie-chart"]{color:var(--ico-orange)!important}
+#panel-dashboard [data-lucide="piggy-bank"],#panel-accounts [data-lucide="piggy-bank"]{color:var(--ico-purple)!important}
+#panel-dashboard [data-lucide="credit-card"],#panel-accounts [data-lucide="credit-card"]{color:var(--ico-blue)!important}
+#panel-dashboard [data-lucide="arrow-left-right"]{color:var(--ico-cyan)!important}
+#panel-dashboard [data-lucide="users"],#panel-shared [data-lucide="users"]{color:var(--ico-pink)!important}
+#panel-settings [data-lucide="shield-check"],#panel-settings [data-lucide="lock-keyhole"]{color:var(--ico-green)!important}
+#panel-settings [data-lucide="database"],#panel-settings [data-lucide="hard-drive"]{color:var(--ico-blue)!important}
+#panel-settings [data-lucide="palette"],#panel-settings [data-lucide="sliders-horizontal"]{color:var(--ico-purple)!important}
+#panel-settings [data-lucide="message-square"],#panel-settings [data-lucide="messages-square"]{color:var(--ico-cyan)!important}
+#panel-ledger [data-lucide="shopping-cart"],#panel-ledger [data-lucide="shopping-bag"]{color:var(--ico-orange)!important}
+#panel-ledger [data-lucide="utensils"]{color:var(--ico-red)!important}
+#panel-ledger [data-lucide="car"]{color:var(--ico-purple)!important}
+#panel-ledger [data-lucide="banknote"],#panel-ledger [data-lucide="circle-dollar-sign"]{color:var(--ico-green)!important}
+/* Keep icon color contrast legible in dark mode. */
+.dark #app-sidebar .nav-btn i{filter:saturate(1.08) brightness(1.12)}
+.dark #bottom-nav button.active{color:#5eead4!important}

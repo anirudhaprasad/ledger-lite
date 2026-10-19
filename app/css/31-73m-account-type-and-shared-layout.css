@@ -1,0 +1,72 @@
+/* Account type badges: keep the label subordinate to account name and balance. */
+#accounts-grid > div:not(#acct-kpis) > .flex.items-center.justify-between > span {
+  font-size: 10px !important;
+  line-height: 1.2 !important;
+  font-weight: 500 !important;
+  padding: 3px 7px !important;
+  border-radius: 999px;
+  max-width: 48%;
+  white-space: normal;
+  overflow-wrap: normal;
+  text-align: center;
+}
+/* Shared & Split: place Who owes whom? in the same full-width row style as Suggested payments. */
+#panel-shared .ss-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  align-items: stretch;
+}
+#panel-shared .ss-grid > .ss-card:has(h4) {
+  min-width: 0 !important;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+#panel-shared .ss-grid > .ss-card:has(> h4:first-child) {
+  grid-column: 1 / -1 !important;
+}
+#panel-shared .ss-grid > .ss-card.ss-wide {
+  grid-column: 1 / -1 !important;
+}
+#panel-shared .ss-tablewrap {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  box-sizing: border-box;
+}
+#panel-shared .ss-table {
+  width: 100%;
+  min-width: 560px;
+  table-layout: auto;
+}
+@media (max-width: 640px) {
+  #panel-shared .ss-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+  #panel-shared .ss-grid > .ss-card:has(> h4:first-child),
+  #panel-shared .ss-grid > .ss-card.ss-wide {
+    grid-column: 1 / -1 !important;
+  }
+  /* Compact mobile spacing without shrinking the table text or hiding columns. */
+  #panel-shared .ss-card {
+    padding: 10px !important;
+    margin: 0 !important;
+  }
+  #panel-shared .ss-card h4 {
+    margin-top: 0 !important;
+    margin-bottom: 6px !important;
+    line-height: 1.3;
+  }
+  #panel-shared .ss-card .ss-sub {
+    margin-top: 3px !important;
+    margin-bottom: 5px !important;
+  }
+  #panel-shared .ss-table th,
+  #panel-shared .ss-table td {
+    padding: 6px 7px !important;
+  }
+  #panel-shared .ss-tablewrap {
+    margin-top: 4px !important;
+  }
+}

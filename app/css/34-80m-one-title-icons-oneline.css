@@ -1,0 +1,31 @@
+/* One page title per page: the PC header shows today's date (app level), not the page name again */
+.hdr-crumb::before { content: none !important; } .hdr-crumb { margin-left: 10px; font-weight: 500; }
+@media (min-width: 1024px) { .hdr-app { font-size: 0; } .hdr-app .hdr-crumb { font-size: 13px; margin-left: 0; color: #64748b; } }
+/* User Guide repeated the page name as its first heading */
+#panel-guide > section:first-child > h2 { display: none; }
+/* Backup & Settings: icons + ⓘ */
+#panel-settings .set-title { display: flex; align-items: center; gap: 8px; }
+#panel-settings .set-ic { width: 18px; height: 18px; color: #059669; flex-shrink: 0; }
+#panel-settings .set-danger .set-ic { color: #e11d48; }
+#panel-settings .set-info { margin-left: auto; width: 22px; height: 22px; border-radius: 999px; border: 1px solid #cbd5e1; font: italic 700 12px Georgia, serif; color: #475569; flex-shrink: 0; }
+#panel-settings .set-card.show-info .set-info { background: #ecfdf5; border-color: #10b981; color: #047857; }
+#panel-settings .set-info-text { display: none !important; }
+#panel-settings .set-card.show-info .set-info-text { display: block !important; }
+.dark #panel-settings .set-info { border-color: #475569; color: #cbd5e1; }
+/* Core Ledger on wide screens: search, filters and settings on one line; totals underneath */
+@container ledger (min-width: 900px) {
+  #ledger-sticky { flex-direction: row !important; flex-wrap: wrap; align-items: center; column-gap: 8px; row-gap: 8px; }
+  #ledger-sticky > .lh-row { display: contents; }
+  #ledger-sticky .lh-search { order: 1; flex: 1 1 0; min-width: 140px; }
+  #ledger-filter-toggle { display: none !important; }
+  #ledger-sticky .lh-icon { order: 3; }
+  #ledger-filters { order: 2; display: block !important; flex: 0 1 auto; }
+  #ledger-filters[hidden] { display: block !important; }
+  #ledger-chips { display: none !important; }
+  #ledger-totals { order: 4; flex: 1 1 100%; }
+  #ledger-filter-bar { flex-wrap: nowrap !important; gap: 6px !important; width: auto !important; }
+  #ledger-filter-bar select, #ledger-filter-bar input[type=date] { font-size: 13px !important; padding-top: 6px; padding-bottom: 6px; min-height: 38px; }
+  #ledger-filter-bar input[type=date] { width: 128px; }
+  #ledger-filter-bar select { max-width: 160px; }
+  #ledger-filter-bar label, #ledger-filter-bar span { font-size: 11px; white-space: nowrap; }
+}

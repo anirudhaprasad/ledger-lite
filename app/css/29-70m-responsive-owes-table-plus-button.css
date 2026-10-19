@@ -1,0 +1,63 @@
+/* Who owes whom? Preserve the original table layout. On narrow screens, scroll the table horizontally
+   rather than wrapping column headings and person names into single letters. */
+#panel-shared .ss-tablewrap {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto !important;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+#panel-shared .ss-table {
+  width: 100%;
+  min-width: 560px;
+  table-layout: auto;
+  border-collapse: collapse;
+}
+#panel-shared .ss-table th,
+#panel-shared .ss-table td {
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  white-space: nowrap;
+}
+#panel-shared .ss-table th:first-child,
+#panel-shared .ss-table td:first-child {
+  min-width: 105px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+#panel-shared .ss-table th { line-height: 1.35; }
+@media (max-width: 640px) {
+  #panel-shared .ss-card { min-width: 0; max-width: 100%; }
+  #panel-shared .ss-table { min-width: 560px; }
+  #panel-shared .ss-table th,
+  #panel-shared .ss-table td { padding: 8px 9px; font-size: 12px; }
+}
+/* Keep the existing Add transaction action, but show it as a simple plus icon.
+   Keep the page-specific action (e.g. Add Account) unchanged. */
+#app-main-header button[onclick="app.openTransactionModal()"] {
+  width: 42px !important;
+  min-width: 42px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  color: #fff !important;
+  border-radius: 11px !important;
+}
+#app-main-header button[onclick="app.openTransactionModal()"] .header-add-label {
+  display: none !important;
+}
+#app-main-header button[onclick="app.openTransactionModal()"] svg {
+  width: 19px !important;
+  height: 19px !important;
+  margin: 0 !important;
+  flex: 0 0 auto;
+}
+#app-main-header button[onclick="app.openTransactionModal()"] svg * {
+  stroke: currentColor !important;
+}

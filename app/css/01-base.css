@@ -1,0 +1,26 @@
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    
+        /* Responsive navigation drawer: collapsed by default on phones, persistent on desktop. */
+        @media (max-width: 1023px) {
+            #app-sidebar { position: fixed; inset: 0 auto 0 0; width: min(82vw, 18rem); height: 100dvh; transform: translateX(-105%); transition: transform .22s ease; box-shadow: 0 10px 35px rgba(15,23,42,.18); }
+            #app-sidebar.mobile-nav-open { transform: translateX(0); }
+            #nav-backdrop { display: none; }
+            #nav-backdrop.mobile-nav-open { display: block; }
+            #main-layout { position: relative; }
+            #app-main-header { padding-left: .75rem; padding-right: .75rem; }
+            #app-main-header #tab-title { min-width: 0; font-size: 1rem; }
+            #app-main-header .header-add-label { display: none; }
+        }
+        @media (min-width: 1024px) {
+            #app-sidebar { position: relative; transform: none; }
+            #nav-backdrop { display: none !important; }
+            #nav-toggle { display: none; }
+        }
+
+.import-sort-btn{font:inherit;font-weight:700;text-transform:uppercase;letter-spacing:inherit;display:inline-flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap}.import-sort-btn:hover{color:#059669;text-decoration:underline}.import-sort-btn:focus-visible{outline:2px solid #10b981;outline-offset:2px}

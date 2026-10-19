@@ -1,0 +1,11 @@
+      #vault-screen { overflow-y: auto; overscroll-behavior: contain; }
+      #vault-screen > div { max-height: calc(100dvh - 2rem); overflow-y: auto; }
+      #vault-password { min-height: 48px; font-size: 16px; }
+      #vault-action-btn { min-height: 48px; }
+      #vault-password-toggle { min-width: 58px; }
+      #vault-login-status:not(.hidden) { overflow-wrap: anywhere; }
+      @media (max-width: 480px) {
+        #vault-screen { padding: 12px; align-items: center; }
+        #vault-screen > div { padding: 22px; border-radius: 20px; max-height: calc(100dvh - 24px); }
+        #vault-screen h1 { font-size: 1.45rem; line-height: 1.25; }
+      }

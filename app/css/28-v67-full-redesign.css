@@ -1,0 +1,316 @@
+
+/* AIFICO v1.2610.84M — complete responsive frontend redesign.
+   Presentation-only overrides: existing app logic, calculations and data flows remain intact. */
+:root{--af-bg:#f3f6fb;--af-card:#fff;--af-ink:#182338;--af-muted:#738098;--af-line:#e4eaf3;--af-blue:#3568e8;--af-blue-soft:#edf2ff;--af-green:#16876b;--af-shadow:0 7px 24px rgba(24,45,83,.045)}
+html,body{min-height:100%;background:var(--af-bg)}
+body{color:var(--af-ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:-.01em}
+#app{min-height:100dvh}
+#app-sidebar{width:248px;flex:0 0 248px;background:#fff;border-right:1px solid var(--af-line);box-shadow:4px 0 24px rgba(25,45,80,.025)}
+#app-sidebar>div:first-child{padding:22px 18px!important;border-bottom:1px solid var(--af-line)}
+#app-sidebar>div:first-child>div>div:first-child{background:linear-gradient(145deg,#3568e8,#7292ff)!important;border-radius:13px!important;box-shadow:0 7px 15px #3568e825!important}
+#app-sidebar h2{font-size:16px!important;letter-spacing:-.04em;color:#1a2c4b}
+#app-sidebar nav{padding:14px 12px!important;gap:4px!important}
+#app-sidebar .nav-btn{min-height:43px;padding:10px 12px!important;border-radius:11px!important;font-size:12px!important;font-weight:650!important;gap:11px!important}
+#app-sidebar .nav-btn i{width:17px!important;height:17px!important}
+#app-sidebar .nav-btn.bg-emerald-50,#app-sidebar .nav-btn[class*="bg-emerald-950"]{background:#edf2ff!important;color:#315fe0!important}
+#app-sidebar .nav-btn:hover{background:#f3f6fb!important;color:#315fe0!important}
+#app-sidebar .nav-btn span{line-height:1.35}
+#app-sidebar .nav-btn[data-tab="settings"],#app-sidebar .nav-btn[data-tab="configuration"]{margin-top:2px}
+#main-layout{background:var(--af-bg)}
+#app-main-header{height:76px!important;min-height:76px;background:rgba(255,255,255,.94)!important;border-bottom:1px solid var(--af-line)!important;padding:0 clamp(16px,3vw,38px)!important;backdrop-filter:blur(14px)}
+#app-main-header #tab-title{font-size:22px!important;font-weight:800!important;letter-spacing:-.045em;color:#1b2a44}
+#nav-toggle{border-radius:11px!important;border-color:var(--af-line)!important;background:#fff}
+#app-main-header button[onclick*="openTransactionModal"]{background:var(--af-blue)!important;border-color:var(--af-blue)!important;border-radius:11px!important;box-shadow:0 5px 13px #3568e820!important;padding:10px 15px!important}
+#app-main-header button[onclick*="openTransactionModal"]:hover{background:#2857d3!important}
+.app-scroll{padding:clamp(14px,2.5vw,34px)!important;background:var(--af-bg)!important;scroll-behavior:smooth}
+.tab-panel{max-width:1500px;margin:0 auto;gap:20px!important}
+.tab-panel [class*="rounded-2xl"]{border-radius:17px!important}
+.tab-panel [class*="border-slate-200"],.tab-panel [class*="dark:border-slate-800"]{border-color:var(--af-line)!important}
+.tab-panel [class*="shadow-sm"]{box-shadow:var(--af-shadow)!important}
+.tab-panel [class*="bg-white"]{background:var(--af-card)!important}
+.tab-panel button{transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease}
+.tab-panel button:active{transform:translateY(1px)}
+.tab-panel button:focus-visible,#app-sidebar button:focus-visible,#bottom-nav button:focus-visible{outline:3px solid #b9caff!important;outline-offset:2px}
+#panel-dashboard #kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:15px!important}
+#panel-dashboard #kpi-grid>button{position:relative;overflow:hidden;padding:21px!important;min-height:138px;border-radius:17px!important;border:1px solid var(--af-line)!important;background:#fff!important;box-shadow:var(--af-shadow)!important}
+#panel-dashboard #kpi-grid>button:before{content:"";position:absolute;top:0;left:0;width:4px;height:100%;background:#4f75e9;opacity:.9}
+#panel-dashboard #kpi-grid>button:nth-child(2):before{background:#1e9b7a}
+#panel-dashboard #kpi-grid>button:nth-child(3):before{background:#3e8fcb}
+#panel-dashboard #kpi-grid>button:nth-child(4):before{background:#e08b57}
+#panel-dashboard #kpi-grid>button:hover{border-color:#b9caff!important;box-shadow:0 10px 28px #25437c0c!important}
+#panel-dashboard #kpi-grid>button>span:first-child{font-size:10px!important;letter-spacing:.1em!important;color:#7d899d!important}
+#panel-dashboard #kpi-grid .text-2xl{font-size:clamp(21px,2.2vw,29px)!important;letter-spacing:-.055em!important;color:#1b2b45}
+#panel-dashboard #kpi-grid .text-xs{line-height:1.45}
+#panel-dashboard .grid{gap:15px!important}
+#panel-dashboard .bg-white.dark\:bg-slate-900{box-shadow:var(--af-shadow)!important}
+#panel-dashboard h2,#panel-ledger h2,#panel-budgets h2,#panel-accounts h2,#panel-yearly h2,#panel-goals h2,#panel-projects h2,#panel-shared h2,#panel-sms h2,#panel-configuration h2,#panel-settings h2,#panel-guide h2{letter-spacing:-.035em}
+#panel-dashboard h3,#panel-ledger h3,#panel-budgets h3,#panel-accounts h3,#panel-yearly h3,#panel-goals h3,#panel-projects h3,#panel-shared h3,#panel-sms h3,#panel-configuration h3,#panel-settings h3,#panel-guide h3{letter-spacing:-.025em}
+#panel-dashboard [id*="comparison"],#panel-dashboard [id*="chart"]{min-width:0}
+.tab-panel input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=color]),.tab-panel select,.tab-panel textarea{border-radius:10px!important;border-color:#dfe6f0!important;min-height:39px}
+.tab-panel input:focus,.tab-panel select:focus,.tab-panel textarea:focus{outline:0!important;border-color:#88a4ff!important;box-shadow:0 0 0 3px #3568e817!important}
+.tab-panel button.bg-emerald-600,.tab-panel .bg-emerald-600{background:var(--af-blue)!important}
+.tab-panel button.hover\:bg-emerald-700:hover{background:#2857d3!important}
+.tab-panel button[class*="rounded-xl"]{border-radius:11px!important}
+.tab-panel table{border-collapse:separate;border-spacing:0;overflow:hidden}
+.tab-panel thead th{font-size:10px!important;letter-spacing:.07em;text-transform:uppercase;color:#7b879b!important;background:#f7f9fc!important}
+.tab-panel tbody tr:hover{background:#f8faff}
+.tab-panel th,.tab-panel td{border-color:#edf1f6!important}
+#bottom-nav{display:none}
+#bottom-nav button{min-width:0}
+#bottom-nav button[data-tab="dashboard"]{order:2}
+#bottom-nav button[data-tab="ledger"]{order:1}
+#bottom-nav button[data-tab="accounts"]{order:3}
+#bottom-nav button[data-tab="yearly"]{order:4}
+#bottom-nav button[data-tab="more"]{order:5}
+#vault-screen>div{border-radius:23px!important;box-shadow:0 30px 90px #0004!important}
+#vault-screen h1{letter-spacing:-.045em}
+#vault-screen button{border-radius:11px}
+#vault-screen input{border-radius:11px}
+#app [role=dialog]{border-radius:20px}
+#app .fixed.inset-0.z-50{backdrop-filter:blur(5px)}
+/* Dark theme retains the user's existing theme switch while using the updated geometry. */
+.dark{--af-bg:#0d1422;--af-card:#131d2e;--af-ink:#e8edf7;--af-muted:#9aa8bf;--af-line:#263248;--af-blue:#6c8cff;--af-blue-soft:#1b2a49;--af-shadow:0 8px 24px rgba(0,0,0,.12)}
+.dark body,.dark #main-layout,.dark .app-scroll{background:var(--af-bg)!important}
+.dark #app-sidebar,.dark #app-main-header{background:#111b2b!important;border-color:var(--af-line)!important}
+.dark #app-sidebar h2,.dark #app-main-header #tab-title{color:#e8edf7!important}
+.dark #app-sidebar .nav-btn.bg-emerald-50,.dark #app-sidebar .nav-btn[class*="bg-emerald-950"]{background:#1b2a49!important;color:#a9bcff!important}
+.dark #app-main-header button{border-color:#2b3950!important}
+.dark #panel-dashboard #kpi-grid>button{background:#131d2e!important;border-color:#263248!important}
+.dark #panel-dashboard #kpi-grid .text-2xl{color:#e8edf7!important}
+.dark .tab-panel thead th{background:#182438!important;color:#a8b4c9!important}
+.dark .tab-panel tbody tr:hover{background:#182438!important}
+.dark .tab-panel input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=color]),.dark .tab-panel select,.dark .tab-panel textarea{background:#111b2b!important;color:#e8edf7!important;border-color:#334158!important}
+@media(max-width:1100px){#app-sidebar{width:220px;flex-basis:220px}#panel-dashboard #kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:767px){
+ #app{min-height:100dvh;height:auto!important}
+ #main-layout{min-height:100dvh;overflow:visible!important;display:flex!important;flex-direction:column!important}
+ #app-sidebar{position:fixed!important;inset:0 auto 0 0!important;width:min(84vw,310px)!important;max-width:310px!important;height:100dvh!important;box-shadow:15px 0 45px #0d1a2c26!important}
+ #app-main-header{height:62px!important;min-height:62px!important;padding:0 13px!important;position:sticky;top:0;z-index:25}
+ #app-main-header #tab-title{font-size:18px!important}
+ #app-main-header button[onclick*="openTransactionModal"]{padding:9px 11px!important}
+ #app-main-header .header-add-label{font-size:12px}
+ .app-scroll{overflow:visible!important;flex:1 0 auto!important;padding:15px 12px calc(92px + env(safe-area-inset-bottom))!important}
+ .tab-panel{gap:14px!important}
+ #panel-dashboard #kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+ #panel-dashboard #kpi-grid>button{padding:15px 13px!important;min-height:126px!important;border-radius:15px!important}
+ #panel-dashboard #kpi-grid .text-2xl{font-size:clamp(19px,5vw,24px)!important;overflow-wrap:anywhere}
+ #panel-dashboard #kpi-grid .text-xs{font-size:10px!important}
+ #panel-dashboard .grid{gap:10px!important}
+ .tab-panel [class*="p-6"]{padding:15px!important}
+ .tab-panel [class*="p-5"]{padding:13px!important}
+ .tab-panel [class*="p-4"]{padding:12px!important}
+ .tab-panel [class*="gap-6"]{gap:13px!important}
+ .tab-panel [class*="gap-5"]{gap:12px!important}
+ .tab-panel [class*="gap-4"]{gap:10px!important}
+ #bottom-nav{display:grid!important;position:fixed!important;z-index:45!important;left:0!important;right:0!important;bottom:0!important;padding:7px 5px calc(7px + env(safe-area-inset-bottom))!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:2px!important;background:rgba(255,255,255,.96)!important;backdrop-filter:blur(16px)!important;border-top:1px solid var(--af-line)!important;box-shadow:0 -8px 25px rgba(22,40,72,.06)!important;height:auto!important}
+ #bottom-nav button{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:4px!important;padding:5px 1px!important;border:0!important;border-radius:10px!important;background:transparent!important;color:#8290a6!important;font-size:9px!important;font-weight:650!important;min-width:0!important;white-space:nowrap!important}
+ #bottom-nav button i{width:18px!important;height:18px!important}
+ #bottom-nav button.active,#bottom-nav button.text-emerald-600,#bottom-nav button[class*="text-emerald"]{color:#3568e8!important;background:#edf2ff!important}
+ .dark #bottom-nav{background:rgba(17,27,43,.96)!important;border-color:#263248!important}
+ .dark #bottom-nav button.active,.dark #bottom-nav button[class*="text-emerald"]{background:#1b2a49!important;color:#a9bcff!important}
+ #panel-ledger .overflow-x-auto,#panel-importer .overflow-x-auto,#panel-accounts .overflow-x-auto{max-width:100%;overscroll-behavior-x:contain}
+ #panel-ledger table{min-width:720px}
+ #panel-dashboard [class*="grid-cols-4"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #panel-dashboard [class*="grid-cols-3"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #panel-dashboard [class*="grid-cols-2"]{grid-template-columns:repeat(1,minmax(0,1fr))!important}
+ #panel-dashboard .text-3xl{font-size:24px!important}
+ .tab-panel .flex.items-center.justify-between{gap:8px}
+ .tab-panel button{max-width:100%}
+}
+@media(max-width:380px){
+ #app-main-header #tab-title{font-size:16px!important}
+ #app-main-header button[onclick*="openTransactionModal"]{padding:8px!important}
+ #panel-dashboard #kpi-grid>button{padding:12px 10px!important}
+ #bottom-nav button{font-size:8px!important}
+}
+
+
+/* v1.2610.84M — dashboard refinement based on mobile review.
+   Presentation-only overrides: keep dashboard calculations and app logic unchanged. */
+#panel-dashboard #dashboard-month-comparison,
+#panel-dashboard .grid > .bg-white.dark\:bg-slate-900 {
+  min-width: 0;
+}
+#panel-dashboard #dashboard-month-comparison {
+  border-radius: 20px !important;
+  padding: clamp(15px, 2vw, 24px) !important;
+  background: linear-gradient(135deg, #ffffff 0%, #fbfcff 100%) !important;
+}
+#panel-dashboard #dashboard-month-comparison > p {
+  max-width: 78ch;
+  line-height: 1.55;
+}
+#panel-dashboard #cmp-grid > * {
+  min-width: 0;
+  border-radius: 15px !important;
+  background: rgba(247, 249, 253, .78);
+  transition: border-color .18s ease, transform .18s ease;
+}
+#panel-dashboard #cmp-grid > button:hover {
+  transform: translateY(-1px);
+}
+#panel-dashboard .grid:has(> div > #chart-cashflow) {
+  align-items: stretch;
+}
+#panel-dashboard .grid:has(> div > #chart-cashflow) > div {
+  min-width: 0;
+  border-radius: 20px !important;
+  padding: clamp(15px, 2vw, 24px) !important;
+  box-shadow: 0 8px 24px rgba(30, 48, 80, .045) !important;
+}
+#panel-dashboard #chart-cashflow,
+#panel-dashboard #chart-categories {
+  display: block;
+  max-width: 100%;
+}
+#panel-dashboard #chart-categories {
+  max-height: 290px;
+}
+#panel-dashboard #dashboard-pie-year,
+#panel-dashboard #dashboard-pie-month {
+  max-width: 100%;
+  min-height: 40px;
+  border-radius: 11px !important;
+}
+#panel-dashboard #dashboard-pie-period-label {
+  line-height: 1.5;
+}
+#panel-dashboard #panel-dashboard {}
+#panel-dashboard #dashboard-tx-tbody tr:hover {
+  background: #f7f9ff;
+}
+.dark #panel-dashboard #dashboard-month-comparison {
+  background: linear-gradient(135deg, #131d2e 0%, #101a2b 100%) !important;
+}
+.dark #panel-dashboard #cmp-grid > * {
+  background: rgba(255,255,255,.025);
+}
+.dark #panel-dashboard #dashboard-tx-tbody tr:hover {
+  background: #182438;
+}
+@media (max-width: 767px) {
+  /* The chart cards must stack vertically on phones; the previous generic
+     grid-cols-3 rule accidentally placed them side by side. */
+  #panel-dashboard > .grid:has(> div > #chart-cashflow) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px !important;
+  }
+  #panel-dashboard > .grid:has(> div > #chart-cashflow) > div {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    padding: 16px !important;
+    gap: 13px !important;
+  }
+  #panel-dashboard > .grid:has(> div > #chart-cashflow) > div:first-child > div:last-child {
+    height: 250px !important;
+    min-height: 220px;
+  }
+  #panel-dashboard > .grid:has(> div > #chart-categories) > div:last-child > div:has(> #chart-categories) {
+    height: 245px !important;
+    min-height: 220px;
+  }
+  #panel-dashboard #chart-categories {
+    max-height: 235px;
+  }
+  #panel-dashboard > .grid:has(> div > #chart-cashflow) h3 {
+    font-size: 15px !important;
+    line-height: 1.35 !important;
+  }
+  #panel-dashboard > .grid:has(> div > #chart-cashflow) > div:first-child > div:first-child {
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+  #panel-dashboard > .grid:has(> div > #chart-cashflow) > div:first-child > div:first-child > span {
+    font-size: 11px !important;
+  }
+  #panel-dashboard #dashboard-pie-year,
+  #panel-dashboard #dashboard-pie-month {
+    width: 100%;
+    min-width: 0;
+  }
+  #panel-dashboard #dashboard-pie-year + label {
+    margin-left: 0;
+  }
+  #panel-dashboard #dashboard-pie-month {
+    flex: 1 1 100%;
+  }
+  #panel-dashboard #dashboard-month-comparison {
+    padding: 16px !important;
+    gap: 13px !important;
+  }
+  #panel-dashboard #cmp-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 9px !important;
+  }
+  #panel-dashboard #cmp-grid > * {
+    padding: 13px !important;
+  }
+  #panel-dashboard #cmp-grid .text-lg {
+    font-size: 19px !important;
+    overflow-wrap: anywhere;
+  }
+  #panel-dashboard .grid:has(> div > #chart-cashflow) + .grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+@media (min-width: 768px) and (max-width: 1100px) {
+  #panel-dashboard > .grid:has(> div > #chart-cashflow) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  }
+  #panel-dashboard > .grid:has(> div > #chart-cashflow) > div:first-child {
+    grid-column: 1 / -1 !important;
+  }
+}
+.dark #panel-dashboard #dashboard-pie-year,
+.dark #panel-dashboard #dashboard-pie-month {
+  background: #111b2b !important;
+  color: #e8edf7 !important;
+  border-color: #334158 !important;
+}
+
+
+/* v1.2610.84M — correct the actual dashboard chart grid selector.
+   The earlier override targeted a direct canvas child, but each canvas is
+   nested inside a height wrapper. This rule targets the real grid structure. */
+@media (max-width: 767px) {
+  #panel-dashboard .grid[class*="grid-cols-3"]:has(canvas#chart-cashflow) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: start !important;
+    gap: 14px !important;
+  }
+  #panel-dashboard .grid[class*="grid-cols-3"]:has(canvas#chart-cashflow) > div {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 16px !important;
+    border-radius: 20px !important;
+    gap: 12px !important;
+  }
+  #panel-dashboard .grid[class*="grid-cols-3"]:has(canvas#chart-cashflow) > div .h-72 {
+    height: 250px !important;
+    min-height: 220px !important;
+    max-height: 280px !important;
+    position: relative !important;
+  }
+  #panel-dashboard .grid[class*="grid-cols-3"]:has(canvas#chart-cashflow) > div canvas {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  #panel-dashboard .grid[class*="grid-cols-3"]:has(canvas#chart-cashflow) > div h3 {
+    font-size: 16px !important;
+    line-height: 1.35 !important;
+  }
+  #panel-dashboard .grid[class*="grid-cols-3"]:has(canvas#chart-cashflow) > div .flex.items-center.justify-between {
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  #panel-dashboard .grid[class*="grid-cols-3"]:has(canvas#chart-categories) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}

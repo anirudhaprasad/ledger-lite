@@ -1,0 +1,16 @@
+/* Consistent keyboard focus, touch targets, and reduced-motion support. */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid #10b981 !important;
+  outline-offset: 3px !important;
+}
+button, input, select, textarea { scroll-margin-block: 1rem; }
+button { touch-action: manipulation; }
+@media (max-width: 640px) {
+  #modal-container { padding: .75rem; align-items: center; }
+  #modal-box { max-height: 88dvh; overflow-y: auto; width: 100%; }
+  #aifico-alert-overlay { padding: 12px; }
+  #aifico-alert-card { max-height: 88dvh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

@@ -1,0 +1,37 @@
+/* Summary cards use pale backgrounds even in dark mode; keep all text dark and readable inside them. */
+.dark #panel-accounts .bg-emerald-50,
+.dark #panel-accounts .bg-rose-50,
+.dark #panel-accounts .bg-slate-100,
+.dark #panel-accounts .bg-green-50,
+.dark #panel-accounts .bg-red-50,
+html.dark #panel-accounts .bg-emerald-50,
+html.dark #panel-accounts .bg-rose-50,
+html.dark #panel-accounts .bg-slate-100,
+html.dark #panel-accounts .bg-green-50,
+html.dark #panel-accounts .bg-red-50 {
+  color:#0f172a !important;
+}
+.dark #panel-accounts .bg-emerald-50 *,
+.dark #panel-accounts .bg-rose-50 *,
+.dark #panel-accounts .bg-slate-100 *,
+.dark #panel-accounts .bg-green-50 *,
+.dark #panel-accounts .bg-red-50 *,
+html.dark #panel-accounts .bg-emerald-50 *,
+html.dark #panel-accounts .bg-rose-50 *,
+html.dark #panel-accounts .bg-slate-100 *,
+html.dark #panel-accounts .bg-green-50 *,
+html.dark #panel-accounts .bg-red-50 * {
+  color:#0f172a !important;
+}
+.dark #panel-accounts .bg-emerald-50 .text-emerald-600,
+.dark #panel-accounts .bg-emerald-50 .text-emerald-700,
+html.dark #panel-accounts .bg-emerald-50 .text-emerald-600,
+html.dark #panel-accounts .bg-emerald-50 .text-emerald-700 { color:#047857 !important; }
+.dark #panel-accounts .bg-rose-50 .text-rose-600,
+.dark #panel-accounts .bg-rose-50 .text-rose-700,
+html.dark #panel-accounts .bg-rose-50 .text-rose-600,
+html.dark #panel-accounts .bg-rose-50 .text-rose-700 { color:#be123c !important; }
+.dark #panel-accounts .bg-slate-100 .text-slate-400,
+.dark #panel-accounts .bg-slate-100 .text-slate-500,
+html.dark #panel-accounts .bg-slate-100 .text-slate-400,
+html.dark #panel-accounts .bg-slate-100 .text-slate-500 { color:#334155 !important; }

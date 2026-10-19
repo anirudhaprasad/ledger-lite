@@ -1,0 +1,35 @@
+/* HEADER = app level (menu, app name, global actions). PAGE TITLE = page level (name, action, page data). Both stay fixed; only content scrolls. */
+#app-main-header { height: 52px !important; }
+.hdr-app { font-weight: 800; font-size: 16px; letter-spacing: -.01em; color: #047857; white-space: nowrap; } .hdr-app span { font-weight: 600; color: #475569; } .dark .hdr-app span { color: #cbd5e1; }
+@media (min-width: 1024px) { .hdr-app { font-size: 13px; font-weight: 700; } .hdr-app > span { display: none; } }
+.hdr-crumb { display: none; font-style: normal; font-weight: 500; color: #64748b; } .hdr-crumb::before { content: '›'; margin: 0 8px; color: #94a3b8; }
+@media (min-width: 1024px) { .hdr-crumb { display: inline; } }
+#page-title-bar { flex-shrink: 0; z-index: 9; background: #fff; border-bottom: 1px solid #e2e8f0; padding: 10px 32px 10px; display: flex; flex-direction: column; gap: 8px; container-type: inline-size; container-name: ledger; }
+.dark #page-title-bar { background: #0f172a; border-color: #1e293b; }
+@media (max-width: 1023px) { #page-title-bar { padding: 8px 16px; } }
+@media (max-width: 639px) { #page-title-bar { padding: 8px 10px; gap: 6px; } }
+.ptb-row { display: flex; align-items: center; gap: 10px; min-height: 36px; }
+.ptb-name { font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ptb-meta { font-size: 12px; color: #64748b; white-space: nowrap; }
+.ptb-row #header-page-action { margin-left: auto; }
+#ptb-tools:has(> [data-ptb]:not([hidden])) { display: block; } #ptb-tools > [hidden] { display: none !important; }
+/* Core Ledger tools inside the Page Title: static there (the band itself is fixed) */
+#page-title-bar #ledger-sticky { position: static !important; top: auto !important; margin: 0 !important; padding: 0 !important; border: 0 !important; box-shadow: none !important; background: transparent !important; }
+/* Dashboard: this month at a glance */
+.ptb-totals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px 12px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 6px 12px; }
+.dark .ptb-totals { border-color: #334155; }
+.ptb-totals span { display: block; font-size: 11px; color: #64748b; } .ptb-totals b { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .ptb-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 6px 10px; } .ptb-totals b { font-size: 13.5px; } }
+/* Core Ledger column headings: Select all is the first heading; headings stick at the top of the list */
+#panel-ledger .overflow-x-auto:has(#ledger-table) { overflow: visible !important; }
+#ledger-table { overflow: visible !important; }
+#ledger-table thead th { position: sticky; top: -24px; z-index: 6; background: #f8fafc; padding-top: 10px; white-space: nowrap; }
+.dark #ledger-table thead th { background: #1e293b; }
+@media (max-width: 1023px) { #ledger-table thead th { top: -16px; } }
+#ledger-table thead th button { white-space: nowrap; }
+.ledger-head-select input { width: 16px; height: 16px; vertical-align: middle; }
+/* With Select all in the headings, the separate "Select all" card shows only when something is selected (wide screens) */
+@container ledger (min-width: 761px) {
+  #ledger-bulk-bar[data-has-selection="0"] { display: none !important; }
+}
+#panel-ledger { container-type: inline-size; container-name: ledger; }

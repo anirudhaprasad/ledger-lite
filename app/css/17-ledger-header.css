@@ -1,0 +1,22 @@
+      .lh-row { display: flex; gap: 8px; align-items: center; }
+      .lh-search { flex: 1; min-width: 0; }
+      .lh-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 42px; padding: 0 12px; border-radius: 12px; border: 1px solid #cbd5e1; font-size: 13px; font-weight: 600; color: #334155; background: #fff; flex-shrink: 0; }
+      .dark .lh-btn { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+      .lh-btn svg { width: 16px; height: 16px; }
+      .lh-btn.on { border-color: #059669; color: #047857; background: #ecfdf5; }
+      .dark .lh-btn.on { background: rgba(16,185,129,.15); color: #6ee7b7; }
+      .lh-icon { padding: 0 10px; }
+      #ledger-filter-badge { font-style: normal; font-size: 10px; font-weight: 800; color: #fff; background: #059669; border-radius: 999px; min-width: 18px; padding: 1px 5px; text-align: center; }
+      #ledger-filters #ledger-filter-bar { margin: 0; }
+      #ledger-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+      .lh-chip { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+      .dark .lh-chip { background: rgba(16,185,129,.15); color: #a7f3d0; border-color: #065f46; }
+      #ledger-totals { grid-template-columns: repeat(var(--lh-cols, 4), minmax(0, 1fr)) !important; }
+      @container ledger (max-width: 760px) {
+        #ledger-totals { grid-template-columns: repeat(var(--lh-cols-sm, 2), minmax(0, 1fr)) !important; }
+        .lh-btn span { display: none; }
+        .lh-btn { padding: 0 10px; }
+      }
+      #ledger-sticky.lh-unpinned { position: static; box-shadow: none; }
+      .lh-opt { display: flex; align-items: center; gap: 10px; font-size: 14px; min-height: 36px; }
+      .lh-opt input { width: 18px; height: 18px; }

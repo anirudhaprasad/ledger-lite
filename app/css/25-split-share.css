@@ -1,0 +1,36 @@
+      .ss-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+      .ss-tabs button { flex-shrink: 0; min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid #cbd5e1; font-size: 13px; font-weight: 600; color: #334155; background: #fff; }
+      .dark .ss-tabs button { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+      .ss-tabs button.on { background: #059669; border-color: #059669; color: #fff; }
+      .ss-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+      .ss-kpis > div { border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px; } .dark .ss-kpis > div { border-color: #334155; }
+      .ss-kpis span, .ss-sub { display: block; font-size: 12px; color: #64748b; } .ss-kpis b { font-size: 18px; }
+      .ss-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 12px; }
+      .ss-card { border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; } .dark .ss-card { border-color: #334155; }
+      .ss-card h4 { font-weight: 700; } .ss-wide { grid-column: 1 / -1; }
+      .ss-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+      /* Shared & Splits: keep the filter/"Add" row clear of the card below it */
+      #ss-root { display: flex; flex-direction: column; gap: 16px; }
+      #ss-root > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+      #ss-root .ss-head .s-btn { position: static; flex: 0 0 auto; }
+      /* Undo toast: above the phone bottom bar, centred on wide screens */
+      #app-toast { position: fixed; left: 16px; right: 16px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 60; max-width: 480px; margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: #0f172a; color: #f8fafc; font-size: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+      #app-toast span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+      #app-toast button { flex-shrink: 0; font-weight: 700; color: #34d399; padding: 6px 8px; }
+      @media (min-width: 1024px) { #app-toast { bottom: 24px; } }      .ss-line { display: flex; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 1px solid #f1f5f9; padding: 8px 0; } .dark .ss-line { border-color: #1e293b; }
+      .ss-btn { min-height: 34px; padding: 0 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 13px; font-weight: 600; background: #fff; color: #0f172a; white-space: nowrap; }
+      .dark .ss-btn { background: #1e293b; border-color: #334155; color: #f1f5f9; }
+      .ss-danger { color: #e11d48 !important; border-color: #fda4af !important; }
+      .ss-actions { display: flex; flex-wrap: wrap; gap: 8px; } .ss-nowrap { white-space: nowrap; }
+      .ss-pill { font-size: 10px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: #e2e8f0; color: #334155; vertical-align: middle; }
+      .ss-people { display: flex; flex-wrap: wrap; gap: 6px; } .ss-people span { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: #ecfdf5; color: #065f46; } .dark .ss-people span { background: rgba(16,185,129,.15); color: #a7f3d0; }
+      .ss-people-edit button { margin-left: 4px; font-size: 11px; text-decoration: underline; }
+      .ss-tablewrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; } .dark .ss-tablewrap { border-color: #334155; }
+      .ss-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      .ss-table th { text-align: left; padding: 8px 10px; font-size: 12px; font-weight: 600; color: #475569; background: #f8fafc; white-space: nowrap; } .dark .ss-table th { background: #1e293b; color: #cbd5e1; }
+      .ss-table td { padding: 8px 10px; border-top: 1px solid #f1f5f9; } .dark .ss-table td { border-color: #1e293b; }
+      .ss-table .r { text-align: right; white-space: nowrap; }
+      .ss-filter { width: auto; min-width: 180px; }
+      .ss-inline { display: flex; gap: 8px; align-items: flex-end; } .ss-inline .ip-field { flex: 1; }
+      .ss-checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 2px 10px; }
+      .ss-exact { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }

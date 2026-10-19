@@ -1,0 +1,16 @@
+#panel-shared .ss-owes-list { list-style: none; margin: 0; padding: 0; border: 1px solid #ebebea; border-radius: 10px; overflow: hidden; }
+.dark #panel-shared .ss-owes-list { border-color: #334155; }
+#panel-shared .ss-owe { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-top: 1px solid #f1f1ef; }
+.dark #panel-shared .ss-owe { border-color: #1e293b; }
+#panel-shared .ss-owe:first-child { border-top: 0; }
+#panel-shared .ss-owe-who { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#panel-shared .ss-owe-who b { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+#panel-shared .ss-owe-who span { font-size: 11.5px; color: #787774; line-height: 1.35; }
+#panel-shared .ss-owe-pos { text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; }
+#panel-shared .ss-owe-pos b { font-size: 15px; font-weight: 700; white-space: nowrap; }
+#panel-shared .ss-pos-label { font-size: 11px; font-weight: 600; }
+#panel-shared .ss-owes .ss-owe-pos, #panel-shared .ss-owe.ss-owes .ss-owe-pos { color: #e11d48; }
+#panel-shared .ss-owe.ss-gets .ss-owe-pos { color: #059669; }
+#panel-shared .ss-pos-settled { font-size: 12px; font-weight: 600; color: #787774; white-space: nowrap; }
+#panel-shared .ss-owe.ss-settled .ss-owe-who b { color: #787774; }
+@media (max-width: 480px) { #panel-shared .ss-owe { padding: 9px 10px; gap: 8px; } #panel-shared .ss-owe-who span { font-size: 11px; } #panel-shared .ss-owe-pos b { font-size: 14px; } }

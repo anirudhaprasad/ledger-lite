@@ -1,0 +1,10 @@
+      .recon-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; min-width: 200px; }
+      .recon-match { font-size: 11px; color: #475569; } .recon-match small { color: #94a3b8; } .dark .recon-match { color: #cbd5e1; }
+      .recon-cell select { font-size: 12px; padding: 4px 6px; border-radius: 8px; border: 1px solid #cbd5e1; max-width: 220px; }
+      .dark .recon-cell select { background: #1e293b; border-color: #334155; color: #f1f5f9; }
+      .recon-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+      .recon-pairs { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; max-height: 55dvh; overflow: auto; }
+      .recon-pair { border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; font-size: 13px; display: flex; flex-direction: column; gap: 4px; } .dark .recon-pair { border-color: #334155; }
+      .recon-pair-btns { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 4px; } .recon-pair-btns .s-btn { min-height: 38px; font-size: 12px; }
+      .recon-hist { display: flex; flex-direction: column; gap: 4px; font-size: 13px; } .recon-hist li { display: flex; justify-content: space-between; gap: 8px; }
+      .recon-locks { display: flex; flex-wrap: wrap; gap: 6px; } .recon-locks button { margin-left: 4px; text-decoration: underline; font-size: 11px; }

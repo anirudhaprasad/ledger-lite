@@ -1,0 +1,26 @@
+/* aifico dark skin: enforce readable foregrounds on dark surfaces */
+.dark body, html.dark body { color:#e5e7eb !important; background-color:#0b1220 !important; }
+.dark .text-slate-900, .dark .text-slate-800, .dark .text-slate-700,
+.dark .text-gray-900, .dark .text-gray-800, .dark .text-gray-700,
+.dark .text-black { color:#f3f4f6 !important; }
+.dark .text-slate-600, .dark .text-slate-500, .dark .text-gray-600,
+.dark .text-gray-500, .dark .text-gray-400 { color:#cbd5e1 !important; }
+.dark input, .dark textarea, .dark select,
+html.dark input, html.dark textarea, html.dark select {
+  color:#f8fafc !important; background-color:#111827 !important;
+  border-color:#475569 !important; caret-color:#f8fafc;
+}
+.dark input::placeholder, .dark textarea::placeholder,
+html.dark input::placeholder, html.dark textarea::placeholder { color:#94a3b8 !important; opacity:1 !important; }
+.dark option, html.dark option { color:#f8fafc !important; background-color:#111827 !important; }
+.dark table, .dark th, .dark td, html.dark table, html.dark th, html.dark td { color:#e5e7eb; }
+.dark .bg-white, .dark .bg-slate-50, .dark .bg-gray-50,
+html.dark .bg-white, html.dark .bg-slate-50, html.dark .bg-gray-50 { background-color:#111827 !important; }
+.dark .border-slate-200, .dark .border-gray-200,
+html.dark .border-slate-200, html.dark .border-gray-200 { border-color:#334155 !important; }
+/* Keep semantic status colors readable in dark mode */
+.dark .text-emerald-600, .dark .text-emerald-700 { color:#6ee7b7 !important; }
+.dark .text-rose-600, .dark .text-red-600 { color:#fda4af !important; }
+.dark .text-amber-600, .dark .text-orange-600 { color:#fcd34d !important; }
+/* Prevent financial figures from inheriting near-black colors */
+.dark .font-bold, .dark .font-semibold, html.dark .font-bold, html.dark .font-semibold { text-shadow:none; }

@@ -1,0 +1,36 @@
+      /* SMS reconciliation: cards instead of a 1,050px table when space is limited */
+      #panel-sms { container-type: inline-size; container-name: smspanel; }
+      @container smspanel (max-width: 1080px) {
+        #sms-reconcile-table { min-width: 0 !important; }
+        #sms-reconcile-table thead { display: none; }
+        #sms-reconcile-tbody { display: block; }
+        #sms-reconcile-tbody > tr { display: grid; grid-template-columns: minmax(0,1fr) auto; column-gap: 12px; row-gap: 6px; padding: 12px; border-bottom: 1px solid #e2e8f0; }
+        .dark #sms-reconcile-tbody > tr { border-color: #1e293b; }
+        #sms-reconcile-tbody > tr > td { padding: 0 !important; min-width: 0 !important; overflow-wrap: anywhere; }
+        #sms-reconcile-tbody > tr > td:nth-child(2) { grid-column: 1; grid-row: 1; font-size: 13px; }
+        #sms-reconcile-tbody > tr > td:nth-child(3) { grid-column: 2; grid-row: 1; text-align: right; font-weight: 600; font-size: 13px; }
+        #sms-reconcile-tbody > tr > td:nth-child(1) { grid-column: 1; grid-row: 2; color: #64748b; white-space: nowrap; }
+        #sms-reconcile-tbody > tr > td:nth-child(4) { grid-column: 2; grid-row: 2; text-align: right; color: #64748b; }
+        #sms-reconcile-tbody > tr > td:nth-child(6) { grid-column: 1 / -1; grid-row: 3; }
+        #sms-reconcile-tbody > tr > td:nth-child(5) { grid-column: 1 / -1; grid-row: 4; }
+        #sms-reconcile-tbody > tr > td:nth-child(5)::before { content: 'Suggested bank match'; display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: #94a3b8; margin-bottom: 2px; }
+        #sms-reconcile-tbody > tr > td:nth-child(7) { grid-column: 1 / -1; grid-row: 5; }
+        #sms-reconcile-tbody > tr > td[colspan] { grid-column: 1 / -1; grid-row: auto; text-align: center; white-space: normal !important; }
+        #sms-reconcile-table { width: 100% !important; table-layout: fixed; }
+      }
+      /* Dashboard: Expense Breakdown filters wrap instead of running off the card */
+      div:has(> #dashboard-pie-year), div:has(> div > #dashboard-pie-year) { flex-wrap: wrap; row-gap: 8px; }
+      /* Dashboard recent transactions on phones: date, payee and amount only */
+      @media (max-width: 640px) {
+        table:has(#dashboard-tx-tbody) th:nth-child(3), table:has(#dashboard-tx-tbody) th:nth-child(4),
+        #dashboard-tx-tbody td:nth-child(3), #dashboard-tx-tbody td:nth-child(4) { display: none; }
+      }
+      /* Touch screens (phones and tablets): finger-sized controls. Mouse/PC layout is unchanged. */
+      @media (pointer: coarse) {
+        #panel-configuration button, #panel-configuration select, #panel-configuration input:not([type=checkbox]):not([type=radio]),
+        #panel-accounts button, #panel-accounts select, #account-ledger-panel button,
+        #ledger-tbody button, #sms-reconcile-tbody button { min-height: 40px; }
+        #panel-configuration button, #panel-accounts button, #account-ledger-panel button, #ledger-tbody button { min-width: 40px; }
+        #panel-configuration button, #panel-accounts button, #account-ledger-panel button { padding-left: 10px; padding-right: 10px; }
+        .tab-panel input[type=checkbox] { width: 20px; height: 20px; }
+      }

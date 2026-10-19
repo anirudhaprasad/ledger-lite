@@ -1,0 +1,25 @@
+      #ledger-bulk-actions { display: none; }
+      #ledger-bulk-bar[data-has-selection="1"] #ledger-bulk-actions { display: block; margin-top: 12px; }
+      .bulk-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+      .bulk-clear { font-size: 14px; font-weight: 600; color: #059669; padding: 8px 4px; }
+      .bulk-buttons { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+      .bulk-btn { position: relative; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 8px; border-radius: 12px; border: 1px solid #cbd5e1; font-size: 14px; font-weight: 600; background: #fff; color: #0f172a; cursor: pointer; white-space: nowrap; }
+      .dark .bulk-btn { background: #1e293b; color: #f1f5f9; border-color: #334155; }
+      .bulk-danger { background: #e11d48 !important; border-color: #e11d48 !important; color: #fff !important; }
+      .bulk-btn svg { flex-shrink: 0; width: 16px; height: 16px; }
+      @media (max-width: 380px) { .bulk-btn { font-size: 13px; gap: 4px; padding: 0 4px; } }
+      .bulk-select select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+      .row-act-label { display: none; }
+      #app-main-header .header-add-label { display: inline !important; }
+      @media (max-width: 1023px) {
+        #ledger-bulk-bar[data-has-selection="1"] #ledger-bulk-actions { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; margin: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: #fff; border-top: 1px solid #e2e8f0; box-shadow: 0 -8px 24px rgba(15,23,42,.12); }
+        .dark #ledger-bulk-bar[data-has-selection="1"] #ledger-bulk-actions { background: #0f172a; border-color: #1e293b; }
+        #ledger-bulk-bar[data-has-selection="1"] ~ div .overflow-x-auto, #panel-ledger:has(#ledger-bulk-bar[data-has-selection="1"]) { padding-bottom: 140px; }
+      }
+      @container ledger (max-width: 760px) {
+        #ledger-tbody > tr > td:nth-child(8) { display: flex; gap: 6px; margin-top: 6px; }
+        #ledger-tbody .row-act { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 10px !important; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 13px; font-weight: 500; }
+        .dark #ledger-tbody .row-act { border-color: #334155; }
+        #ledger-tbody .row-act-danger { color: #e11d48; border-color: #fecdd3; }
+        #ledger-tbody .row-act-label { display: inline; }
+      }

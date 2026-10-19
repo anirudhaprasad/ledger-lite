@@ -1,0 +1,19 @@
+      /* One label size, one input size and one placeholder style across every form */
+      .ip-field > span, #modal-box form label > span:first-child { font-size: 13px; font-weight: 600; line-height: 1.3; color: #334155; }
+      .dark .ip-field > span, .dark #modal-box form label > span:first-child { color: #cbd5e1; }
+      .ip-field > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #modal-box input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), #modal-box select, #modal-box textarea, .s-select, #ledger-sticky input, #ledger-sticky select { font-size: 15px; font-family: inherit; }
+      #modal-box input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), #modal-box select { min-height: 44px; }
+      input::placeholder, textarea::placeholder { color: #94a3b8; opacity: 1; font-weight: 400; font-size: inherit; }
+      .dark input::placeholder, .dark textarea::placeholder { color: #64748b; }
+      .gp-hint, .ip-hint { font-size: 12px; line-height: 1.4; }
+      #modal-box label.text-xs, #modal-box label.uppercase, #modal-box form label.block { text-transform: none !important; letter-spacing: 0 !important; font-size: 13px !important; font-weight: 600; color: #334155; }
+      .dark #modal-box label.text-xs, .dark #modal-box label.uppercase, .dark #modal-box form label.block { color: #cbd5e1; }
+      /* Planner: equal columns so paired fields line up */
+      #gp-form .ip-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      /* Icon tiles: same size in every row, content centred */
+      .gp-types, .more-grid { grid-auto-rows: 1fr; }
+      .gp-type { display: block; height: 100%; }
+      .gp-type span { height: 100%; min-height: 76px; justify-content: center; }
+      .more-item { height: 100%; min-height: 92px; justify-content: center; }
+      .more-item span { line-height: 1.25; }

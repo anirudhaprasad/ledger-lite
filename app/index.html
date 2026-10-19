@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<!-- SOURCE GUIDE: v1.2610.84. Read the inline JavaScript comments for method intent, side effects, validation paths, storage behavior, and financial formulas. Comments are documentation only; functional code is unchanged. -->
+<!-- aifico Money Manager v1.2610.33M (mobile build: login password warning) — official product version branding. Based on the tested v24 restore-preview build; previous files remain unchanged. -->
+<html lang="en" class="h-full">
+<head>
+    <script src="js/01-android-download-bridge.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%2214%2014%2080%2080%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%2310B981%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23047857%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20x%3D%2214%22%20y%3D%2214%22%20width%3D%2280%22%20height%3D%2280%22%20rx%3D%2217.6%22%20fill%3D%22url%28%23g%29%22/%3E%3Cpath%20d%3D%22M33.0%2062.75625592272185%2040.97618683703727%2038.84374407727814H48.56720569804054L56.78412252009905%2062.75625592272185H50.42885091553816L47.10677712224498%2052.3085745727998Q46.30434383884083%2049.692642068902266%2045.55808088527497%2046.74771191880903Q44.81181793170911%2043.80278176871579%2044.05753064530921%2040.641194632103435H45.32537523308777Q44.60318527802403%2043.81883043438388%2043.92914131996454%2046.76376058447711Q43.25509736190506%2049.70869073457035%2042.50081007550516%2052.3085745727998L39.29107694188855%2062.75625592272185ZM38.424448995812064%2057.66882890593953V53.335689175557114H51.37572218995507V57.66882890593953ZM58.7427016782319%2062.75625592272185V38.84374407727814H75.0V43.46575978968605H64.40788065906521V49.532155412221435H73.95683673157461V54.05787913062085H64.40788065906521V62.75625592272185Z%22%20fill%3D%22%23FFFFFF%22/%3E%3Cpath%20d%3D%22M41%2C67.2%20h26%20a1.9%2C1.9%200%200%201%200%2C3.8%20h-26%20a1.9%2C1.9%200%200%201%200%2C-3.8%20z%22%20fill%3D%22%23A7F3D0%22/%3E%3C/svg%3E">
+    <meta name="theme-color" content="#047857">
+    <script src="js/02-edition.js"></script>
+    <title>aifico Money Manager v1.2610.84</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/03-tailwind-config.js"></script>
+    <!-- SheetJS for Excel / Spreadsheet parsing -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="css/01-base.css">
+
+<link rel="stylesheet" href="css/02-dark-contrast-fix.css">
+
+
+<link rel="stylesheet" href="css/03-assets-dark-card-fix.css">
+
+<link rel="stylesheet" href="css/04-v14-accessibility-fixes.css">
+
+    <link rel="stylesheet" href="css/05-mobile-fixes.css">
+
+    <link rel="stylesheet" href="css/06-mobile-actions.css">
+
+    <link rel="stylesheet" href="css/07-mobile-settings.css">
+    <link rel="stylesheet" href="css/08-production-login.css">
+
+    <link rel="stylesheet" href="css/09-tablet-fixes.css">
+
+    <link rel="stylesheet" href="css/10-interest-plans.css">
+
+    <link rel="stylesheet" href="css/11-plans-cards.css">
+
+    <link rel="stylesheet" href="css/12-bottom-nav.css">
+
+    <link rel="stylesheet" href="css/13-fit-screen.css">
+
+    <link rel="stylesheet" href="css/14-editions.css">
+
+    <link rel="stylesheet" href="css/15-goal-planner.css">
+
+    <link rel="stylesheet" href="css/16-ledger-sticky.css">
+
+    <link rel="stylesheet" href="css/17-ledger-header.css">
+
+    <link rel="stylesheet" href="css/18-projects.css">
+
+    <link rel="stylesheet" href="css/19-normalize.css">
+
+    <link rel="stylesheet" href="css/20-floating-fields.css">
+
+    <link rel="stylesheet" href="css/21-login-field.css">
+
+    <link rel="stylesheet" href="css/22-money-fields.css">
+
+    <link rel="stylesheet" href="css/23-swipe.css">
+
+    <link rel="stylesheet" href="css/24-reconcile.css">
+
+    <link rel="stylesheet" href="css/25-split-share.css">
+
+    <link rel="stylesheet" href="css/26-ui-refine.css">
+
+    <link rel="stylesheet" href="css/27-info-rows.css">
+<link rel="stylesheet" href="css/28-v67-full-redesign.css">
+
+<link rel="stylesheet" href="css/29-70m-responsive-owes-table-plus-button.css">
+
+
+<link rel="stylesheet" href="css/30-72m-targeted-layout-fixes.css">
+
+
+<link rel="stylesheet" href="css/31-73m-account-type-and-shared-layout.css">
+
+
+<link rel="stylesheet" href="css/32-78m-shared-tables-fit.css">
+
+<link rel="stylesheet" href="css/33-79m-header-and-page-title.css">
+
+<link rel="stylesheet" href="css/34-80m-one-title-icons-oneline.css">
+
+<link rel="stylesheet" href="css/35-81m-title-in-top-bar.css">
+
+<link rel="stylesheet" href="css/36-82m-minimal.css">
+
+<link rel="stylesheet" href="css/37-83m-who-owes-list.css">
+
+<link rel="stylesheet" href="css/38-84m-password-help.css">
+</head>
+<body class="h-full bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
+
+    <div id="app" class="h-full flex flex-col">
+        <!-- Vault Lock / Setup Screen -->
+        <div id="vault-screen" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-8 space-y-5">
+                <div class="text-center space-y-1">
+                    <div class="inline-flex p-3 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-2xl mb-1">
+                        <i data-lucide="shield-check" class="w-8 h-8"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold tracking-tight" data-edition-title>aifico Money Manager</h1><button type="button" id="vault-help-btn" class="vault-help-btn" onclick="app.openPasswordHelp()" aria-label="Help with your password">?</button>
+                    <p id="vault-subtitle" class="text-sm text-slate-500 dark:text-slate-400">Enter your master password to unlock your vault</p>
+                </div>
+
+                <div id="vault-form-container" class="space-y-4">
+                    <div class="ip-field fl login-field">
+                        <span>Master password</span>
+                        <input type="password" id="vault-password" autocomplete="current-password" autocapitalize="none" spellcheck="false" aria-describedby="vault-login-status" placeholder="Enter your master password" aria-label="Master password" class="w-full px-4 py-3 pr-14 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                        <button type="button" id="vault-password-toggle" aria-label="Show password" aria-pressed="false" class="absolute inset-y-0 right-0 px-4 text-sm font-semibold text-slate-500 hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-500 rounded-r-xl">Show</button>
+                    </div>
+                    <p id="vault-default-hint" class="vault-default-hint" hidden>New here? Choose a master password of at least 5 characters and write it down somewhere safe. It cannot be recovered if you forget it.</p>
+                    <p id="vault-login-status" role="status" aria-live="polite" class="hidden text-sm rounded-lg px-3 py-2"></p>
+                    <p class="text-xs leading-relaxed text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2">Forgot password? Restore a Full Erase backup with its separate recovery code. Normal backups need the original password.</p>
+                    <button id="vault-action-btn" type="button" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-wait text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/20 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">Unlock Vault</button>
+                    
+                    <div class="flex items-center justify-between pt-2 text-xs text-slate-500">
+                        <button id="vault-reset-link" class="hover:underline">Reset / New Vault</button>
+                        <label class="hover:underline cursor-pointer">
+                            Restore Encrypted Backup (.json) <input type="file" id="vault-restore-file" class="hidden" accept=".json,application/json">
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main App Container -->
+        <div id="main-layout" class="flex-1 flex overflow-hidden hidden">
+            <button id="nav-backdrop" aria-label="Close navigation" onclick="app.closeNavigation()" class="fixed inset-0 bg-slate-950/40 z-30"></button>
+            <aside id="app-sidebar" class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col z-40">
+                <div class="p-4 sm:p-6 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
+                    <div class="flex items-center space-x-3 min-w-0">
+                        <div class="w-9 h-9 shrink-0 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-md shadow-emerald-600/30">AF</div>
+                        <div class="min-w-0">
+                            <h2 class="font-bold text-sm leading-tight">aifico</h2>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium" data-edition-label>Money Manager v1.2610.84</p>
+                        </div>
+                    </div>
+                    <button id="nav-close" type="button" aria-label="Hide navigation" title="Hide navigation" onclick="app.closeNavigation()" class="sm:hidden shrink-0 ml-2 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+
+                <nav class="flex-1 overflow-y-auto p-4 space-y-1">
+                    <button onclick="app.switchTab('dashboard')" data-tab="dashboard" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span>Dashboard</span>
+                    </button>
+                    <button onclick="app.switchTab('ledger')" data-tab="ledger" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <i data-lucide="receipt" class="w-4 h-4"></i>
+                        <span>Core Ledger</span>
+                    </button>
+                    <button onclick="app.switchTab('budgets')" data-tab="budgets" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <i data-lucide="pie-chart" class="w-4 h-4"></i>
+                        <span>Budgets</span>
+                    </button>
+                    <button onclick="app.switchTab('accounts')" data-tab="accounts" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <i data-lucide="wallet" class="w-4 h-4"></i>
+                        <span>Accounts</span>
+                    </button>
+                    <button onclick="app.switchTab('yearly')" data-tab="yearly" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <i data-lucide="calendar-range" class="w-4 h-4"></i>
+                        <span>Schedules</span>
+                    </button>
+                    <button onclick="app.switchTab('goals')" data-tab="goals" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <i data-lucide="target" class="w-4 h-4"></i>
+                        <span>Goals</span>
+                    </button>
+                    <button onclick="app.switchTab('shared')" data-tab="shared" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>Shared & Split</span>
+                    </button>
+                    <button onclick="app.switchTab('guide')" data-tab="guide" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <i data-lucide="book-open" class="w-4 h-4"></i>
+                        <span>User Guide</span>
+                    </button>
+                    <button onclick="app.toggleSettingsMenu()" data-tab="settings" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
+                        <span class="flex-1 text-left">Settings</span>
+                        <i data-lucide="chevron-down" id="settings-menu-chevron" class="w-4 h-4"></i>
+                    </button>
+                    <div id="settings-submenu" class="ml-5 pl-3 border-l border-slate-200 dark:border-slate-700 space-y-1">
+                        <button onclick="app.switchTab('configuration')" data-tab="configuration" class="nav-btn w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                            <i data-lucide="sliders-horizontal" class="w-4 h-4"></i><span>Categories</span>
+                        </button>
+                        <button onclick="app.switchTab('settings')" data-tab="settings" class="nav-btn w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                            <i data-lucide="shield-check" class="w-4 h-4"></i><span>Backup & Settings</span>
+                        </button>
+                    </div>
+                </nav>
+
+                <div class="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                    <button onclick="app.toggleTheme()" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
+                        <i data-lucide="sun" id="theme-icon-light" class="w-4 h-4 hidden dark:block"></i>
+                        <i data-lucide="moon" id="theme-icon-dark" class="w-4 h-4 block dark:hidden"></i>
+                    </button>
+                    <button onclick="app.lockVault()" class="p-2 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 text-xs font-medium flex items-center space-x-1">
+                        <i data-lucide="lock" class="w-4 h-4"></i>
+                        <span>Lock</span>
+                    </button>
+                </div>
+            </aside>
+
+            <main class="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
+                <!-- Top Header Bar -->
+                <header id="app-main-header" class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-8 flex items-center justify-between z-10">
+                    <div class="flex items-center gap-3 min-w-0"><button id="nav-toggle" aria-label="Open navigation" title="Open navigation" onclick="app.toggleNavigation()" class="shrink-0 p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"><i data-lucide="menu" class="w-5 h-5"></i></button><span id="hdr-app" class="hdr-app">aifico <span>Money Manager</span><em id="hdr-crumb" class="hdr-crumb"></em></span></div>
+                    <div class="flex items-center space-x-3">
+                        <button onclick="app.openTransactionModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl text-sm shadow-sm flex items-center space-x-2">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            <span class="header-add-label">Add</span>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Page Title (page level, fixed): page name, page action, and that page's data -->
+                <section id="page-title-bar" aria-label="Page title">
+                    <div class="ptb-row"><h1 id="tab-title" class="ptb-name">Dashboard</h1><span id="ptb-meta" class="ptb-meta"></span><div id="header-page-action" hidden></div></div>
+                    <div id="ptb-tools"><div data-ptb="ledger" hidden></div><div data-ptb="dashboard" hidden></div></div>
+                </section>
+                <!-- Scrollable Content View -->
+                <div id="app-scroll" class="flex-1 overflow-y-auto p-8">
+                    
+                    <!-- TAB 1: DASHBOARD -->
+                    <div id="panel-dashboard" class="tab-panel space-y-6">
+                        <!-- Summary KPI Cards -->
+                        <div id="kpi-grid" class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <button type="button" onclick="app.openDashboardDrilldown('Net Worth — Account Breakdown','accounts-networth')" class="text-left bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1 hover:border-emerald-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Net Worth</span>
+                                <div id="kpi-net-worth" class="text-2xl font-bold tracking-tight">₹0.00</div>
+                                <div class="text-xs text-emerald-600 font-medium pt-1">Click to view account breakdown</div>
+                            </button>
+                            <button type="button" onclick="app.openDashboardDrilldown('Liquid Cash — Account Breakdown','accounts-liquid')" class="text-left bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1 hover:border-emerald-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Liquid Cash</span>
+                                <div id="kpi-liquid" class="text-2xl font-bold tracking-tight">₹0.00</div>
+                                <div class="text-xs text-slate-500 pt-1">Click to view included accounts</div>
+                            </button>
+                            <button type="button" onclick="app.openDashboardDrilldown('Monthly Income — Actual Entries','income-current')" class="text-left bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1 hover:border-emerald-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Monthly Income</span>
+                                <div id="kpi-income" class="text-2xl font-bold tracking-tight text-emerald-600">₹0.00</div>
+                                <div class="text-xs text-slate-500 pt-1">Click to view actual income entries</div>
+                            </button>
+                            <button type="button" onclick="app.openDashboardDrilldown('Monthly Expenses — Actual Entries','expense-current')" class="text-left bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1 hover:border-rose-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-rose-500">
+                                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Monthly Expenses</span>
+                                <div id="kpi-expense" class="text-2xl font-bold tracking-tight text-rose-600">₹0.00</div>
+                                <div class="text-xs text-slate-500 pt-1">Click to view actual expense entries</div>
+                            </button>
+                        </div>
+
+                        <!-- Phase 5: month-over-month financial summary (read-only, derived from counted ledger entries) -->
+                        <section id="dashboard-month-comparison" class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <div><h3 class="font-bold text-sm">Monthly Financial Comparison</h3><p class="text-xs text-slate-500 mt-1">Current month versus previous month · calculated from counted Core Ledger entries</p></div>
+                                <span id="dashboard-comparison-period" class="text-xs text-slate-500"></span>
+                            </div>
+                            <div id="cmp-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <button type="button" onclick="app.openDashboardDrilldown('Current month income','income-current')" class="text-left rounded-xl border border-slate-200 dark:border-slate-700 p-4 hover:border-emerald-400"><div class="text-xs text-slate-500">Income · current month</div><div id="comparison-current-income" class="text-lg font-bold text-emerald-600 mt-1">₹0.00</div><div id="comparison-income-change" class="text-xs text-slate-500 mt-1">Compared with previous month</div></button>
+                                <button type="button" onclick="app.openDashboardDrilldown('Current month expenses','expense-current')" class="text-left rounded-xl border border-slate-200 dark:border-slate-700 p-4 hover:border-rose-400"><div class="text-xs text-slate-500">Expenses · current month</div><div id="comparison-current-expense" class="text-lg font-bold text-rose-600 mt-1">₹0.00</div><div id="comparison-expense-change" class="text-xs text-slate-500 mt-1">Compared with previous month</div></button>
+                                <div class="rounded-xl border border-slate-200 dark:border-slate-700 p-4"><div class="text-xs text-slate-500">Net cash flow · current month</div><div id="comparison-current-net" class="text-lg font-bold mt-1">₹0.00</div><div id="comparison-net-change" class="text-xs text-slate-500 mt-1">Compared with previous month</div></div>
+                            </div>
+                            <p class="text-xs text-slate-500">This comparison is informational only. It does not modify account balances or transaction records. Transfers are treated according to the existing dashboard cash-flow rules.</p>
+                        </section>
+
+                        <!-- Charts Section -->
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div class="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="font-bold text-sm">Monthly Cash Flow Trend</h3>
+                                    <span class="text-xs text-slate-500">Income vs Expenses</span>
+                                </div>
+                                <div class="h-72"><canvas id="chart-cashflow"></canvas></div>
+                            </div>
+                            <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                                <div class="flex flex-wrap items-center justify-between gap-3">
+                                    <h3 class="font-bold text-sm">Expense Breakdown</h3>
+                                    <div class="flex items-center gap-2">
+                                        <label class="text-xs text-slate-500" for="dashboard-pie-year">Year</label>
+                                        <select id="dashboard-pie-year" onchange="app.renderDashboardPieChart()" class="px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm" aria-label="Pie chart year"></select>
+                                        <label class="text-xs text-slate-500" for="dashboard-pie-month">Month</label>
+                                        <select id="dashboard-pie-month" onchange="app.renderDashboardPieChart()" class="px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm" aria-label="Pie chart month">
+                                            <option value="all">All months</option><option value="01">January</option><option value="02">February</option><option value="03">March</option><option value="04">April</option><option value="05">May</option><option value="06">June</option><option value="07">July</option><option value="08">August</option><option value="09">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <p id="dashboard-pie-period-label" class="text-xs text-slate-500">Expenses by category</p>
+                                <div class="h-72 flex items-center justify-center"><canvas id="chart-categories"></canvas></div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Transactions & Reminders -->
+                        <div id="dash-bottom" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div class="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="font-bold text-sm">Recent Transactions</h3>
+                                    <button onclick="app.switchTab('ledger')" class="text-xs font-medium text-emerald-600 hover:underline">View All</button>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left text-sm">
+                                        <thead class="text-xs text-slate-400 uppercase border-b border-slate-100 dark:border-slate-800">
+                                            <tr>
+                                                <th class="pb-3 font-semibold">Date</th>
+                                                <th class="pb-3 font-semibold">Payee / Narration</th>
+                                                <th class="pb-3 font-semibold">Category</th>
+                                                <th class="pb-3 font-semibold">Account</th>
+                                                <th class="pb-3 font-semibold text-right">Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="dashboard-tx-tbody" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                            <!-- Dynamically populated -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="font-bold text-sm">Payment Reminders</h3>
+                                    <span class="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 rounded-full font-medium">Upcoming</span>
+                                </div>
+                                <div id="reminders-list" class="space-y-3">
+                                    <!-- Dynamic reminders -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: LEDGER -->
+                    <div id="panel-ledger" class="tab-panel space-y-6 hidden">
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                            <div id="ledger-sticky">
+                                <div class="lh-row">
+                                <div class="relative lh-search">
+                                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+                                    <input type="text" id="ledger-search" oninput="app.filterLedger()" placeholder="Search transactions" class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                    <span id="ledger-total-count" class="ledger-count" title="Transactions shown">0</span>
+                                </div>
+                                <button type="button" id="ledger-filter-toggle" class="lh-btn" onclick="app.toggleLedgerFilters()" aria-expanded="false" aria-controls="ledger-filters"><i data-lucide="filter"></i><span>Filters</span><em id="ledger-filter-badge" hidden></em></button>
+                                <button type="button" class="lh-btn lh-icon" onclick="app.openLedgerHeaderSettings()" aria-label="Choose what stays at the top"><i data-lucide="settings-2"></i></button>
+                                </div>
+                                <div id="ledger-filters">
+                                <div id="ledger-filter-bar" class="flex flex-wrap items-center gap-2 w-full">
+                                    
+                                    <select id="ledger-filter-type" onchange="app.filterLedger()" class="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm">
+                                        <option value="">All types</option>
+                                        <option value="Expense">Expense</option>
+                                        <option value="Income">Income</option>
+                                        <option value="Transfer">Transfer</option><option value="EMI">EMI</option><option value="Installment">Installment</option>
+                                    </select>
+                                    <select id="ledger-filter-year" onchange="app.filterLedger()" class="px-3 py-2 rounded-xl border dark:bg-slate-800 text-sm"><option value="">All years</option></select>
+                                    <select id="ledger-filter-month" hidden style="display:none" onchange="app.filterLedger()" class="px-3 py-2 rounded-xl border dark:bg-slate-800 text-sm">
+                                        <option value="">All Months</option><option value="01">January</option><option value="02">February</option><option value="03">March</option><option value="04">April</option><option value="05">May</option><option value="06">June</option><option value="07">July</option><option value="08">August</option><option value="09">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                                    </select>
+                                    <label class="flex items-center gap-1 text-xs text-slate-500">From <input id="ledger-date-from" type="date" onchange="app.filterLedger()" class="px-2 py-2 rounded-xl border dark:bg-slate-800 text-sm"></label>
+                                    <label class="flex items-center gap-1 text-xs text-slate-500">To <input id="ledger-date-to" type="date" onchange="app.filterLedger()" class="px-2 py-2 rounded-xl border dark:bg-slate-800 text-sm"></label>
+                                    <select id="ledger-excluded-filter" onchange="app.filterLedger()" class="px-3 py-2 rounded-xl border dark:bg-slate-800 text-sm" aria-label="Show excluded ledger entries"><option value="active">Active transactions</option><option value="excluded">Excluded transactions</option><option value="duplicates">SMS duplicates</option><option value="all">All transactions</option></select>
+                                    <select id="ledger-sort-date" hidden style="display:none" onchange="app.filterLedger()" class="px-3 py-2 rounded-xl border dark:bg-slate-800 text-sm" aria-label="Sort Core Ledger"><option value="desc">Newest first</option><option value="asc">Oldest first</option><option value="payee-asc">Payee A–Z</option><option value="payee-desc">Payee Z–A</option><option value="type-asc">Type A–Z</option><option value="type-desc">Type Z–A</option><option value="category-asc">Category A–Z</option><option value="category-desc">Category Z–A</option><option value="account-asc">Account A–Z</option><option value="account-desc">Account Z–A</option><option value="amount-asc">Amount low–high</option><option value="amount-desc">Amount high–low</option></select>
+                                </div>
+                                </div>
+                                <div id="ledger-chips"></div>
+                                <div id="ledger-totals" aria-live="polite" title="Totals include only the transactions shown.">
+                                    <div><span>Income</span><b id="ledger-total-income" class="text-emerald-600">₹0.00</b></div>
+                                    <div><span>Expenses</span><b id="ledger-total-expense" class="text-rose-600">₹0.00</b></div>
+                                    <div><span>Transfers</span><b id="ledger-total-transfer">₹0.00</b></div>
+                                    <div><span>Net</span><b id="ledger-total-net">₹0.00</b></div>
+                                </div>
+                            </div>
+                            
+
+                            <div id="ledger-bulk-bar" data-has-selection="0" class="rounded-xl border border-slate-200 dark:border-slate-700 p-3">
+                                <div class="flex items-center justify-between gap-3">
+                                    <label class="flex items-center gap-2 text-sm font-medium"><input type="checkbox" id="ledger-select-all" onchange="app.toggleSelectAll(this.checked)" class="h-5 w-5"> Select all</label>
+                                    <span id="ledger-selected-count" class="text-sm text-slate-500">0 selected</span>
+                                </div>
+                                <div id="ledger-bulk-actions">
+                                    <div class="bulk-head"><span id="ledger-bulk-count" class="font-semibold">0 selected</span><button type="button" onclick="app.clearTransactionSelection()" class="bulk-clear">Cancel</button></div>
+                                    <div class="bulk-buttons">
+                                        <button type="button" onclick="app.openBulkEditModal()" class="bulk-btn"><i data-lucide="pencil" class="w-4 h-4"></i><span>Edit</span></button>
+                                        <label class="bulk-btn bulk-select"><i data-lucide="tag" class="w-4 h-4"></i><span>Change type</span>
+                                            <select id="bulk-type" aria-label="Change type of selected transactions" onchange="app.bulkChangeTypeFromMenu(this)">
+                                                <option value="">Change type</option>
+                                                <option>Expense</option><option>Income</option><option>Transfer</option><option>EMI</option><option>Installment</option>
+                                            </select>
+                                        </label>
+                                        <button type="button" onclick="app.bulkDeleteTransactions()" class="bulk-btn bulk-danger"><i data-lucide="trash-2" class="w-4 h-4"></i><span>Delete</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table id="ledger-table" class="w-full text-left text-sm">
+                                    <thead class="text-xs text-slate-400 uppercase border-b border-slate-100 dark:border-slate-800">
+                                        <tr>
+                                            <th class="pb-3 font-semibold ledger-head-select"><input type="checkbox" id="ledger-select-all-head" aria-label="Select all shown transactions" onchange="app.toggleSelectAll(this.checked)"></th>
+                                            <th class="pb-3 font-semibold"><button type="button" onclick="app.setLedgerSort('date')" class="hover:text-emerald-600" title="Sort by date">Date ↕</button></th>
+                                            <th class="pb-3 font-semibold"><button type="button" onclick="app.setLedgerSort('type')" class="hover:text-emerald-600" title="Sort by type">Type ↕</button></th>
+                                            <th class="pb-3 font-semibold"><button type="button" onclick="app.setLedgerSort('payee')" class="hover:text-emerald-600" title="Sort by payee or description">Payee / Description ↕</button></th>
+                                            <th class="pb-3 font-semibold"><button type="button" onclick="app.setLedgerSort('category')" class="hover:text-emerald-600" title="Sort by category">Category ↕</button></th>
+                                            <th class="pb-3 font-semibold"><button type="button" onclick="app.setLedgerSort('account')" class="hover:text-emerald-600" title="Sort by account">Account ↕</button></th>
+                                            <th class="pb-3 font-semibold text-right"><button type="button" onclick="app.setLedgerSort('amount')" class="hover:text-emerald-600" title="Sort by amount">Amount ↕</button></th>
+                                            <th class="pb-3 font-semibold text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ledger-tbody" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                        <!-- Dynamically populated -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- TAB 4: BUDGETS -->
+                    <div id="panel-budgets" class="tab-panel space-y-6 hidden">
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                                <h3 class="font-bold text-lg">Monthly Budget Allocation</h3>
+                                <button onclick="app.openBudgetModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl text-sm shadow-sm">Set Budget</button>
+                            </div>
+                            <div id="budgets-container" class="space-y-4">
+                                <!-- Dynamic budget progress bars -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 5: ACCOUNTS -->
+                    <div id="panel-accounts" class="tab-panel space-y-6 hidden">
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                                <h3 class="font-bold text-lg">Accounts & Wallets</h3>
+                                <button onclick="app.openAccountModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl text-sm shadow-sm">Add Account</button>
+                            </div>
+                            <div id="accounts-grid" class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));">
+                                <!-- Dynamic accounts cards -->
+                            </div>
+                            <section id="account-ledger-panel" class="hidden mt-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 sm:p-6 space-y-4" aria-live="polite">
+                                <!-- Selected account's Core Ledger entries render here inline. -->
+                            </section>
+                        </div>
+                    </div>
+
+                    <!-- TAB 6: YEARLY / SCHEDULED -->
+                    <div id="panel-yearly" class="tab-panel space-y-6 hidden">
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                                <h3 class="font-bold text-lg">Scheduled Payments &amp; Pool</h3>
+                                <div class="flex gap-2"><button onclick="app.openSalaryScheduleModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl text-sm shadow-sm">Set Monthly Salary</button><button onclick="app.openYearlyModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl text-sm shadow-sm">Add Auto Debit / Transfer</button></div>
+                            </div>
+                            <div id="salary-schedule-container" class="space-y-4"></div>
+                            <div id="yearly-container" class="space-y-4">
+                                <!-- Dynamic yearly items -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 7: GOALS -->
+                    <div id="panel-goals" class="tab-panel space-y-6 hidden">
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                                <h3 class="font-bold text-lg">Financial Savings Goals</h3>
+                                <button onclick="app.openGoalModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl text-sm shadow-sm">Add Goal</button>
+                            </div>
+                            <button type="button" onclick="app.openGoalPlanner()" class="gp-cta"><i data-lucide="sparkles"></i><span><strong>Plan a big purchase</strong><small>House, vehicle, land, education, wedding… See the future cost, how much to save each month, and where the money can come from in your spending.</small></span><i data-lucide="chevron-right" class="s-chev"></i></button>
+                            <div id="goals-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Dynamic goal cards -->
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- TAB 8: SHARED & SPLIT -->
+                    <div id="panel-shared" class="tab-panel space-y-6 hidden">
+                        <section class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                            <div class="border-b border-slate-200 dark:border-slate-800 pb-3"><h3 class="font-bold text-lg">Shared &amp; Split</h3><p class="text-xs text-slate-500">Trips, events and shared households: who paid, each person's share, and who owes whom.</p></div>
+                            <div id="ss-tabs" class="ss-tabs" role="tablist">
+                                <button type="button" role="tab" data-ss="overview" onclick="app.ssSetTab('overview')">Overview</button>
+                                <button type="button" role="tab" data-ss="events" onclick="app.ssSetTab('events')">Trips &amp; events</button>
+                                <button type="button" role="tab" data-ss="expenses" onclick="app.ssSetTab('expenses')">Expenses</button>
+                                <button type="button" role="tab" data-ss="people" onclick="app.ssSetTab('people')">People</button>
+                                <button type="button" role="tab" data-ss="settlements" onclick="app.ssSetTab('settlements')">Settlements</button>
+                            </div>
+                            <div id="ss-root" class="space-y-4"></div>
+                        </section>
+                    </div>
+
+                    <!-- TAB 9: SMS PARSER -->
+                    <div id="panel-sms" class="tab-panel space-y-6 hidden">
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                            <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
+                                <h3 class="font-bold text-lg">SMS Bank Transaction Parser</h3>
+                                <p class="text-xs text-slate-500 mt-1">Paste SMS text or upload a phone SMS Backup & Restore XML file. Parsed messages enter a review inbox; they are not automatically merged into Core Ledger.</p>
+                            </div>
+                            <div class="space-y-4">
+                                <textarea id="sms-raw-input" rows="5" placeholder="Paste bank transaction SMS messages here (e.g. 'A/C XX1234 debited by INR 500.00 on 12-Oct-26 to Swiggy UPI')..." class="w-full p-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+                                <div class="flex flex-wrap items-center gap-3">
+                                    <button onclick="app.parseSmsInput()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl text-sm shadow-sm">Parse SMS Messages</button>
+                                    <label for="sms-xml-file" class="px-5 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 inline-flex items-center gap-2"><i data-lucide="file-up" class="w-4 h-4"></i> Upload Phone SMS Backup (XML)</label>
+                                    <input id="sms-xml-file" type="file" accept=".xml,text/xml,application/xml" class="hidden" onchange="app.handleSmsXmlFile(event)">
+                                </div>
+                                <p class="text-xs text-slate-500">Paste bank SMS messages or upload a phone SMS Backup & Restore XML file. Messages are parsed locally; review them in Core SMS Ledger before merging anything into the ledger.</p>
+                                <div id="sms-import-status" class="text-sm hidden" role="status" aria-live="polite"></div>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                            <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+                                <div class="min-w-0 flex-1"><h3 class="font-bold text-lg">Core SMS Ledger &amp; Reconciliation</h3><p class="text-sm text-slate-500 mt-1 max-w-3xl">Review bank SMS messages against Core Ledger transactions. SMS records remain separate and never change balances unless you explicitly merge a record.</p></div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full xl:w-auto xl:min-w-[330px]">
+                                    <button type="button" onclick="app.refreshSmsMatches()" class="inline-flex items-center justify-center gap-2 min-h-11 px-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500" aria-label="Refresh suggested matches"><i data-lucide="refresh-cw" class="w-4 h-4"></i><span>Refresh matches</span></button>
+                                    <button type="button" onclick="app.autoReconcileExactMatches()" class="inline-flex items-center justify-center gap-2 min-h-11 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" aria-label="Automatically reconcile high-confidence matches"><i data-lucide="git-compare" class="w-4 h-4"></i><span>Auto-reconcile</span></button>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-500 -mt-1">Auto-reconcile only applies high-confidence matches; review ambiguous candidates manually.</p>
+                            <p id="sms-refresh-status" class="hidden rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-900 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-300" role="status" aria-live="polite"></p>
+                            <div id="sms-reconcile-summary" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3"></div>
+                            <div class="flex flex-col md:flex-row md:items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-3">
+                                <div class="flex flex-col sm:flex-row sm:items-center gap-2 md:min-w-[250px]"><label for="sms-reconcile-filter" class="text-sm font-semibold">Filter records</label>
+                                    <select id="sms-reconcile-filter" onchange="app.renderSmsReconciliation()" class="w-full sm:w-auto min-h-10 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                        <option value="all">All statuses</option><option value="pending">Pending review</option><option value="matched">Matched to bank</option><option value="merged">Merged to ledger</option><option value="ignored">Ignored</option><option value="duplicate">Duplicates</option><option value="error">Errors</option>
+                                    </select>
+                                </div><p class="text-xs text-slate-500 md:flex-1">Choose a status to narrow the list. Review suggested matches before confirming; merging is a separate action.</p>
+                            </div>
+                            <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800"><table id="sms-reconcile-table" class="w-full min-w-[1050px] text-left text-xs">
+                                <thead class="text-slate-600 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700"><tr><th scope="col" class="p-3 font-semibold tracking-wide">Date</th><th scope="col" class="p-3 font-semibold tracking-wide">SMS / Description</th><th scope="col" class="p-3 font-semibold tracking-wide text-right">Amount</th><th scope="col" class="p-3 font-semibold tracking-wide">Reference</th><th scope="col" class="p-3 font-semibold tracking-wide">Suggested bank match</th><th scope="col" class="p-3 font-semibold tracking-wide">Status</th><th scope="col" class="p-3 font-semibold tracking-wide">Review actions</th></tr></thead><tbody id="sms-reconcile-tbody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody></table></div>
+                        </div>
+                    </div>
+
+                    <!-- CONFIGURATION: categories and classification rules -->
+                    <div id="panel-configuration" class="tab-panel space-y-6 hidden">
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                            
+                            <p class="text-sm text-slate-500">Set up how aifico Money Manager organizes your records. These choices affect categorization and reporting; they do not delete transaction history.</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+                            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 gap-3">
+                                <div><p class="text-xs text-slate-500">Add, rename or remove classifications. Existing transactions are preserved.</p><p id="cat-summary" class="text-sm font-semibold mt-1"></p></div><button type="button" id="cat-edit-toggle" onclick="app.toggleCategoryEdit()" class="s-btn s-secondary">Edit</button>
+                                <button onclick="app.addCategory()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium whitespace-nowrap">Add Category</button>
+                            </div>
+                            <div id="categories-manager" class="space-y-3" hidden></div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 10: SETTINGS / BACKUP -->
+                    <div id="panel-settings" class="tab-panel hidden">
+                      <div class="set-stack">
+
+                        <section class="set-card">
+                            <h3 class="set-title">Backup &amp; restore</h3>
+                            <p class="set-desc">An encrypted copy of all your data: transactions, accounts, categories, budgets, schedules, goals and settings. Before a restore replaces anything, you'll see what will change.</p>
+                            <div class="set-actions">
+                                <button type="button" onclick="app.exportVaultBackup()" class="s-btn s-primary s-wide"><i data-lucide="download"></i><span>Back up now</span></button>
+                                <button type="button" onclick="document.getElementById('vault-restore-file').click()" class="s-btn s-secondary s-wide"><i data-lucide="upload"></i><span>Restore from backup</span></button>
+                            </div>
+                        </section>
+
+                        <section class="set-card">
+                            <h3 class="set-title">Default account</h3>
+                            <label class="set-desc" for="global-default-account">Used when an SMS, statement or new transaction doesn't name an account.</label>
+                            <select id="global-default-account" class="s-select" onchange="app.saveGlobalDefaultAccount(this.value)"></select>
+                            <p id="global-default-account-status" class="set-note"></p>
+                        </section>
+
+                        <section class="set-card">
+                            <h3 class="set-title">Navigation</h3>
+                            <label class="set-desc" for="nav-mode-select">How sections are shown on phones and tablets. On a computer the side menu is always used.</label>
+                            <select id="nav-mode-select" class="s-select" onchange="app.setNavMode(this.value)">
+                                <option value="auto">Auto: bottom bar on touch screens</option>
+                                <option value="bottom">Bottom bar</option>
+                                <option value="menu">Side menu (☰)</option>
+                            </select>
+                            <label class="lh-opt"><input type="checkbox" id="swipe-toggle" onchange="app.setSwipeEnabled(this.checked)"><span>Swipe left or right to move between pages (phones and tablets)</span></label>
+                        </section>
+
+                        <section class="set-card">
+                            <h3 class="set-title">Import</h3>
+                            <button type="button" onclick="app.switchTab('sms')" class="s-row"><i data-lucide="message-square-text"></i><span><strong>SMS messages</strong><small>Paste or upload bank SMS. Review before adding.</small></span><i data-lucide="chevron-right" class="s-chev"></i></button>
+                        </section>
+
+
+
+                        <section class="set-card">
+                            <h3 class="set-title">Data health</h3>
+                            <p class="set-desc">Find unreadable dates, stray characters and inconsistent records. Nothing is changed until you approve it.</p>
+                            <div class="set-actions">
+                                <button type="button" onclick="app.validateAndCleanData()" class="s-btn s-secondary"><span>Clean up data</span></button>
+                                <button type="button" onclick="app.runDataIntegrityCheck()" class="s-btn s-secondary"><span>Verify data</span></button>
+                            </div>
+                            <p id="data-validation-status" class="set-note" aria-live="polite"></p>
+                            <div id="cleanup-review" class="hidden space-y-3 border-t border-slate-200 dark:border-slate-800 pt-4"></div>
+                        </section>
+
+                        <section class="set-card">
+                            <h3 class="set-title">Security</h3>
+                            <p class="set-desc">Your master password unlocks and encrypts the vault. It can't be recovered if you forget it.</p>
+                            <div class="set-actions">
+                                <button type="button" onclick="app.openPasswordChangeModal()" class="s-btn s-secondary s-wide"><i data-lucide="key-round"></i><span>Change password</span></button><p id="security-default-note" class="set-default-warn" hidden>⚠ You are using the default password 12345 — change it now.</p>
+                            </div>
+                        </section>
+
+                        <section class="set-card">
+                            <h3 class="set-title">SMS entries in Core Ledger</h3>
+                            <p id="sms-entry-count" class="set-desc">Tap Recount to see how many there are.</p>
+                            <p class="set-desc">Removing them deletes only transactions imported from SMS and reverses their effect on account balances. Manual and statement entries stay. Back up first.</p>
+                            <div class="set-actions">
+                                <button type="button" onclick="app.refreshSmsEntryCount()" class="s-btn s-secondary"><span>Recount</span></button>
+                                <button type="button" onclick="app.removeAllSmsEntries()" class="s-btn s-danger-outline"><span>Remove all…</span></button>
+                            </div>
+                        </section>
+
+                        <section class="set-card set-danger">
+                            <h3 class="set-title">Erase all data</h3>
+                            <p class="set-desc">Deletes every account, transaction, budget and setting on this phone and starts an empty vault. You'll be asked to save a backup first.</p>
+                            <div class="set-actions">
+                                <button type="button" onclick="app.resetVault()" class="s-btn s-danger s-wide"><i data-lucide="trash-2"></i><span>Erase all data…</span></button>
+                            </div>
+                        </section>
+
+                      </div>
+                    </div>
+                    <!-- In-app User Guide -->
+                    <div id="panel-guide" class="tab-panel space-y-6 hidden">
+                        <section class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                            <p class="text-xs font-semibold uppercase tracking-wider text-emerald-600">In-app reference</p>
+                            <h2 class="text-2xl font-bold">aifico Money Manager User Guide</h2>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">Version v1.2610.84 · Use this guide as a quick reference while working in the app.</p>
+                            <div class="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-4 text-sm text-amber-900 dark:text-amber-200"><strong>Safety first:</strong> Before destructive actions, download and verify a full encrypted vault backup. Use dummy data to test unfamiliar workflows. Keep backup files private because they may contain sensitive financial information.</div>
+                        </section>
+                    <section class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 guide-password" id="guide-password"><h3 class="font-bold text-lg">Your master password</h3><h4>First time on this device</h4><ol><li>The screen says <b>Create a master password</b>.</li><li>Type your own password (at least 5 characters). Avoid simple passwords such as a run of numbers.</li><li>Tap <b>Initialize Vault</b>. Your data is encrypted on this device with that password.</li></ol>
+<h4>Still using the old default password?</h4><p>Vaults created by earlier versions may still use it, and the app shows a reminder after every unlock. Change it immediately: <b>Backup &amp; Settings → Security → Change password</b>. Until you do, anyone who knows the default can open your data.</p>
+<h4>Forgot your password?</h4><p>There is no "forgot password" — the data never leaves your device. You can recover only with a <b>Full Erase backup plus its recovery code</b>. Otherwise use <b>Reset / New Vault</b> (this deletes the data on this device; a normal backup can be restored with its original password).</p>
+<h4>Good habits</h4><ul><li>Write your password down somewhere safe.</li><li>Back up regularly: Backup &amp; Settings → Back up now.</li><li>New phone: back up on the old one, then <b>Restore Encrypted Backup</b> on the new one with the same password.</li></ul></section>
+                        <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">1. Start and protect your vault</h3><ol class="list-decimal pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Create or unlock the vault with your master password.</li><li>Keep the password private; do not share it with anyone.</li><li>Lock the vault when you finish using the app.</li><li>Use a strong password that you can safely retain. A recovery code is included only in a backup created as part of Full Erase; ordinary backups do not include one.</li></ol></article>
+                            <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">2. Dashboard</h3><p class="text-sm text-slate-600 dark:text-slate-300">Use the dashboard for a high-level view of your finances. Some summary cards can be opened to view account breakdowns. Review figures against your source accounts if something looks unexpected.</p></article>
+                            <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">3. Core Ledger</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Use the ledger to review recorded income and expenses.</li><li>Check the date, account, amount, category and description before saving or editing.</li><li>Imported records may need duplicate or reconciliation review; do not assume every imported match is correct.</li></ul></article>
+                            <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">4. Accounts & Wallets</h3><p class="text-sm text-slate-600 dark:text-slate-300">Maintain the accounts used by transactions and review their balances. When a balance looks wrong, inspect related transactions and imported entries before making a manual correction.</p></article>
+                            <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">5. Budgets, goals and schedules</h3><p class="text-sm text-slate-600 dark:text-slate-300">Use Budgets to set spending limits, Goals to track financial targets, and Schedules for your monthly salary and regular payments. Keep dates and amounts current.</p></article>
+                            <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">6. SMS import and reconciliation</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Open Backup &amp; Settings → SMS messages. Paste bank SMS messages, or use Upload Phone SMS Backup (XML) for an SMS Backup &amp; Restore XML file.</li><li>Review extracted dates, amounts, direction, account and references before confirming or merging.</li><li>In Core SMS Ledger &amp; Reconciliation, use Refresh matches to recalculate suggestions. Auto-reconcile applies only high-confidence matches; inspect ambiguous candidates manually before confirming.</li><li>Use the status filter to view pending, matched, merged, ignored, duplicate or error records. Merge to ledger is a separate action and may affect account balances.</li><li>Resolve ambiguous matches manually. A suggested match is not proof that two records represent the same transaction.</li><li>Use the SMS Review Inbox JSON backup for SMS review status; it is not a substitute for the full vault backup.</li></ul></article>
+                        <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">Planning a big purchase</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Open <strong>Goals → Plan a big purchase</strong> and choose House, Vehicle, Land / plot, Education, Wedding or something else. Enter today's cost and how many years away it is.</li><li>The planner raises the cost by the yearly price rise you set (sensible defaults per type, e.g. 10% for education), grows what you've already saved at your assumed return, and works out the <strong>amount to save each month</strong>. You can raise that amount each year as income grows.</li><li>For a house, vehicle, land or education you can fund part of it with a <strong>loan</strong>: it shows the down payment to save, the loan amount, and the EMI after purchase as a share of your current income.</li><li>It compares the plan with your <strong>actual spending</strong> (average of your last 3 full months in Core Ledger): Comfortable, Tight or Short, and shows ways to close any gap: trimming flexible categories such as dining or shopping, a later date, a loan, or raising savings yearly.</li><li><strong>Save as goal</strong> adds it to Goals with the target, date and monthly contribution. Other planned goals are taken into account in later plans.</li><li>All figures are estimates from your own assumptions. Prices and returns can differ; revisit the plan once or twice a year. This is not financial advice.</li></ul></article>
+                        <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">Balances, EMIs and duplicates</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>One rule updates balances everywhere: Income adds; Expense, EMI, Installment, Insurance and Investment subtract; a Transfer takes from the source and adds to the destination. Editing or deleting undoes exactly what was applied.</li><li>Every record has a hidden unique ID (UUID). It is included in backups, and an entry that appears twice with the same UUID is excluded from totals.</li><li>On phones and tablets, swipe left or right on any page to move to the next or previous one, in menu order: Dashboard, Core Ledger, Budgets, Accounts, Schedules, Goals, Shared, User Guide, Categories, Backup &amp; Settings and SMS messages. Swiping is ignored while a form or dialog is open. Turn it off under Backup &amp; Settings → Navigation.</li></ul></article>
+                        <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">Core Ledger header</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>The search box and totals stay at the top while you scroll. The number inside the search box is how many transactions are shown.</li><li>Tap <strong>Filters</strong> for type, year, dates and status. On phones they fold away; filters that are on show as chips you can tap to remove. On wide screens they stay open.</li><li>Tap the settings button next to Filters to choose whether the header stays pinned, how filters are shown, and which totals appear (count, income, expenses, transfers, net). This is saved on the device.</li></ul></article>
+                        <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">Getting around</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>On phones, the bottom bar opens <strong>Ledger, Dashboard, Accounts</strong> and <strong>Schedules</strong>. Tap <strong>More</strong> for Budgets, Goals, Shared &amp; Split, Categories, Backup &amp; Settings, SMS messages and this guide. On wide screens the same pages are in the side menu.</li><li>The <strong>+</strong> button at the top of each page adds the main item for that page (a transaction, account, budget, goal, event and so on).</li><li>Tap <strong>Lock</strong> in the menu when you finish. You need the master password to open the vault again.</li></ul></article>
+                        <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">Add, edit and delete transactions</h3><ol class="list-decimal pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Tap <strong>+</strong> and choose the type: Income, Expense, Transfer, EMI or Installment.</li><li>Enter the date, amount, account, category and payee. For a Transfer, also choose the destination account.</li><li>Save. The account balance updates straight away by the balance rule below.</li><li>To change an entry, tap it (or <strong>Edit</strong>) in Core Ledger. The old balance effect is undone and the new one applied.</li><li><strong>Delete</strong> removes the entry permanently and reverses its balance effect. If you only want it out of your totals, use <strong>Exclude</strong> instead.</li><li>Entries dated in a locked (reconciled) month cannot be added, edited or deleted until that month is unlocked.</li></ol></article>
+                        <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">Exclude and restore ledger entries</h3><ol class="list-decimal pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>In Core Ledger, tap <strong>Exclude</strong> on an entry and confirm.</li><li>The entry stops counting toward dashboard totals, charts and budgets. It is kept, and <strong>account balances are not changed</strong>.</li><li>To see excluded entries, open <strong>Filters</strong> and set the status to <strong>Excluded transactions</strong>. They are marked <em>Excluded</em>.</li><li>Tap <strong>Restore</strong> and confirm to bring the entry back into your totals.</li><li>SMS entries that match a transaction already in the ledger are excluded automatically as <em>Duplicate</em>, and their balance effect is removed. Review them under the <strong>SMS duplicates</strong> filter; restoring one puts its balance effect back.</li><li>If you delete a transaction that SMS entries were marked as duplicates of, the app offers to restore those SMS entries so the money is still counted.</li></ol></article>
+                        <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">Select several entries at once</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Tick the box on each entry, or <strong>Select all</strong> to pick every entry currently shown.</li><li>A bar appears with <strong>Edit</strong>, <strong>Change type</strong> and <strong>Delete</strong> for all selected entries. <strong>Cancel</strong> clears the selection.</li><li>Selection covers only the entries on screen, so filtered-out or excluded entries are never changed by accident. Narrow the list with search and filters first.</li></ul></article>
+                        <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">Accounts</h3><ol class="list-decimal pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Open Accounts &amp; Wallets and tap <strong>+</strong> (Add Account). Enter the name, type (Checking, Savings, Cash or Investment) and the current balance.</li><li>Each account card shows its balance and how many Core Ledger entries use it; tap <strong>View entries</strong> to see them.</li><li>The cards at the top show total assets and net worth.</li><li>Choose the account new transactions use by default in Backup &amp; Settings → <strong>Default account</strong>.</li></ol></article>
+                        <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">Budgets</h3><ol class="list-decimal pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Open Budgets and tap <strong>+</strong> (Set Budget). Pick a category and enter a monthly limit.</li><li>Each bar compares this month's spending in that category (counted Core Ledger entries only) with its limit.</li><li><strong>Total budget allocation</strong> adds up all limits so you can compare it with your take-home income.</li><li>Use <strong>Edit</strong> or <strong>Delete</strong> on a category to change or remove its limit.</li></ol></article>
+                        <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">Goals</h3><ol class="list-decimal pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Open Goals and tap <strong>+</strong> (Add Goal). Enter the title, target amount, deadline, how often you contribute and how much.</li><li>Tap <strong>Link account</strong> to track the goal against an account: its balance becomes the amount saved.</li><li>Each goal shows the amount still needed, progress and the next contribution date.</li><li>For a house, vehicle, education or similar, use <strong>Plan a big purchase</strong> (see below) to work out the monthly amount first.</li></ol></article>
+                        <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">Scheduled payments and salary</h3><ol class="list-decimal pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Open Schedules. Tap <strong>Set Monthly Salary</strong> and enter a title, the amount, the account it is paid into, the day of the month and the start date. The salary is added to Core Ledger automatically each month on that day.</li><li>Tap <strong>Add Auto Debit / Transfer</strong> for a regular payment. Choose the paying account, then either another account (a transfer, such as a SIP) or a category (an expense, such as rent or insurance). Set the amount, frequency (monthly, quarterly or yearly), start date and optional end date.</li><li>On each due date the entry is posted to Core Ledger and the balances update. Each date is posted only once.</li><li>Use <strong>Edit</strong>, <strong>Enable</strong> / <strong>Disable</strong> or <strong>Delete</strong> on a schedule to change it. A disabled schedule posts nothing.</li></ol></article>
+                        <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">Shared &amp; Split expenses</h3><ol class="list-decimal pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Open Shared &amp; Split and add the people you share costs with under <strong>People</strong>. "Me" is always there.</li><li>Tap <strong>+</strong> (New event) to create a trip, event or shared household and choose who takes part.</li><li>Under <strong>Expenses</strong>, pick the event and tap <strong>+ Add shared expense</strong>. Enter the amount, description, date and who paid, then how to split it: <strong>Equally among everyone</strong>, <strong>Selected people only</strong>, or <strong>exact amounts</strong> per person (these must add up to the total).</li><li>Leave <strong>Record my share in Core Ledger</strong> ticked to add your part to your own spending.</li><li>Each event shows everyone's balance: who <em>owes</em> and who <em>gets back</em>. <strong>Overview</strong> and <strong>Settlements</strong> suggest the fewest payments to settle up.</li><li>When someone pays, use <strong>Record settlement</strong>. Once everyone is square the event shows <em>Settled</em>, and you can close it.</li></ol></article>
+                        <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">Categories</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Open Categories and tap <strong>Add Category</strong>, or <strong>Add subcategory</strong> under a category.</li><li>Categories used by imports, projects, loans and schedules are created for you when needed.</li><li>Budgets and dashboard charts group spending by these categories, so keep names consistent.</li></ul></article>
+                        <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">What Lite includes</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li><strong>Money Manager Lite</strong> includes Dashboard, Core Ledger, up to 5 accounts, Budgets, Categories, Goals with the big-purchase planner, Schedules (monthly salary and auto debits or transfers), Shared &amp; Split, SMS import and reconciliation, encrypted backup and restore, and dark mode. No limit on transactions or history.</li><li>Loans, fixed and recurring deposits, credit card statements, bank statement import and the Money Manager spreadsheet are part of the Pro edition.</li><li>Both editions use the same data. A Lite backup restores into Pro with nothing lost. A Pro backup restored into Lite keeps all its data, but Lite does not show or post Pro-only items.</li></ul></article>
+                        </section>
+                        <section class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+                            <h3 class="font-bold text-xl">7. Backup and restore</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"><div class="rounded-xl bg-slate-50 dark:bg-slate-800 p-4 space-y-2"><h4 class="font-semibold">Normal full encrypted backup</h4><p class="text-slate-600 dark:text-slate-300">In Settings → Backup & Settings, use Download Full Encrypted Database Backup. This creates the normal encrypted backup and does not generate a recovery code. Store the file securely and remember its master password.</p></div><div class="rounded-xl bg-slate-50 dark:bg-slate-800 p-4 space-y-2"><h4 class="font-semibold">Restore a full vault</h4><p class="text-slate-600 dark:text-slate-300">Select a valid full backup and enter its master password. For a backup made during Full Erase, you can use its recovery code if you have forgotten that password. Inspect the restore preview and counts before proceeding. Full restore replaces the active vault; it does not merge multiple vault backups.</p></div></div>
+                            <div class="rounded-xl border border-rose-300 dark:border-rose-900 p-4 text-sm"><strong class="text-rose-700 dark:text-rose-300">Full Erase / Zero Reset is destructive.</strong> Its verified backup includes a separate recovery-code-encrypted copy. Save both downloaded files: the encrypted full-backup JSON and the separate recovery-code TXT file. Keep them separate. Before confirming erase, verify that both files exist and the code file contains the recovery code. The code is shown only for this reset backup; it is not included in normal backups. If the code is lost, it cannot be regenerated from the backup. First test with a separate browser profile and dummy data.</div>
+                            <p class="text-sm text-slate-600 dark:text-slate-300">If an empty backup is detected while a populated vault exists, the app may require the explicit confirmation phrase <code class="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800">RESTORE EMPTY</code>. A corrupted or invalid backup should be rejected. After any restore test, verify account and transaction counts and inspect sample records.</p>
+                        </section>
+                        <section class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+                            <h3 class="font-bold text-xl">8. Settings, categories and data cleanup</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Use Categories to maintain categories and subcategories.</li><li>Use Backup & Settings to change the master password, run the data integrity check, manage the default account and access import/export tools.</li><li>Review proposed data-cleanup changes before applying them; unknown dates should be investigated rather than guessed.</li><li>Spreadsheet exports and SMS archives may contain private financial details. Protect them like bank statements.</li></ul>
+                        </section>
+                        <section class="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 p-5 rounded-2xl space-y-2"><h3 class="font-bold">Suggested routine</h3><p class="text-sm text-slate-700 dark:text-slate-200">Record transactions regularly → review imported entries and duplicates → reconcile account balances → review budgets and goals → download a full encrypted backup periodically and before any reset or major restore.</p><button onclick="app.switchTab('settings')" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium">Open Backup & Settings</button></section>
+                    </div>
+
+                </div>
+            </main>
+            <nav id="bottom-nav" aria-label="Main sections">
+                <button type="button" data-tab="ledger" onclick="app.switchTab('ledger')"><i data-lucide="receipt"></i><span>Ledger</span></button>
+                <button type="button" data-tab="dashboard" onclick="app.switchTab('dashboard')"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></button>
+                <button type="button" data-tab="accounts" onclick="app.switchTab('accounts')"><i data-lucide="wallet"></i><span>Accounts</span></button>
+                <button type="button" data-tab="yearly" onclick="app.switchTab('yearly')"><i data-lucide="calendar-range"></i><span>Schedules</span></button>
+                <button type="button" data-tab="more" onclick="app.openMoreSheet()"><i data-lucide="more-horizontal"></i><span>More</span></button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Custom Modal Container -->
+    <div id="modal-container" role="presentation" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div id="modal-box" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full p-5 sm:p-6 space-y-5 max-h-[90dvh] overflow-y-auto shadow-2xl">
+            <!-- Dynamically injected modal content -->
+        </div>
+    </div>
+
+    <script src="js/20-storage-vault.js"></script>
+    <script src="js/app/10-core.js"></script>
+    <script src="js/app/15-categories.js"></script>
+    <script src="js/app/20-ledger.js"></script>
+    <script src="js/app/25-dashboard.js"></script>
+    <script src="js/app/30-accounts.js"></script>
+    <script src="js/app/40-budgets.js"></script>
+    <script src="js/app/45-goals.js"></script>
+    <script src="js/app/50-schedules.js"></script>
+    <script src="js/app/65-shared.js"></script>
+    <script src="js/app/75-sms.js"></script>
+    <script src="js/app/85-backup.js"></script>
+    <script src="js/app/95-lite.js"></script>
+        <script src="js/app/99-app.js"></script>
+    <script src="js/90-bootstrap.js"></script>
+
+<link rel="stylesheet" href="css/39-v77-full-color-icon-system.css">
+
+</body>
+</html>

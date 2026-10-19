@@ -1,0 +1,5 @@
+      @keyframes swipeInLeft { from { transform: translateX(28px); opacity: .4; } to { transform: none; opacity: 1; } }
+      @keyframes swipeInRight { from { transform: translateX(-28px); opacity: .4; } to { transform: none; opacity: 1; } }
+      .swipe-in-left { animation: swipeInLeft .22s ease-out; } .swipe-in-right { animation: swipeInRight .22s ease-out; }
+      @media (prefers-reduced-motion: reduce) { .swipe-in-left, .swipe-in-right { animation: none; } }
+      #app-scroll { touch-action: pan-y pinch-zoom; }
