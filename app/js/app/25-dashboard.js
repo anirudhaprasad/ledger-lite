@@ -21,22 +21,22 @@
                 const suspiciousTx = this.data.tx.filter(t => !Number.isFinite(Number(t.amount)) || Math.abs(num(t.amount)) >= 1000000000);
                 let warning = document.getElementById('dashboard-calculation-warning');
                 if (!warning) { warning=document.createElement('div'); warning.id='dashboard-calculation-warning'; warning.className='mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900'; document.querySelector('#panel-dashboard')?.prepend(warning); }
-                const moneyDashboard = v => `₹${num(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                const moneyDashboard = v => `${CUR()}${num(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
                 warning.classList.toggle('hidden', !(suspiciousAccounts.length || suspiciousTx.length));
                 if (suspiciousAccounts.length || suspiciousTx.length) {
                     const accountDetails = suspiciousAccounts.map(a => `<li><strong>${this.escapeHtml(a.name||'Unnamed account')}</strong> (${this.escapeHtml(a.type||'Unknown type')}): ${moneyDashboard(a.balance)}</li>`).join('');
                     const txDetails = suspiciousTx.slice(0,8).map(t => `<li>${this.escapeHtml(t.date||'No date')} · ${this.escapeHtml(t.payee||t.description||t.notes||'Transaction')} · ${moneyDashboard(t.amount)}</li>`).join('');
                     const accountActions = suspiciousAccounts.map((a, accountIndex) => `<li class="mb-2"><strong>${this.escapeHtml(a.name||'Unnamed account')}</strong> (${this.escapeHtml(a.type||'Unknown type')}): ${moneyDashboard(a.balance)} <button type="button" class="ml-2 underline font-semibold" onclick="app.rebuildAccountBalanceFromLedgerByIndex(${this.data.accounts.indexOf(a)})">Rebuild from ledger</button> <button type="button" class="ml-2 underline" onclick="app.reconcileAccountBalanceByIndex(${this.data.accounts.indexOf(a)})">Set verified balance</button> <button type="button" class="ml-2 underline" onclick="app.openAccountLedgerEntriesByIndex(${this.data.accounts.indexOf(a)})">Inspect ledger entries</button></li>`).join('');
-                    warning.innerHTML = `<div class="font-semibold mb-1">Dashboard totals need review</div><p class="mb-2">Found ${suspiciousAccounts.length} account balance(s) and ${suspiciousTx.length} transaction amount(s) that are invalid or unusually large (₹1 billion or more). No data has been changed automatically.</p>${accountActions?`<div class="font-semibold">Accounts to check</div><ul class="list-disc pl-5 mb-2">${accountActions}</ul>`:''}${txDetails?`<div class="font-semibold">Example transactions to check</div><ul class="list-disc pl-5 mb-2">${txDetails}</ul>`:''}<p class="text-xs mb-2">Use “Set verified balance” only after checking your actual bank statement. This changes the account's stored balance; it does not delete or rewrite ledger history.</p><button type="button" class="underline font-semibold" onclick="app.openDashboardDrilldown('Account balances to review','accounts-networth')">Open account breakdown</button>`;
+                    warning.innerHTML = `<div class="font-semibold mb-1">Dashboard totals need review</div><p class="mb-2">Found ${suspiciousAccounts.length} account balance(s) and ${suspiciousTx.length} transaction amount(s) that are invalid or unusually large (${CUR()}1 billion or more). No data has been changed automatically.</p>${accountActions?`<div class="font-semibold">Accounts to check</div><ul class="list-disc pl-5 mb-2">${accountActions}</ul>`:''}${txDetails?`<div class="font-semibold">Example transactions to check</div><ul class="list-disc pl-5 mb-2">${txDetails}</ul>`:''}<p class="text-xs mb-2">Use “Set verified balance” only after checking your actual bank statement. This changes the account's stored balance; it does not delete or rewrite ledger history.</p><button type="button" class="underline font-semibold" onclick="app.openDashboardDrilldown('Account balances to review','accounts-networth')">Open account breakdown</button>`;
                 }
                 const netEl=document.getElementById('kpi-net-worth'), liquidEl=document.getElementById('kpi-liquid');
                 netEl.innerText = suspiciousAccounts.length ? 'Review data' : moneyDashboard(netWorth);
                 liquidEl.innerText = suspiciousAccounts.some(a=>['Checking','Cash','Savings','Savings Account'].includes(a.type)) ? 'Review data' : moneyDashboard(liquid);
-                document.getElementById('kpi-income').innerText = `₹${income.toLocaleString('en-IN', {minimumFractionDigits: 2,maximumFractionDigits:2})}`;
-                document.getElementById('kpi-expense').innerText = `₹${expense.toLocaleString('en-IN', {minimumFractionDigits: 2,maximumFractionDigits:2})}`;
+                document.getElementById('kpi-income').innerText = `${CUR()}${income.toLocaleString('en-IN', {minimumFractionDigits: 2,maximumFractionDigits:2})}`;
+                document.getElementById('kpi-expense').innerText = `${CUR()}${expense.toLocaleString('en-IN', {minimumFractionDigits: 2,maximumFractionDigits:2})}`;
                 this.renderMonthlyComparison();
                 const tbody = document.getElementById('dashboard-tx-tbody');
-                tbody.innerHTML = this.countedTx().slice(0,5).map(t => `<tr title="Open transaction details" class="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50" onclick="app.editTransaction('${String(t.id).replace(/'/g, '\\\'')}')"><td class="py-3 text-slate-500">${this.escapeHtml(t.date||'')}</td><td class="py-3 font-medium">${this.escapeHtml(t.payee||t.description||'')}</td><td class="py-3"><span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 dark:bg-slate-800">${this.escapeHtml(t.category||'Uncategorized')}</span></td><td class="py-3 text-slate-500">${this.escapeHtml(t.account||'')}</td><td class="py-3 text-right font-semibold ${t.type==='Income'?'text-emerald-600':'text-slate-800 dark:text-slate-200'}">${t.type==='Income'?'+':'-'}₹${num(t.amount).toLocaleString('en-IN')}</td></tr>`).join('');
+                tbody.innerHTML = this.countedTx().slice(0,5).map(t => `<tr title="Open transaction details" class="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50" onclick="app.editTransaction('${String(t.id).replace(/'/g, '\\\'')}')"><td class="py-3 text-slate-500">${this.escapeHtml(t.date||'')}</td><td class="py-3 font-medium">${this.escapeHtml(t.payee||t.description||'')}</td><td class="py-3"><span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 dark:bg-slate-800">${this.escapeHtml(t.category||'Uncategorized')}</span></td><td class="py-3 text-slate-500">${this.escapeHtml(t.account||'')}</td><td class="py-3 text-right font-semibold ${t.type==='Income'?'text-emerald-600':'text-slate-800 dark:text-slate-200'}">${t.type==='Income'?'+':'-'}${CUR()}${num(t.amount).toLocaleString('en-IN')}</td></tr>`).join('');
                 const remList = document.getElementById('reminders-list');
                 const scheduledItems = (Array.isArray(this.data.yearly)?this.data.yearly:[]).filter(y=>y.enabled!==false);
                 remList.innerHTML = scheduledItems.map(y => {
@@ -49,7 +49,7 @@
                     const source = y.sourceAccountName ? `From: ${this.escapeHtml(y.sourceAccountName)} · ` : '';
                     const frequency = y.frequency ? `${this.escapeHtml(y.frequency.charAt(0).toUpperCase()+y.frequency.slice(1))} · ` : '';
                     const status = mode === 'legacy' ? 'Needs setup' : 'Scheduled';
-                    return `<div class="flex items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800"><div class="min-w-0"><h4 class="font-medium text-sm">${this.escapeHtml(y.title||'')}</h4><p class="text-xs text-slate-500">Due: ${this.escapeHtml(due)} · ${frequency}${source}${destination}</p><p class="text-xs ${mode==='legacy'?'text-amber-600':'text-emerald-600'} mt-1">${status}</p></div><span class="font-bold text-sm shrink-0">₹${num(y.amount).toLocaleString('en-IN')}</span></div>`;
+                    return `<div class="flex items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800"><div class="min-w-0"><h4 class="font-medium text-sm">${this.escapeHtml(y.title||'')}</h4><p class="text-xs text-slate-500">Due: ${this.escapeHtml(due)} · ${frequency}${source}${destination}</p><p class="text-xs ${mode==='legacy'?'text-amber-600':'text-emerald-600'} mt-1">${status}</p></div><span class="font-bold text-sm shrink-0">${CUR()}${num(y.amount).toLocaleString('en-IN')}</span></div>`;
                 }).join('') || '<p class="text-sm text-slate-500">No upcoming reminders.</p>';
                 this.renderCharts(income, expense);
             }
@@ -73,7 +73,7 @@
                     return {income,expense,net:income-expense};
                 };
                 const cur=totals(key(current)), prev=totals(key(previous));
-                const money=v=>`₹${v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                const money=v=>`${CUR()}${v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
                 const change=(a,b)=>{const diff=a-b;const pct=b===0?(a===0?'0.0%':'—'):`${Math.abs(diff/b*100).toFixed(1)}%`;return `${diff>0?'+':diff<0?'−':''}${money(Math.abs(diff))} (${diff>0?'+':diff<0?'−':''}${pct}) vs ${label(previous)}`;};
                 const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
                 set('dashboard-comparison-period',`${label(current)} vs ${label(previous)}`);
@@ -88,7 +88,7 @@
              */
             openDashboardDrilldown(title, mode, extra={}) {
                 const num=v=>{if(typeof v==='string')v=v.replace(/[₹,\s]/g,'');const n=Number(v);return Number.isFinite(n)?n:0;};
-                const money=v=>`₹${Math.abs(num(v)).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                const money=v=>`${CUR()}${Math.abs(num(v)).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
                 const assetTypes=['Receivable','Checking','Cash','Savings','Savings Account','Investment','Investment Account','Fixed Deposit','Fixed Deposit Account','Recurring Deposit','RD','RD Account'];
                 const liabilityTypes=['Loan Account','Loan'];
                 const now=new Date(), monthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;

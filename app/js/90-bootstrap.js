@@ -1,5 +1,21 @@
 
+        // Apply the saved light/dark choice before anything renders.
+        try { const theme = localStorage.getItem('aifico-theme'); if (theme) document.documentElement.classList.toggle('dark', theme === 'dark'); } catch (e) {}
         const app = new AificoApp();
+        // Android back button (called by the native wrapper): close whatever is open first, then go to the
+        // Dashboard, and only leave the app from there. Returns true when it handled the press.
+        window.aificoHandleBack = () => {
+            const open = () => !document.getElementById('modal-container')?.classList.contains('hidden') || document.getElementById('aifico-alert-overlay')?.style.display === 'flex' || !!document.querySelector('#aifico-dialog-x, #aifico-prompt-x, #restore-preview-x');
+            if (open()) {
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                if (!document.getElementById('modal-container')?.classList.contains('hidden')) app.closeModal();
+                return true;
+            }
+            const calc = document.getElementById('aifico-calculator-overlay'); if (calc) { calc.remove(); return true; }
+            if (document.getElementById('app-sidebar')?.classList.contains('mobile-nav-open')) { app.closeNavigation(); return true; }
+            if (app.currentPassword && app.currentTab && app.currentTab !== 'dashboard') { app.switchTab('dashboard'); return true; }
+            return false;
+        };
         (function(){ const mb=document.getElementById('modal-box'); if(mb){ new MutationObserver(()=>{ try{ app.enhanceFields(mb); }catch(e){} }).observe(mb,{childList:true,subtree:true}); } })();
         try { app.applyEdition(); } catch (e) { console.error(e); }
         try { app.setupPageTitleBar(); app.decorateSettings(); } catch (e) { console.error(e); }

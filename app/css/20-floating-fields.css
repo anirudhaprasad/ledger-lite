@@ -16,6 +16,8 @@
       .ip-field.fl > input, .ip-field.fl > select { min-height: 44px; }
       /* Option A: the hint is the placeholder; it appears once you tap into an empty field */
       .ip-field.fl > input:not(:focus)::placeholder { color: transparent; }
+      /* Dark mode forces placeholders visible with !important (02-dark-contrast-fix); keep them hidden behind the floating label */
+      html.dark .ip-field.fl > input:not(:focus)::placeholder, .dark .ip-field.fl > input:not(:focus)::placeholder { color: transparent !important; }
       .ip-field.fl .fl-hint { display: none; margin-top: 4px; }
       .ip-field.fl.show-hint .fl-hint { display: block; }
       .fl-info { pointer-events: auto; width: 16px; height: 16px; border-radius: 999px; border: 1px solid currentColor; font-size: 10px; font-weight: 700; line-height: 14px; text-align: center; font-style: italic; font-family: Georgia, serif; flex-shrink: 0; opacity: .8; }

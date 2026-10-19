@@ -25,7 +25,7 @@
                     if(t.type==='Transfer'){ if(source) movement-=amount; if(dest) movement+=amount; }
                     else if(source){ if(t.type==='Income') movement+=amount; else if(['Expense','EMI','Installment','Insurance','Investment'].includes(t.type)) movement-=amount; }
                 }
-                const fmt=v=>`₹${v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                const fmt=v=>`${CUR()}${v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
                 const existingOpening=Number(account.openingBalance);
                 const suggestedOpening=Number.isFinite(existingOpening)?existingOpening:0;
                 const openingRaw=await this.uiInput('Rebuild account balance', `Rebuild balance for ${name} from ${rows.length} linked Core Ledger transaction(s).\n\nCalculated net ledger movement: ${fmt(movement)}\n\nEnter the account's opening balance before these transactions. If you never recorded an opening balance, enter 0. This is needed because current balance alone cannot reveal the historical opening balance.`,String(suggestedOpening));
@@ -69,13 +69,13 @@
                 if (!account) return alert('Account not found. Refresh the dashboard and try again.');
                 const current = Number(account.balance);
                 const currentText = Number.isFinite(current) ? current.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}) : String(account.balance);
-                const raw = await this.uiInput('Verify current balance', `Set the VERIFIED current balance for ${account.name}.\nCurrent stored value: ₹${currentText}\n\nEnter the balance shown by your bank statement. This does not alter transactions.`, Number.isFinite(current) && Math.abs(current)<1000000000 ? String(current) : '');
+                const raw = await this.uiInput('Verify current balance', `Set the VERIFIED current balance for ${account.name}.\nCurrent stored value: ${CUR()}${currentText}\n\nEnter the balance shown by your bank statement. This does not alter transactions.`, Number.isFinite(current) && Math.abs(current)<1000000000 ? String(current) : '');
                 if (raw === null) return;
                 const normalized = String(raw).trim().replace(/[₹,\s]/g,'');
                 if (!normalized || !/^-?\d+(?:\.\d{1,2})?$/.test(normalized)) return alert('Enter a valid balance, e.g. 12500.50 or -500.00. No data was changed.');
                 const value = Number(normalized);
                 if (!Number.isFinite(value) || Math.abs(value) >= 1000000000) return alert('That balance is still unusually large. Please check the value and try again.');
-                if (!await this.uiConfirm(`Replace the stored balance for ${account.name} with ₹${value.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}?
+                if (!await this.uiConfirm(`Replace the stored balance for ${account.name} with ${CUR()}${value.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}?
 
 This only changes the account balance; all Core Ledger transactions remain unchanged.`)) return;
                 account.balance = value;
@@ -110,7 +110,7 @@ This only changes the account balance; all Core Ledger transactions remain uncha
                 if(!account){panel.classList.add('hidden');panel.innerHTML='';return;}
                 const rows=(this.data.tx||[]).filter(t=>String(t.account||'')===name||String(t.destinationAccount||t.toAccount||'')===name).sort((a,b)=>(this.parseLedgerDate(b.date)||'').localeCompare(this.parseLedgerDate(a.date)||''));
                 const esc=v=>this.escapeHtml(String(v??''));
-                const fmt=v=>`₹${(Number(v)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                const fmt=v=>`${CUR()}${(Number(v)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
                 const selected=this.accountLedgerSelectedIds instanceof Set?this.accountLedgerSelectedIds:new Set();
                 const rowsHtml=rows.map(t=>{
                     const id=String(t.id??'');
@@ -200,7 +200,7 @@ This only changes the account balance; all Core Ledger transactions remain uncha
                 const name=String(this.accountLedgerPanelAccount||'');
                 const tx=(this.data.tx||[]).find(t=>String(t.id)===String(id));
                 if(!tx||!(String(tx.account||'')===name||String(tx.destinationAccount||tx.toAccount||'')===name))return alert('This transaction is no longer linked to the selected account. Refresh and try again.');
-                const amountLabel=`₹${(Number(tx.amount)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                const amountLabel=`${CUR()}${(Number(tx.amount)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
                 return this.deleteAccountLedgerIds([tx.id],`Permanently delete this Core Ledger transaction?\n\n${tx.date||'No date'} · ${tx.payee||tx.description||tx.notes||tx.note||'Transaction'} · ${amountLabel}\n\nThis removes it from the master Core Ledger too. Balances will be reversed where supported. This cannot be undone.`);
             }
 
@@ -268,7 +268,7 @@ This only changes the account balance; all Core Ledger transactions remain uncha
                 const previous = select.dataset.userSelected === 'true' ? select.value : '';
                 select.innerHTML = '<option value="">Select the account for this statement…</option><option value="__create_from_statement__">＋ Create account from this statement…</option>' + accounts.map(a => {
                     const key = String(a.id || a.name);
-                    const label = `${a.name || 'Unnamed account'} (${a.type || 'Account'} · ₹${Number(a.balance || 0).toLocaleString('en-IN')})`;
+                    const label = `${a.name || 'Unnamed account'} (${a.type || 'Account'} · ${CUR()}${Number(a.balance || 0).toLocaleString('en-IN')})`;
                     return `<option value="${this.escapeHtml(key)}">${this.escapeHtml(label)}</option>`;
                 }).join('');
                 if (!accounts.length) select.innerHTML = '<option value="">Select an option…</option><option value="__create_from_statement__">＋ Create account from this statement…</option>'; 
@@ -300,7 +300,7 @@ This only changes the account balance; all Core Ledger transactions remain uncha
                 const liabilityTypes=['Loan Account','Loan'];
                 const assets=this.data.accounts.filter(a=>assetTypes.includes(a.type)).reduce((n,a)=>n+(Number(a.balance)||0),0);
                 const liabilities=this.data.accounts.filter(a=>liabilityTypes.includes(a.type)).reduce((n,a)=>n+Math.abs(Number(a.balance)||0),0); const cardDues=this.data.accounts.filter(a=>this.isCardType(a.type)).reduce((n,a)=>n+this.cardStatements(a).outstanding,0);
-                grid.innerHTML = `<div id="acct-kpis" class="kpi-row"><div class="kpi-tile"><div class="text-xs text-emerald-700">Total Assets</div><div class="text-2xl font-bold text-emerald-800">₹${assets.toLocaleString('en-IN',{minimumFractionDigits:2})}</div><div class="text-xs text-emerald-700">Includes savings, cash and investments</div></div><div class="kpi-tile"><div class="text-xs text-slate-600">Net Worth</div><div class="text-2xl font-bold">₹${(assets-liabilities).toLocaleString('en-IN',{minimumFractionDigits:2})}</div></div></div>` + this.data.accounts.map((a, originalIndex) => ({a, originalIndex})).sort((left, right) => {
+                grid.innerHTML = `<div id="acct-kpis" class="kpi-row"><div class="kpi-tile"><div class="text-xs text-emerald-700">Total Assets</div><div class="text-2xl font-bold text-emerald-800">${CUR()}${assets.toLocaleString('en-IN',{minimumFractionDigits:2})}</div><div class="text-xs text-emerald-700">Includes savings, cash and investments</div></div><div class="kpi-tile"><div class="text-xs text-slate-600">Net Worth</div><div class="text-2xl font-bold">${CUR()}${(assets-liabilities).toLocaleString('en-IN',{minimumFractionDigits:2})}</div></div></div>` + this.data.accounts.map((a, originalIndex) => ({a, originalIndex})).sort((left, right) => {
                     const leftIsCard=this.isCardType(left.a.type), rightIsCard=this.isCardType(right.a.type);
                     return Number(leftIsCard)-Number(rightIsCard) || left.originalIndex-right.originalIndex;
                 }).map(({a, originalIndex: accountIndex}) => {
@@ -312,7 +312,7 @@ This only changes the account balance; all Core Ledger transactions remain uncha
                             <span class="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">${this.escapeHtml(({'Loan Account':'Loan','Fixed Deposit':'Fixed Deposit','Recurring Deposit':'Recurring Deposit','RD':'Recurring Deposit'})[a.type]||a.type)}</span>
                         </div>
                         <button type="button" onclick="app.openAccountLedgerEntriesByIndex(${accountIndex})" class="text-xs text-slate-500 hover:text-emerald-700 dark:hover:text-emerald-400">${linkedCount} linked Core Ledger entr${linkedCount===1?'y':'ies'} · View entries</button>
-                        <div class="text-xl font-bold ${Number(a.balance)<0?'text-rose-600 dark:text-rose-400':''}">${Number(a.balance)<0?'-₹':'₹'}${Math.abs(Number(a.balance)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+                        <div class="text-xl font-bold ${Number(a.balance)<0?'text-rose-600 dark:text-rose-400':''}">${Number(a.balance)<0?('-'+CUR()):(CUR())}${Math.abs(Number(a.balance)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
                         <div class="flex flex-wrap gap-x-3 gap-y-1">
                             <button onclick="app.editAccount('${a.id}')" class="text-xs text-blue-600 hover:underline">Edit</button>
                             <button onclick="app.deleteAccount('${a.id}')" class="text-xs text-rose-600 hover:underline">Delete</button>
@@ -333,7 +333,7 @@ This only changes the account balance; all Core Ledger transactions remain uncha
                 <form onsubmit="app.saveAccountEdit(event,'${String(a.id).replace(/'/g,"\\'")}')" class="space-y-4">
                 <label class="block text-sm">Account name<input id="edit-account-name" required maxlength="80" value="${this.escapeHtml(a.name)}" class="mt-1 w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></label>
                 <label class="block text-sm">Account type<select id="edit-account-type" class="mt-1 w-full px-3 py-2 rounded-xl border dark:bg-slate-800">${types.map(t=>`<option ${t===a.type?'selected':''} value="${t}">${t}</option>`).join('')}</select></label>
-                <label class="block text-sm">Current balance (₹)<input id="edit-account-balance" type="number" step="0.01" required value="${Number(a.balance)||0}" class="mt-1 w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></label>
+                <label class="block text-sm">Current balance${CURL()}<input id="edit-account-balance" type="number" step="0.01" required value="${Number(a.balance)||0}" class="mt-1 w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></label>
                 <p class="text-xs text-slate-500">This edits the account's stored balance; it does not rewrite historical transactions.</p>
                 <div class="flex justify-end gap-2"><button type="button" onclick="app.closeModal()" class="px-4 py-2 border rounded-lg">Cancel</button><button class="px-4 py-2 bg-emerald-600 text-white rounded-lg">Save changes</button></div></form>`;
                 document.getElementById('modal-container').classList.remove('hidden');
@@ -358,7 +358,7 @@ This only changes the account balance; all Core Ledger transactions remain uncha
              * Opens the  account modal screen, dialog, or workflow.
              * Parameters: none. Side effects, if any, are described by the statements below.
              */
-            openAccountModal() { if((this.data.accounts||[]).length>=5)return alert('Lite supports up to 5 accounts.'); this.showSimpleForm('Add Account', [['name','Account name','text'],['type','Account type','select:Checking,Savings,Cash,Investment'],['balance','Current / opening balance (₹)','number']], values=>{if(this.data.accounts.some(a=>a.name.toLowerCase()===values.name.trim().toLowerCase()))return alert('An account with this name already exists.');this.data.accounts.push({id:'acc_'+Date.now(),name:values.name.trim(),type:values.type,balance:Number(values.balance)||0});this.saveVault();this.renderAll();this.closeModal();}); }
+            openAccountModal() { if((this.data.accounts||[]).length>=5)return alert('Lite supports up to 5 accounts.'); this.showSimpleForm('Add Account', [['name','Account name','text'],['type','Account type','select:Checking,Savings,Cash,Investment'],['balance',('Current / opening balance'+CURL()),'number']], values=>{if(this.data.accounts.some(a=>a.name.toLowerCase()===values.name.trim().toLowerCase()))return alert('An account with this name already exists.');this.data.accounts.push({id:'acc_'+Date.now(),name:values.name.trim(),type:values.type,balance:Number(values.balance)||0});this.saveVault();this.renderAll();this.closeModal();}); }
             /**
              * Removes account, including associated cleanup where applicable.
              * Parameters: id. Side effects, if any, are described by the statements below.

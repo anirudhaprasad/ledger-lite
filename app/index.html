@@ -9,6 +9,7 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%2214%2014%2080%2080%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%2310B981%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23047857%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20x%3D%2214%22%20y%3D%2214%22%20width%3D%2280%22%20height%3D%2280%22%20rx%3D%2217.6%22%20fill%3D%22url%28%23g%29%22/%3E%3Cpath%20d%3D%22M33.0%2062.75625592272185%2040.97618683703727%2038.84374407727814H48.56720569804054L56.78412252009905%2062.75625592272185H50.42885091553816L47.10677712224498%2052.3085745727998Q46.30434383884083%2049.692642068902266%2045.55808088527497%2046.74771191880903Q44.81181793170911%2043.80278176871579%2044.05753064530921%2040.641194632103435H45.32537523308777Q44.60318527802403%2043.81883043438388%2043.92914131996454%2046.76376058447711Q43.25509736190506%2049.70869073457035%2042.50081007550516%2052.3085745727998L39.29107694188855%2062.75625592272185ZM38.424448995812064%2057.66882890593953V53.335689175557114H51.37572218995507V57.66882890593953ZM58.7427016782319%2062.75625592272185V38.84374407727814H75.0V43.46575978968605H64.40788065906521V49.532155412221435H73.95683673157461V54.05787913062085H64.40788065906521V62.75625592272185Z%22%20fill%3D%22%23FFFFFF%22/%3E%3Cpath%20d%3D%22M41%2C67.2%20h26%20a1.9%2C1.9%200%200%201%200%2C3.8%20h-26%20a1.9%2C1.9%200%200%201%200%2C-3.8%20z%22%20fill%3D%22%23A7F3D0%22/%3E%3C/svg%3E">
     <meta name="theme-color" content="#047857">
     <script src="js/02-edition.js"></script>
+    <script src="js/05-currency.js"></script>
     <title>aifico Money Manager v1.2610.84</title>
     <!-- Bundled libraries (no network needed): Chart.js 4.5.1, Lucide 1.59.0 -->
     <script src="vendor/chart.umd.min.js"></script>
@@ -229,22 +230,22 @@
                         <div id="kpi-grid" class="grid grid-cols-1 md:grid-cols-4 gap-6">
                             <button type="button" onclick="app.openDashboardDrilldown('Net Worth — Account Breakdown','accounts-networth')" class="text-left bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1 hover:border-emerald-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500">
                                 <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Net Worth</span>
-                                <div id="kpi-net-worth" class="text-2xl font-bold tracking-tight">₹0.00</div>
+                                <div id="kpi-net-worth" class="text-2xl font-bold tracking-tight"><span data-cur>₹</span>0.00</div>
                                 <div class="text-xs text-emerald-600 font-medium pt-1">Click to view account breakdown</div>
                             </button>
                             <button type="button" onclick="app.openDashboardDrilldown('Liquid Cash — Account Breakdown','accounts-liquid')" class="text-left bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1 hover:border-emerald-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500">
                                 <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Liquid Cash</span>
-                                <div id="kpi-liquid" class="text-2xl font-bold tracking-tight">₹0.00</div>
+                                <div id="kpi-liquid" class="text-2xl font-bold tracking-tight"><span data-cur>₹</span>0.00</div>
                                 <div class="text-xs text-slate-500 pt-1">Click to view included accounts</div>
                             </button>
                             <button type="button" onclick="app.openDashboardDrilldown('Monthly Income — Actual Entries','income-current')" class="text-left bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1 hover:border-emerald-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500">
                                 <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Monthly Income</span>
-                                <div id="kpi-income" class="text-2xl font-bold tracking-tight text-emerald-600">₹0.00</div>
+                                <div id="kpi-income" class="text-2xl font-bold tracking-tight text-emerald-600"><span data-cur>₹</span>0.00</div>
                                 <div class="text-xs text-slate-500 pt-1">Click to view actual income entries</div>
                             </button>
                             <button type="button" onclick="app.openDashboardDrilldown('Monthly Expenses — Actual Entries','expense-current')" class="text-left bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1 hover:border-rose-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-rose-500">
                                 <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Monthly Expenses</span>
-                                <div id="kpi-expense" class="text-2xl font-bold tracking-tight text-rose-600">₹0.00</div>
+                                <div id="kpi-expense" class="text-2xl font-bold tracking-tight text-rose-600"><span data-cur>₹</span>0.00</div>
                                 <div class="text-xs text-slate-500 pt-1">Click to view actual expense entries</div>
                             </button>
                         </div>
@@ -256,9 +257,9 @@
                                 <span id="dashboard-comparison-period" class="text-xs text-slate-500"></span>
                             </div>
                             <div id="cmp-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <button type="button" onclick="app.openDashboardDrilldown('Current month income','income-current')" class="text-left rounded-xl border border-slate-200 dark:border-slate-700 p-4 hover:border-emerald-400"><div class="text-xs text-slate-500">Income · current month</div><div id="comparison-current-income" class="text-lg font-bold text-emerald-600 mt-1">₹0.00</div><div id="comparison-income-change" class="text-xs text-slate-500 mt-1">Compared with previous month</div></button>
-                                <button type="button" onclick="app.openDashboardDrilldown('Current month expenses','expense-current')" class="text-left rounded-xl border border-slate-200 dark:border-slate-700 p-4 hover:border-rose-400"><div class="text-xs text-slate-500">Expenses · current month</div><div id="comparison-current-expense" class="text-lg font-bold text-rose-600 mt-1">₹0.00</div><div id="comparison-expense-change" class="text-xs text-slate-500 mt-1">Compared with previous month</div></button>
-                                <div class="rounded-xl border border-slate-200 dark:border-slate-700 p-4"><div class="text-xs text-slate-500">Net cash flow · current month</div><div id="comparison-current-net" class="text-lg font-bold mt-1">₹0.00</div><div id="comparison-net-change" class="text-xs text-slate-500 mt-1">Compared with previous month</div></div>
+                                <button type="button" onclick="app.openDashboardDrilldown('Current month income','income-current')" class="text-left rounded-xl border border-slate-200 dark:border-slate-700 p-4 hover:border-emerald-400"><div class="text-xs text-slate-500">Income · current month</div><div id="comparison-current-income" class="text-lg font-bold text-emerald-600 mt-1"><span data-cur>₹</span>0.00</div><div id="comparison-income-change" class="text-xs text-slate-500 mt-1">Compared with previous month</div></button>
+                                <button type="button" onclick="app.openDashboardDrilldown('Current month expenses','expense-current')" class="text-left rounded-xl border border-slate-200 dark:border-slate-700 p-4 hover:border-rose-400"><div class="text-xs text-slate-500">Expenses · current month</div><div id="comparison-current-expense" class="text-lg font-bold text-rose-600 mt-1"><span data-cur>₹</span>0.00</div><div id="comparison-expense-change" class="text-xs text-slate-500 mt-1">Compared with previous month</div></button>
+                                <div class="rounded-xl border border-slate-200 dark:border-slate-700 p-4"><div class="text-xs text-slate-500">Net cash flow · current month</div><div id="comparison-current-net" class="text-lg font-bold mt-1"><span data-cur>₹</span>0.00</div><div id="comparison-net-change" class="text-xs text-slate-500 mt-1">Compared with previous month</div></div>
                             </div>
                             <p class="text-xs text-slate-500">This comparison is informational only. It does not modify account balances or transaction records. Transfers between your own accounts are not counted as income or expenses.</p>
                         </section>
@@ -360,10 +361,10 @@
                                 </div>
                                 <div id="ledger-chips"></div>
                                 <div id="ledger-totals" aria-live="polite" title="Totals include only the transactions shown.">
-                                    <div><span>Income</span><b id="ledger-total-income" class="text-emerald-600">₹0.00</b></div>
-                                    <div><span>Expenses</span><b id="ledger-total-expense" class="text-rose-600">₹0.00</b></div>
-                                    <div><span>Transfers</span><b id="ledger-total-transfer">₹0.00</b></div>
-                                    <div><span>Net</span><b id="ledger-total-net">₹0.00</b></div>
+                                    <div><span>Income</span><b id="ledger-total-income" class="text-emerald-600"><span data-cur>₹</span>0.00</b></div>
+                                    <div><span>Expenses</span><b id="ledger-total-expense" class="text-rose-600"><span data-cur>₹</span>0.00</b></div>
+                                    <div><span>Transfers</span><b id="ledger-total-transfer"><span data-cur>₹</span>0.00</b></div>
+                                    <div><span>Net</span><b id="ledger-total-net"><span data-cur>₹</span>0.00</b></div>
                                 </div>
                             </div>
                             
@@ -560,6 +561,24 @@
                         </section>
 
                         <section class="set-card">
+                            <h3 class="set-title">Currency</h3>
+                            <label class="set-desc" for="currency-symbol">Symbol shown in front of every amount. Only the display changes; your amounts stay the same.</label>
+                            <select id="currency-symbol" class="s-select" onchange="app.setCurrencySymbol(this.value)">
+                                <option value="₹">₹ Indian rupee</option>
+                                <option value="Rs">Rs</option>
+                                <option value="$">$ Dollar</option>
+                                <option value="€">€ Euro</option>
+                                <option value="£">£ Pound</option>
+                                <option value="¥">¥ Yen / Yuan</option>
+                                <option value="AED">AED Dirham</option>
+                                <option value="SGD">SGD Singapore dollar</option>
+                                <option value="">None (numbers only)</option>
+                                <option value="__custom">Custom…</option>
+                            </select>
+                            <p id="currency-preview" class="set-note"></p>
+                        </section>
+
+                        <section class="set-card">
                             <h3 class="set-title">Navigation</h3>
                             <label class="set-desc" for="nav-mode-select">How sections are shown on phones and tablets. On a computer the side menu is always used.</label>
                             <select id="nav-mode-select" class="s-select" onchange="app.setNavMode(this.value)">
@@ -657,7 +676,7 @@
                             <p class="text-sm text-slate-600 dark:text-slate-300">If an empty backup is detected while a populated vault exists, the app may require the explicit confirmation phrase <code class="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800">RESTORE EMPTY</code>. A corrupted or invalid backup should be rejected. After any restore test, verify account and transaction counts and inspect sample records.</p>
                         </section>
                         <section class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
-                            <h3 class="font-bold text-xl">8. Settings, categories and data cleanup</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Use Categories to maintain categories and subcategories.</li><li>Use Backup & Settings to change the master password, run the data integrity check, manage the default account and access import/export tools.</li><li>Review proposed data-cleanup changes before applying them; unknown dates should be investigated rather than guessed.</li><li>Spreadsheet exports and SMS archives may contain private financial details. Protect them like bank statements.</li></ul>
+                            <h3 class="font-bold text-xl">8. Settings, categories and data cleanup</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Use Categories to maintain categories and subcategories.</li><li>Use Backup & Settings to change the master password, run the data integrity check, manage the default account and access import/export tools.</li><li>Use <strong>Currency</strong> in Backup &amp; Settings to choose the symbol shown before every amount (₹, Rs, $, €, £ and others, a custom code, or none). Only the display changes; your amounts stay the same, and the choice is saved in your backups.</li><li>Review proposed data-cleanup changes before applying them; unknown dates should be investigated rather than guessed.</li><li>Spreadsheet exports and SMS archives may contain private financial details. Protect them like bank statements.</li></ul>
                         </section>
                         <section class="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 p-5 rounded-2xl space-y-2"><h3 class="font-bold">Suggested routine</h3><p class="text-sm text-slate-700 dark:text-slate-200">Record transactions regularly → review imported entries and duplicates → reconcile account balances → review budgets and goals → download a full encrypted backup periodically and before any reset or major restore.</p><button onclick="app.switchTab('settings')" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium">Open Backup & Settings</button></section>
                     </div>

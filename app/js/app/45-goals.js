@@ -7,7 +7,7 @@
             renderGoals() {
                 const grid = document.getElementById('goals-grid');
                 if(!grid)return;
-                const money=v=>'₹'+(Number(v)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+                const money=v=>(CUR())+(Number(v)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
                 const goals=Array.isArray(this.data.goals)?this.data.goals:[];
                 grid.innerHTML = goals.map(g => {
                     const target=Number(g.target)||0;
@@ -103,8 +103,8 @@
                 <form id="gp-form" class="ip-form" novalidate>
                   <div class="gp-types">${Object.entries(types).map(([k,v])=>`<label class="gp-type"><input type="radio" name="type" value="${k}" ${p.type===k?'checked':''}><span><i data-lucide="${v.icon}"></i>${v.label}</span></label>`).join('')}</div>
                   ${f('name','Name this goal','type="text" maxlength="60" placeholder="e.g. 2BHK flat in Pune"')}
-                  <div class="ip-two">${f('cost','Cost today (₹)','type="number" min="1" step="1000" inputmode="numeric" required placeholder="e.g. 6500000"')}${f('years','Tenure (Yr)','type="number" min="0.5" max="40" step="0.5" inputmode="decimal" required')}</div>
-                  <div class="ip-two">${f('inflation','Price rise % Yr','type="number" min="0" max="25" step="0.5" inputmode="decimal"','How fast this kind of cost grows')}${f('saved','Saved (₹)','type="number" min="0" step="1000" inputmode="numeric" placeholder="e.g. 300000"')}</div>
+                  <div class="ip-two">${f('cost',('Cost today'+CURL()),'type="number" min="1" step="1000" inputmode="numeric" required placeholder="e.g. 6500000"')}${f('years','Tenure (Yr)','type="number" min="0.5" max="40" step="0.5" inputmode="decimal" required')}</div>
+                  <div class="ip-two">${f('inflation','Price rise % Yr','type="number" min="0" max="25" step="0.5" inputmode="decimal"','How fast this kind of cost grows')}${f('saved',('Saved'+CURL()),'type="number" min="0" step="1000" inputmode="numeric" placeholder="e.g. 300000"')}</div>
                   <div class="ip-two">${f('returnRate','Return % Yr','type="number" min="0" max="20" step="0.5" inputmode="decimal"','Your assumption, e.g. FD/RD rates')}${f('stepUp','Raise savings % Yr','type="number" min="0" max="30" step="1" inputmode="numeric"','0 = same amount every month')}</div>
                   <fieldset class="ip-fieldset" id="gp-loan"><legend><label><input type="checkbox" name="useLoan" ${p.useLoan?'checked':''}> Use a loan for part of it</label></legend>
                     <div class="ip-two">${f('dp','Down payment %','type="number" min="0" max="100" step="5" inputmode="numeric"')}${f('loanRate','Rate % Yr','type="number" min="0" max="30" step="0.1" inputmode="decimal"')}</div>
@@ -130,7 +130,7 @@
              * Parameters: p. Side effects, if any, are described by the statements below.
              */
             goalPlanReport(p){
-                const c=this.planCalc(p); const m=v=>'₹'+Math.round(Number(v)||0).toLocaleString('en-IN'); const esc=v=>this.escapeHtml(String(v??''));
+                const c=this.planCalc(p); const m=v=>(CUR())+Math.round(Number(v)||0).toLocaleString('en-IN'); const esc=v=>this.escapeHtml(String(v??''));
                 if(!c)return '<p class="gp-hint">Enter the cost and how many years away it is to see your plan.</p>';
                 const a=this.analyseSpending(3); const otherGoals=(this.data.goals||[]).filter(g=>g.plan&&g.title!==p.name).reduce((s,g)=>s+(Number(g.contribution)||0),0);
                 const free=a.surplus-otherGoals; const need=c.monthly;
@@ -163,7 +163,7 @@
              */
             goalPlanSummary(g){
                 if(!g||!g.plan)return '';
-                const c=this.planCalc(g.plan); if(!c)return ''; const m=v=>'₹'+Math.round(Number(v)||0).toLocaleString('en-IN'); const t=this.plannerTypes()[g.plan.type]||{label:'Plan'};
+                const c=this.planCalc(g.plan); if(!c)return ''; const m=v=>(CUR())+Math.round(Number(v)||0).toLocaleString('en-IN'); const t=this.plannerTypes()[g.plan.type]||{label:'Plan'};
                 return `<div class="gp-card"><div><span>${this.escapeHtml(t.label)} plan</span><b>${m(g.plan.cost)} today → ${m(c.futureCost)} in ${new Date(c.targetDate).getFullYear()}</b>${c.loan?`<small>Save ${m(c.saveTarget)} down payment · loan ${m(c.loan.amount)}</small>`:''}</div><button type="button" class="s-btn s-secondary" data-id="${this.escapeHtml(String(g.id))}" onclick="app.openGoalPlanner(this.dataset.id)">Open plan</button></div>`;
             }
             /**
@@ -207,10 +207,10 @@
                 box.innerHTML=`<div class="flex items-center justify-between border-b pb-3"><h3 class="font-bold text-lg">${existing?'Edit Savings Goal':'Add Savings Goal'}</h3><button type="button" onclick="app.closeModal()">✕</button></div>
                 <form onsubmit="app.saveGoalForm(event,${existing?`'${String(g.id).replace(/'/g,"\\'")}'`:'null'})" class="space-y-3">
                   <label class="block text-sm">Goal name<input id="goal-title" required maxlength="100" value="${this.escapeHtml(g.title||'')}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"></label>
-                  <div class="grid grid-cols-2 gap-3"><label class="block text-sm">Target amount (₹)<input id="goal-target" type="number" min="0.01" step="0.01" required value="${Number(g.target)||''}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"><button type="button" onclick="app.openAmountCalculator('goal-target')" class="mt-1 text-xs text-emerald-600 hover:underline">🧮 Calculator</button></label><label class="block text-sm">Target date<input id="goal-deadline" type="date" value="${this.escapeHtml(g.deadline||'')}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"></label></div>
+                  <div class="grid grid-cols-2 gap-3"><label class="block text-sm">Target amount${CURL()}<input id="goal-target" type="number" min="0.01" step="0.01" required value="${Number(g.target)||''}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"><button type="button" onclick="app.openAmountCalculator('goal-target')" class="mt-1 text-xs text-emerald-600 hover:underline">🧮 Calculator</button></label><label class="block text-sm">Target date<input id="goal-deadline" type="date" value="${this.escapeHtml(g.deadline||'')}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"></label></div>
                   <label class="block text-sm">Linked savings / investment account<select id="goal-account" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"><option value="">No linked account</option>${opts}</select></label>${accounts.length===0?'<p class="text-xs text-rose-600">No accounts exist yet. Create a savings account in Accounts & Wallets first, then edit this goal to link it.</p>':''}
                   <p class="text-xs text-slate-500">When linked, goal progress is based on that account's current balance. Keep each account linked to only one goal if you want to avoid counting the same savings twice.</p>
-                  <div class="grid grid-cols-2 gap-3"><label class="block text-sm">Contribution frequency<select id="goal-cadence" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800">${['once','weekly','monthly','quarterly','yearly'].map(c=>`<option value="${c}" ${(g.cadence||'monthly')===c?'selected':''}>${({once:'One-time',weekly:'Weekly',monthly:'Monthly',quarterly:'Quarterly',yearly:'Yearly'})[c]}</option>`).join('')}</select></label><label class="block text-sm">Contribution amount (₹)<input id="goal-contribution" type="number" min="0" step="0.01" value="${Number(g.contribution)||0}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"><button type="button" onclick="app.openAmountCalculator('goal-contribution')" class="mt-1 text-xs text-emerald-600 hover:underline">🧮 Calculator</button></label></div>
+                  <div class="grid grid-cols-2 gap-3"><label class="block text-sm">Contribution frequency<select id="goal-cadence" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800">${['once','weekly','monthly','quarterly','yearly'].map(c=>`<option value="${c}" ${(g.cadence||'monthly')===c?'selected':''}>${({once:'One-time',weekly:'Weekly',monthly:'Monthly',quarterly:'Quarterly',yearly:'Yearly'})[c]}</option>`).join('')}</select></label><label class="block text-sm">Contribution amount${CURL()}<input id="goal-contribution" type="number" min="0" step="0.01" value="${Number(g.contribution)||0}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"><button type="button" onclick="app.openAmountCalculator('goal-contribution')" class="mt-1 text-xs text-emerald-600 hover:underline">🧮 Calculator</button></label></div>
                   <label class="block text-sm">Next contribution date<input id="goal-nextdue" type="date" value="${this.escapeHtml(g.nextDue||'')}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"></label>
                   <div class="flex justify-end gap-2 pt-2"><button type="button" onclick="app.closeModal()" class="px-4 py-2 border rounded-lg">Cancel</button><button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg">Save goal</button></div>
                 </form>`;

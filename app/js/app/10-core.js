@@ -510,7 +510,7 @@
              * Formats or safely prepares example money for display.
              * Parameters: n){ try{ return new Intl.NumberFormat(this.uiLocale(),{style:'currency',currency:'INR',maximumFractionDigits:Number.isInteger(n)?0:2}).format(n); }catch(e. Side effects, if any, are described by the statements below.
              */
-            formatExampleMoney(n){ try{ return new Intl.NumberFormat(this.uiLocale(),{style:'currency',currency:'INR',maximumFractionDigits:Number.isInteger(n)?0:2}).format(n); }catch(e){ return '₹'+n; } }
+            formatExampleMoney(n){ try{ return CUR()+new Intl.NumberFormat(this.uiLocale(),{maximumFractionDigits:Number.isInteger(n)?0:2}).format(n); }catch(e){ return CUR()+n; } }
             /**
              * Formats or safely prepares example percent for display.
              * Parameters: n){ try{ return new Intl.NumberFormat(this.uiLocale(),{style:'percent',maximumFractionDigits:2}).format(n/100); }catch(e. Side effects, if any, are described by the statements below.
@@ -620,7 +620,7 @@
                 if(tab==='dashboard'&&this.data){
                     const now=new Date(); const key=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`; let inc=0,exp=0,trf=0;
                     (this.countedTx?this.countedTx():(this.data.tx||[])).forEach(t=>{ if(t.excludedFromLedger)return; if(!(this.parseLedgerDate(t.date)||'').startsWith(key))return; const a=Math.abs(Number(t.amount)||0); if(t.type==='Income')inc+=a; else if(['Expense','EMI','Installment'].includes(t.type))exp+=a; else if(t.type==='Transfer'&&t.transferDirection!=='in')trf+=a; });
-                    const m=v=>'₹'+v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+                    const m=v=>(CUR())+v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
                     const el=document.querySelector('#ptb-tools [data-ptb="dashboard"]'); if(el)el.innerHTML=`<div class="ptb-totals" title="This month: ${now.toLocaleDateString('en-IN',{month:'long',year:'numeric'})}"><div><span>Income</span><b class="ip-pos">${m(inc)}</b></div><div><span>Expenses</span><b class="ip-neg">${m(exp)}</b></div><div><span>Transfers</span><b>${m(trf)}</b></div><div><span>Net</span><b class="${inc-exp<0?'ip-neg':''}">${m(inc-exp)}</b></div></div>`;
                     if(meta)meta.textContent=now.toLocaleDateString('en-IN',{month:'long',year:'numeric'});
                 }
@@ -852,13 +852,41 @@
              * Parameters: none. Side effects, if any, are described by the statements below.
              */
             toggleTheme() {
-                document.documentElement.classList.toggle('dark');
+                const dark = document.documentElement.classList.toggle('dark');
+                // Remember the choice on this device (a display preference, not vault data).
+                try { localStorage.setItem('aifico-theme', dark ? 'dark' : 'light'); } catch (e) {}
             }
 
             /**
              * Renders the  all UI from the current app state.
              * Parameters: none. Side effects, if any, are described by the statements below.
              */
+            /**
+             * Shows the saved currency choice in Backup & Settings → Currency.
+             */
+            renderCurrencySetting() {
+                const sel = document.getElementById('currency-symbol'); if (!sel) return;
+                const s = aificoCurrencySymbol();
+                let opt = [...sel.options].find(o => o.value === s);
+                if (!opt) { opt = new Option(s + ' (custom)', s); sel.insertBefore(opt, sel.querySelector('option[value="__custom"]')); }
+                sel.value = s;
+                const p = document.getElementById('currency-preview'); if (p) p.textContent = 'Example: ' + CUR() + (12345.5).toLocaleString('en-IN', { minimumFractionDigits: 2 }) + (s ? '' : ' (no symbol)');
+            }
+            /**
+             * Saves the display currency symbol ('' for none) in the vault and refreshes every screen.
+             */
+            async setCurrencySymbol(value) {
+                let s = value;
+                if (value === '__custom') {
+                    s = await this.uiInput('Custom currency', 'Type the symbol or code to show before amounts (up to 4 characters), for example KES or ₨.', '');
+                    if (s === null || s === undefined) return this.renderCurrencySetting();
+                    s = String(s).trim().slice(0, 4);
+                }
+                this.data.settings ||= {};
+                this.data.settings.currencySymbol = s;
+                this.saveVault();
+                this.renderAll();
+            }
             renderAll() {
                 try { if (this.ensureUids()) this.saveVault(); } catch (e) { console.error('UUID check failed', e); }
                 this.data.smsInbox ||= [];
@@ -866,6 +894,7 @@
                 try { this.renderReconSettings(); } catch (e) {}
                 try { if (this.isDeveloper()) this.renderProjects(); } catch (e) { console.error('Projects could not be shown', e); }
                 this.renderGlobalDefaultAccount();
+                try { this.renderCurrencySetting(); aificoApplyCurrencyToPage(); } catch (e) { console.error('Currency display could not be updated', e); }
                 this.processSalarySchedule();
                 if (this.isPro()) this.processRecurringPayments();
                 try { if (this.isPro() && this.processInterestPlans()) this.saveVault(); } catch (e) { console.error('Loan/deposit entries could not be posted', e); }
@@ -894,7 +923,7 @@
                 box.innerHTML=`<div class="flex items-center justify-between border-b pb-3"><h3 class="font-bold text-lg">Monthly Salary Auto-Entry</h3><button type="button" onclick="app.closeModal()">✕</button></div>
                 <form onsubmit="app.saveSalarySchedule(event)" class="space-y-3">
                   <label class="block text-sm">Salary description<input id="salary-title" required value="${this.escapeHtml(s.title||'Monthly Salary')}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"></label>
-                  <label class="block text-sm">Net salary amount (₹)<input id="salary-amount" type="number" min="0.01" step="0.01" required value="${Number(s.amount)||''}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"><button type="button" onclick="app.openAmountCalculator('salary-amount')" class="mt-1 text-xs text-emerald-600 hover:underline">🧮 Calculator</button></label>
+                  <label class="block text-sm">Net salary amount${CURL()}<input id="salary-amount" type="number" min="0.01" step="0.01" required value="${Number(s.amount)||''}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"><button type="button" onclick="app.openAmountCalculator('salary-amount')" class="mt-1 text-xs text-emerald-600 hover:underline">🧮 Calculator</button></label>
                   <label class="block text-sm">Checking / salary account<select id="salary-account" required class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"><option value="">Select account</option>${options}</select></label>
                   <div class="grid grid-cols-2 gap-3"><label class="block text-sm">Salary day of month<input id="salary-day" type="number" min="1" max="28" required value="${Number(s.day)||1}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"></label><label class="block text-sm">Start month<input id="salary-start" type="month" required value="${this.escapeHtml(s.startMonth||new Date().toISOString().slice(0,7))}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"></label></div>
                   <p class="text-xs text-slate-500">When the app is opened after the salary date, it adds one income entry for each missed month from the start month, without duplicating months already recorded. It does not contact your bank.</p>

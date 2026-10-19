@@ -88,7 +88,7 @@
             ledgerRowsWithDayHeaders(list,rowFn){
                 const sort=document.getElementById('ledger-sort-date')?.value||'desc';
                 if(!['desc','asc'].includes(sort))return list.map(rowFn).join('');
-                const money=v=>'₹'+(Number(v)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+                const money=v=>(CUR())+(Number(v)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
                 const key=t=>(this.parseLedgerDate(t.date)||String(t.date||'')).slice(0,10);
                 const totals=new Map(); list.forEach(t=>{ if(t.excludedFromLedger)return; const k=key(t); const o=totals.get(k)||{inc:0,exp:0}; const a=Number(t.amount)||0; if(t.type==='Income')o.inc+=a; else if(['Expense','EMI','Installment'].includes(t.type))o.exp+=a; totals.set(k,o); });
                 let last=null, out='';
@@ -173,7 +173,7 @@
                 setTimeout(()=>{ try{ this.syncHeadSelect(); this.renderPageTitle(); }catch(e){} },0);
                 const tbody = document.getElementById('ledger-tbody');
                 const filtered = this.getFilteredLedger();
-                const money=v=>'₹'+(Number(v)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+                const money=v=>(CUR())+(Number(v)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
                 const income=filtered.filter(t=>t.type==='Income').reduce((sum,t)=>sum+(Number(t.amount)||0),0);
                 const expense=filtered.filter(t=>['Expense','EMI','Installment'].includes(t.type)).reduce((sum,t)=>sum+(Number(t.amount)||0),0);
                 const transfers=filtered.filter(t=>t.type==='Transfer').reduce((sum,t)=>sum+(Number(t.amount)||0),0);
@@ -196,7 +196,7 @@
                         <td class="py-3 font-medium">${this.escapeHtml(t.payee||t.description||'')}${t.excludedFromLedger?` <span title="${this.escapeHtml(t.duplicateReason||'Excluded from totals')}" class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">${t.duplicateOf?'Duplicate':'Excluded'}</span>`:''}${this.cardBadge(t)}${this.reconBadge(t)}<div class="text-xs text-slate-400 font-normal">${this.escapeHtml(t.notes||t.note||'')}</div></td>
                         <td class="py-3"><span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 dark:bg-slate-800">${this.escapeHtml(t.category||'Uncategorized')}</span>${t.subcategory?`<div class="text-xs text-slate-400 mt-1">${this.escapeHtml(t.subcategory)}</div>`:''}</td>
                         <td class="py-3 text-slate-500">${this.escapeHtml(t.account||'')}</td>
-                        <td class="py-3 text-right font-semibold ${t.type === 'Income' ? 'text-emerald-600' : ''}">₹${Number(t.amount).toLocaleString('en-IN')}</td>
+                        <td class="py-3 text-right font-semibold ${t.type === 'Income' ? 'text-emerald-600' : ''}">${CUR()}${Number(t.amount).toLocaleString('en-IN')}</td>
                         <td class="py-3 text-center">
                             <button onclick="event.stopPropagation();app.editTransaction('${jsId(t.id)}')" class="p-1 hover:text-emerald-600 row-act" title="Edit transaction" aria-label="Edit transaction"><i data-lucide="pencil" class="w-4 h-4"></i><span class="row-act-label">Edit</span></button> <button onclick="event.stopPropagation();app.toggleLedgerExclusion('${jsId(t.id)}')" class="p-1 row-act ${t.excludedFromLedger?'text-emerald-600 hover:text-emerald-700':'text-amber-600 hover:text-amber-700'}" title="${t.excludedFromLedger?'Restore to ledger':'Exclude from ledger'}" aria-label="${t.excludedFromLedger?'Restore to ledger':'Exclude from ledger'}"><i data-lucide="${t.excludedFromLedger?'rotate-ccw':'archive'}" class="w-4 h-4"></i><span class="row-act-label">${t.excludedFromLedger?'Restore':'Exclude'}</span></button> <button onclick="event.stopPropagation();app.deleteTransaction('${jsId(t.id)}')" class="p-1 hover:text-rose-600 row-act row-act-danger" title="Delete permanently" aria-label="Delete transaction"><i data-lucide="trash-2" class="w-4 h-4"></i><span class="row-act-label">Delete</span></button>
                         </td>
@@ -374,7 +374,7 @@
                 box.innerHTML=`<div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3"><h3 class="font-bold text-base">Edit Transaction</h3><button type="button" onclick="app.closeModal()" class="text-slate-400">✕</button></div>
                 <form onsubmit="app.saveEditedTransaction(event,'${String(t.id).replace(/'/g,"\\'")}')" class="space-y-4 pt-2">
                 <div class="grid grid-cols-2 gap-3"><div><label class="text-xs font-semibold text-slate-500">Transaction Date</label><input id="edit-tx-date" type="date" required value="${esc(this.normalizeLedgerDate(t.date)||'')}" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800">${t.source==='sms'||t.originalSmsDate?`<p class="text-xs text-slate-500 mt-1">Original SMS date: ${esc(t.originalSmsDate||t.date||'Not recorded')} (preserved separately)</p>`:''}</div><div><label class="text-xs font-semibold text-slate-500">Type</label><select id="edit-tx-type" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800">${['Expense','Income','Transfer','EMI','Installment'].map(x=>`<option ${t.type===x?'selected':''}>${x}</option>`).join('')}</select></div></div>
-                <div><label class="text-xs font-semibold text-slate-500">Amount (₹)</label><input id="edit-tx-amount" type="number" min="0.01" step="0.01" required value="${esc(t.amount)}" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800"><button type="button" onclick="app.openAmountCalculator('edit-tx-amount')" class="mt-1 text-xs text-emerald-600 hover:underline">🧮 Calculator</button></div>
+                <div><label class="text-xs font-semibold text-slate-500">Amount${CURL()}</label><input id="edit-tx-amount" type="number" min="0.01" step="0.01" required value="${esc(t.amount)}" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800"><button type="button" onclick="app.openAmountCalculator('edit-tx-amount')" class="mt-1 text-xs text-emerald-600 hover:underline">🧮 Calculator</button></div>
                 <div><label class="text-xs font-semibold text-slate-500">Payee</label><input id="edit-tx-payee" required value="${esc(t.payee)}" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></div>
                 <div class="grid grid-cols-2 gap-3"><div><label class="text-xs font-semibold text-slate-500">Category</label><input id="edit-tx-category" list="edit-category-options" value="${esc(t.category||'Uncategorized')}" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800"><datalist id="edit-category-options">${categories.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div><div><label class="text-xs font-semibold text-slate-500">Subcategory</label><input id="edit-tx-subcategory" value="${esc(t.subcategory||'')}" placeholder="e.g. HouseRent, Computer" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></div></div>
                 <div><label class="text-xs font-semibold text-slate-500">Account</label><select id="edit-tx-account" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800">${this.data.accounts.map(a=>`<option value="${esc(a.name)}" ${t.account===a.name?'selected':''}>${esc(a.name)}</option>`).join('')}</select></div>
@@ -442,7 +442,7 @@
                             </select>
                         </div>
                         <div class="space-y-1">
-                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Amount (₹)</label>
+                            <label class="text-xs font-semibold uppercase tracking-wider text-slate-500">Amount${CURL()}</label>
                             <input type="number" step="0.01" id="modal-tx-amount" required placeholder="0" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm"><button type="button" onclick="app.openAmountCalculator('modal-tx-amount')" class="mt-1 text-xs text-emerald-600 hover:underline">🧮 Calculator</button>
                         </div>
                         <div class="space-y-1">
