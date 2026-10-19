@@ -15,7 +15,7 @@
       #kpi-grid > button > div:nth-child(3), .kpi-tile > div:nth-child(3) { font-size: 11px !important; color: #64748b !important; margin-top: auto; }
       #kpi-grid { gap: 16px !important; }
       .kpi-row { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 4px; }
-      #acct-kpis .kpi-tile:nth-child(1) > div:nth-child(2) { color: #059669; } #acct-kpis .kpi-tile:nth-child(2) > div:nth-child(2) { color: #e11d48; }
+      #acct-kpis .kpi-tile:nth-child(1) > div:nth-child(2) { color: #059669; } #acct-kpis .kpi-tile:nth-child(2) > div:nth-child(2) { color: #0f172a; } .dark #acct-kpis .kpi-tile:nth-child(2) > div:nth-child(2) { color: #f1f5f9; }
       #acct-kpis .kpi-tile:nth-child(3) > div:nth-child(2) { color: #d97706; } #acct-kpis .kpi-tile:nth-child(4) > div:nth-child(2) { color: #0f172a; } .dark #acct-kpis .kpi-tile:nth-child(4) > div:nth-child(2) { color: #f1f5f9; }
       @media (max-width: 1023px) and (min-width: 641px) { .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
       /* Phones: cards side by side, compact */

@@ -7,6 +7,9 @@
       #bottom-nav button.active svg { stroke-width: 2.4; }
       body.nav-bottom #nav-toggle { display: none !important; }
       body.nav-bottom #app-scroll { padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
+      /* backdrop-filter makes the header the containing block for position:fixed children, which pushed the
+         floating Add button above the screen. The header is already near-opaque, so drop the blur in this mode. */
+      body.nav-bottom #app-main-header { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
       /* Add button becomes a floating action button above the bar */
       body.nav-bottom #app-main-header button[onclick="app.openTransactionModal()"] { position: fixed; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 46; width: 58px; height: 58px; padding: 0; border-radius: 999px; justify-content: center; box-shadow: 0 8px 22px rgba(5,150,105,.35); }
       body.nav-bottom #app-main-header button[onclick="app.openTransactionModal()"] svg { width: 26px; height: 26px; margin: 0; }

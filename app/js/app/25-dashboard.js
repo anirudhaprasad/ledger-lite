@@ -15,9 +15,8 @@
                 const now = new Date();
                 const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
                 const inMonth = t => (this.parseLedgerDate(t.date)||'').slice(0,7) === monthKey;
-                const assetTypesForFlow = ['Checking','Cash','Savings','Savings Account','Investment','Investment Account','Fixed Deposit','Fixed Deposit Account','Recurring Deposit','RD','RD Account'];
                 const income = this.countedTx().filter(t => t.type === 'Income' && inMonth(t)).reduce((sum,t)=>sum+Math.max(0,num(t.amount)),0);
-                const expense = this.countedTx().filter(t => (['Expense','EMI','Installment'].includes(t.type) || (t.type==='Transfer' && assetTypesForFlow.includes((this.data.accounts.find(a=>a.name===(t.destinationAccount||t.toAccount))||{}).type))) && inMonth(t)).reduce((sum,t)=>sum+Math.max(0,num(t.amount)),0);
+                const expense = this.countedTx().filter(t => (['Expense','EMI','Installment'].includes(t.type)) && inMonth(t)).reduce((sum,t)=>sum+Math.max(0,num(t.amount)),0);
                 const suspiciousAccounts = this.data.accounts.filter(a => !Number.isFinite(Number(a.balance)) || Math.abs(num(a.balance)) >= 1000000000);
                 const suspiciousTx = this.data.tx.filter(t => !Number.isFinite(Number(t.amount)) || Math.abs(num(t.amount)) >= 1000000000);
                 let warning = document.getElementById('dashboard-calculation-warning');
@@ -66,7 +65,7 @@
                 const previous = new Date(now.getFullYear(), now.getMonth()-1, 1);
                 const key = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
                 const label = d => d.toLocaleDateString('en-IN',{month:'short',year:'numeric'});
-                const flowExpense = t => ['Expense','EMI','Installment'].includes(t.type) || (t.type==='Transfer' && ['Checking','Cash','Savings','Savings Account','Investment','Investment Account','Fixed Deposit','Fixed Deposit Account','Recurring Deposit','RD','RD Account'].includes((this.data.accounts.find(a=>a.name===(t.destinationAccount||t.toAccount))||{}).type));
+                const flowExpense = t => ['Expense','EMI','Installment'].includes(t.type);
                 const totals = monthKey => {
                     const rows=this.countedTx().filter(t=>(this.parseLedgerDate(t.date)||'').slice(0,7)===monthKey);
                     const income=rows.filter(t=>t.type==='Income').reduce((sum,t)=>sum+Math.max(0,num(t.amount)),0);
@@ -101,8 +100,8 @@
                 } else {
                     rows=this.countedTx().filter(t=>{
                         if(mode==='income-current')return t.type==='Income'&&inMonth(t);
-                        if(mode==='expense-current')return inMonth(t)&&(['Expense','EMI','Installment'].includes(t.type)||(t.type==='Transfer'&&assetTypes.includes((this.data.accounts.find(a=>a.name===(t.destinationAccount||t.toAccount))||{}).type)));
-                        if(mode==='month-type')return (this.parseLedgerDate(t.date)||'').slice(0,7)===extra.monthKey && (extra.type==='Income'?t.type==='Income':(['Expense','EMI','Installment'].includes(t.type)||(t.type==='Transfer'&&assetTypes.includes((this.data.accounts.find(a=>a.name===(t.destinationAccount||t.toAccount))||{}).type))));
+                        if(mode==='expense-current')return inMonth(t)&&(['Expense','EMI','Installment'].includes(t.type));
+                        if(mode==='month-type')return (this.parseLedgerDate(t.date)||'').slice(0,7)===extra.monthKey && (extra.type==='Income'?t.type==='Income':(['Expense','EMI','Installment'].includes(t.type)));
                         if(mode==='category')return inMonth(t)&&['Expense','EMI','Installment'].includes(t.type)&&(t.category||'Uncategorized')===extra.category;
                         if(mode==='category-period'){const d=this.parseLedgerDate(t.date)||'';return ['Expense','EMI','Installment'].includes(t.type)&&(t.category||'Uncategorized')===extra.category&&d.slice(0,4)===extra.year&&(extra.month==='all'||d.slice(5,7)===extra.month);}
                         return false;
@@ -126,7 +125,7 @@
                 const months=Array.from({length:6},(_,i)=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-5+i);return {key:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,label:d.toLocaleDateString('en-IN',{month:'short',year:'2-digit'})};});
                 const monthTransactions=key=>this.countedTx().filter(t=>(this.parseLedgerDate(t.date)||'').startsWith(key));
                 const incomeData=months.map(m=>monthTransactions(m.key).filter(t=>t.type==='Income').reduce((a,t)=>a+Math.max(0,num(t.amount)),0));
-                const expenseData=months.map(m=>monthTransactions(m.key).filter(t=>['Expense','EMI','Installment'].includes(t.type)||(t.type==='Transfer'&&assetTypes.includes((this.data.accounts.find(a=>a.name===(t.destinationAccount||t.toAccount))||{}).type))).reduce((a,t)=>a+Math.max(0,num(t.amount)),0));
+                const expenseData=months.map(m=>monthTransactions(m.key).filter(t=>['Expense','EMI','Installment'].includes(t.type)).reduce((a,t)=>a+Math.max(0,num(t.amount)),0));
                 const ctxCf=document.getElementById('chart-cashflow').getContext('2d');if(this.charts.cf)this.charts.cf.destroy();
                 this.charts.cf=new Chart(ctxCf,{type:'bar',data:{labels:months.map(m=>m.label),datasets:[{label:'Income',data:incomeData,backgroundColor:'#059669',borderRadius:6},{label:'Expenses / allocations',data:expenseData,backgroundColor:'#e11d48',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},onClick:(event,elements,chart)=>{if(!elements.length)return;const el=elements[0],month=months[el.index],type=el.datasetIndex===0?'Income':'Expense';this.openDashboardDrilldown(`${month.label} — ${type} Entries`,'month-type',{monthKey:month.key,type});}}});
                 this.populateDashboardPieYearOptions();
