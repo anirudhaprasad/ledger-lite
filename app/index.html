@@ -10,15 +10,9 @@
     <meta name="theme-color" content="#047857">
     <script src="js/02-edition.js"></script>
     <title>aifico Money Manager v1.2610.84</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="js/03-tailwind-config.js"></script>
-    <!-- SheetJS for Excel / Spreadsheet parsing -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-    <!-- Chart.js for visualizations -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Bundled libraries (no network needed): Chart.js 4.5.1, Lucide 1.59.0 -->
+    <script src="vendor/chart.umd.min.js"></script>
+    <script src="vendor/lucide.min.js"></script>
     <link rel="stylesheet" href="css/01-base.css">
 
 <link rel="stylesheet" href="css/02-dark-contrast-fix.css">
@@ -96,6 +90,8 @@
 <link rel="stylesheet" href="css/37-83m-who-owes-list.css">
 
 <link rel="stylesheet" href="css/38-84m-password-help.css">
+    <!-- Tailwind 3.4.17, compiled from tailwind.config.js. Kept last in <head>, where the old runtime CDN injected it. -->
+    <link rel="stylesheet" href="css/00-tailwind.css">
 </head>
 <body class="h-full bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
 
