@@ -1,5 +1,5 @@
 
-/* AIFICO v1.2610.84M — complete responsive frontend redesign.
+/* AIFICO v1.2610.84 — complete responsive frontend redesign.
    Presentation-only overrides: existing app logic, calculations and data flows remain intact. */
 :root{--af-bg:#f3f6fb;--af-card:#fff;--af-ink:#182338;--af-muted:#738098;--af-line:#e4eaf3;--af-blue:#3568e8;--af-blue-soft:#edf2ff;--af-green:#16876b;--af-shadow:0 7px 24px rgba(24,45,83,.045)}
 html,body{min-height:100%;background:var(--af-bg)}
@@ -125,7 +125,7 @@ body{color:var(--af-ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system
 }
 
 
-/* v1.2610.84M — dashboard refinement based on mobile review.
+/* v1.2610.84 — dashboard refinement based on mobile review.
    Presentation-only overrides: keep dashboard calculations and app logic unchanged. */
 #panel-dashboard #dashboard-month-comparison,
 #panel-dashboard .grid > .bg-white.dark\:bg-slate-900 {
@@ -271,7 +271,7 @@ body{color:var(--af-ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system
 }
 
 
-/* v1.2610.84M — correct the actual dashboard chart grid selector.
+/* v1.2610.84 — correct the actual dashboard chart grid selector.
    The earlier override targeted a direct canvas child, but each canvas is
    nested inside a height wrapper. This rule targets the real grid structure. */
 @media (max-width: 767px) {

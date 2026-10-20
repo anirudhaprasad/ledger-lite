@@ -382,13 +382,14 @@
             }
             /**
              * Shows a short message at the bottom of the screen, optionally with an Undo button. Replaces any toast already showing.
-             * Parameters: msg, {undo, ms}.
+             * Parameters: msg, {undo, action:{label, run}, ms}.
              */
-            showToast(msg,{undo,ms=6000}={}){
+            showToast(msg,{undo,action,ms=6000}={}){
                 document.getElementById('app-toast')?.remove(); clearTimeout(this._toastTimer);
                 const el=document.createElement('div'); el.id='app-toast'; el.setAttribute('role','status');
-                el.innerHTML=`<span></span>${undo?'<button type="button">Undo</button>':''}`; el.firstChild.textContent=msg;
-                if(undo)el.querySelector('button').onclick=()=>{ el.remove(); clearTimeout(this._toastTimer); undo(); };
+                const btn=undo?{label:'Undo',run:undo}:action;
+                el.innerHTML=`<span></span>${btn?'<button type="button"></button>':''}`; el.firstChild.textContent=msg;
+                if(btn){ const b=el.querySelector('button'); b.textContent=btn.label; b.onclick=()=>{ el.remove(); clearTimeout(this._toastTimer); btn.run(); }; }
                 document.body.appendChild(el); this._toastTimer=setTimeout(()=>el.remove(),ms);
             }
 
@@ -579,7 +580,8 @@
             openTransactionModal(prefill) {
                 const p=prefill&&typeof prefill==='object'?prefill:{}; const esc=v=>this.escapeHtml(String(v??''));
                 const accounts=this.data.accounts||[]; const def=p.account||this.getGlobalDefaultAccount()?.name||accounts[0]?.name||'';
-                const cats=[...new Set([...(this.data.categories||[]),...(p.category?[p.category]:[])])];
+                // Your categories, plus any that only your transactions use (imports, older data), so every one can be picked
+                const cats=[...new Set([...(this.data.categories||[]),...(this.data.tx||[]).map(t=>t&&t.type!=='Transfer'&&t.category).filter(Boolean),...(p.category?[p.category]:[])])];
                 const acctOpts=sel=>accounts.map(a=>`<option value="${esc(a.name)}" ${String(a.name)===String(sel)?'selected':''}>${esc(a.name)}</option>`).join('');
                 const type=['Expense','Income','Transfer','EMI','Installment'].includes(p.type)?p.type:'Expense';
                 const box = document.getElementById('modal-box');

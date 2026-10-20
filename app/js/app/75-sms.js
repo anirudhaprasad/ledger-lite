@@ -177,13 +177,34 @@ Type REMOVE SMS to continue:`);
             }
 
             /**
+             * Who the money went to (or came from) in a bank SMS. "UPI/Ola" and "to VPA swiggy@icici" give Ola and swiggy@icici;
+             * words like Rs, A/c, NEFT or UPI are never a payee. Spending prefers "to/at/towards", income prefers "from/by".
+             */
+            smsPayee(line,type){
+                const text=String(line||''); const skip=/^(rs\.?|inr|your|you|a\/?c|ac|acct|account|card|the|upi|vpa|bank|neft|imps|rtgs|cheque|cash|ref|txn|a)$/i;
+                const upi=text.match(/\bUPI[\/-]([A-Za-z][A-Za-z0-9 .&_-]{1,30}?)(?=[\/\s.;,]|$)/i); if(upi&&!skip.test(upi[1])&&!/^(p2[pm]|ref|txn|cr|dr)$/i.test(upi[1]))return upi[1].trim();
+                const re=/\b(to|at|from|towards|for|by)\s+(?:VPA\s+)?([A-Za-z][A-Za-z0-9 .&@_-]{1,35}?)(?=\s+(?:on|ref|upi|txn|transaction|avl|available|bal|a\/c|ac\s|ending|via|using|to|from|by|at|towards|for)\b|\s*[(.;,\/]|$)/gi;
+                const found=[]; let m; while((m=re.exec(text))){ const name=m[2].trim().replace(/\s+/g,' '); if(name.length<2||skip.test(name.split(' ')[0]))continue; found.push({prep:m[1].toLowerCase(),name}); }
+                // Spending: "from" is your own account or bank, so it is never the payee. Income: "to" is your account.
+                const order=type==='Income'?['from','by','at','towards','for']:['to','at','towards','for','by'];
+                for(const prep of order){ const hit=found.find(f=>f.prep===prep); if(hit)return hit.name; }
+                // "…debited for Rs 199; Spotify credited": the other side is named before "credited"
+                if(type!=='Income'){ const cr=text.match(/[;.]\s*([A-Za-z][A-Za-z0-9 .&@_-]{1,30}?)\s+credited\b/i); if(cr&&!skip.test(cr[1].split(' ')[0]))return cr[1].trim(); }
+                // "Info: NEFT-RENT OCT-RAMESH K": the bank's own description
+                const info=text.match(/\binfo\s*:\s*(?:(?:neft|imps|rtgs|upi|ach|nach)[\s\/-]*)?([A-Za-z][^.;]{1,40})/i); if(info)return info[1].replace(/[-_\/]+/g,' ').replace(/\s+/g,' ').trim().slice(0,30);
+                return '';
+            }
+            /**
              * Handles the classify sms transaction workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: line, baseType, payee=''. Side effects, if any, are described by the statements below.
              */
             classifySmsTransaction(line, baseType, payee='') {
                 const text=`${line||''} ${payee||''}`.toLowerCase();
                 // Explicit money movement takes priority over merchant/category matching.
-                if (/\b(own account|between own accounts|self transfer|transfer to|transferred to|imps|neft|rtgs|fund transfer|upi transfer|a\/c transfer|account transfer|sweep to|sweep transfer)\b/i.test(text)) {
+                // NEFT/IMPS/RTGS are only how the money moved: money credited to you that way is income (e.g. salary), so only
+                // debits by those channels (unless they say what they paid for, like rent or an EMI) and anything marked as your own
+                // account count as transfers.
+                if (/\b(own account|between own accounts|self transfer|sweep to|sweep transfer)\b/i.test(text) || (baseType!=='Income'&&/\b(transfer to|transferred to|imps|neft|rtgs|fund transfer|upi transfer|a\/c transfer|account transfer)\b/i.test(text)&&!/\b(rent|emi|loan|insurance|premium|bill|fees?|maintenance)\b/i.test(text))) {
                     return {type:'Transfer',category:'Transfer',subcategory:'Own Account Transfer'};
                 }
                 if (/\b(mutual fund|sip\b|nps\b|ppf\b|public provident|ssa\b|sukanya|recurring deposit|\brd\b|fixed deposit|\bfd\b|investment|zerodha|groww|stocks?|equity|demat|smallcase|kuvera|coin by zerodha)\b/i.test(text)) {
@@ -228,9 +249,9 @@ Type REMOVE SMS to continue:`);
 
             /**
              * Parses or imports sms messages and validates it before use.
-             * Parameters: messages, sourceName. Side effects, if any, are described by the statements below.
+             * Parameters: messages, sourceName, opts.quiet (no pop-ups; used by the automatic phone SMS check). Returns {added, ignored}.
              */
-            importSmsMessages(messages, sourceName) {
+            importSmsMessages(messages, sourceName, opts={}) {
                 const inbox=Array.isArray(this.data.smsInbox)?this.data.smsInbox:(this.data.smsInbox=[]);
                 const existing=new Set(inbox.map(t=>String(t.messageKey||`${t.date}|${t.amount}|${t.type}|${t.description||''}`)));
                 let added=0,ignored=0;
@@ -253,18 +274,18 @@ Type REMOVE SMS to continue:`);
                         dmy=line.match(/\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{2}|\d{4})\b/);
                         const validDmy=dmy&&+dmy[1]>=1&&+dmy[1]<=31&&+dmy[2]>=1&&+dmy[2]<=12;
                         if(numeric)date=`${numeric[1]}-${numeric[2]}-${numeric[3]}`;else if(d){const months={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};let y=Number(d[3]);if(y<100)y+=2000;date=`${y}-${String(months[d[2].toLowerCase()]||1).padStart(2,'0')}-${d[1].padStart(2,'0')}`;}else if(validDmy){let y=Number(dmy[3]);if(y<100)y+=2000;date=`${y}-${dmy[2].padStart(2,'0')}-${dmy[1].padStart(2,'0')}`;}else date=this.todayISO();}
-                    const payeeMatch=line.match(/\b(?:to|at|from|towards|for)\s+([A-Za-z][A-Za-z0-9 .&@_-]{1,35}?)(?=\s+(?:on|ref|upi|txn|transaction|avl|available|bal|a\/c|ac\s|ending)\b|[.;,]|$)/i);
-                    const payee=payeeMatch?payeeMatch[1].trim().replace(/\s+/g,' '):(typeMatch==='Income'?'Bank Credit':'Bank Payment');
+                    const payee=this.smsPayee(line,typeMatch)||(typeMatch==='Income'?'Bank Credit':'Bank Payment');
                     const accountMatch=line.match(/(?:A\/C|account|ac)\s*(?:no\.?\s*)?(?:ending\s*)?(?:XX|\*+)?(\d{3,6})/i);
                     const mapped=this.classifySmsTransaction(line,typeMatch,payee);const reference=(line.match(/\b(?:UTR|RRN|Ref(?:erence)?|Txn(?:\s*ID)?)\s*[:#-]?\s*([A-Z0-9-]{6,})/i)||[])[1]||'';
                     const messageKey=`${date}|${amount.toFixed(2)}|${mapped.type}|${reference||line.replace(/\s+/g,' ').toLowerCase()}`;
                     if(existing.has(messageKey)){ignored++;continue;} existing.add(messageKey);
                     inbox.unshift({id:'sms_inbox_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8),messageKey,date,type:mapped.type,amount,accountHint:accountMatch?accountMatch[1]:'',account:'SMS (Unreconciled)',category:mapped.category,subcategory:mapped.subcategory,payee,notes:`${payee}${mapped.subcategory?' — '+mapped.subcategory:''}`.slice(0,160),description:line,reference,originalSmsDate:msg.date||'',sender:msg.address||'',sourceFile:sourceName,status:'pending',importedAt:new Date().toISOString()});added++;
                 }
-                if(!added){alert(`No new SMS records were staged. ${ignored} message(s) were unsupported or already present in the SMS Ledger.`);return;}
+                if(!added){ if(!opts.quiet)alert(`No new SMS records were staged. ${ignored} message(s) were unsupported or already present in the SMS Ledger.`); return {added,ignored}; }
                 this.saveVault();this.renderAll();this.renderSmsReconciliation();
                 const status=document.getElementById('sms-import-status');if(status){status.textContent=`Staged ${added} SMS record(s) in Core SMS Ledger. ${ignored} unsupported or repeated message(s) skipped. No account balances or Core Ledger records were changed.`;status.classList.remove('hidden','text-rose-600');status.classList.add('text-emerald-600');}
-                alert(`Added ${added} record(s) to Core SMS Ledger. They have not been added to Core Ledger and have not changed account balances. Review suggested matches before merging unmatched records.${ignored?`\n${ignored} unsupported/repeated message(s) skipped.`:''}`);
+                if(!opts.quiet)alert(`Added ${added} record(s) to Core SMS Ledger. They have not been added to Core Ledger and have not changed account balances. Review suggested matches before merging unmatched records.${ignored?`\n${ignored} unsupported/repeated message(s) skipped.`:''}`);
+                return {added,ignored};
             }
 
             /**

@@ -217,7 +217,7 @@
                         return;
                     }
                     this.data.accounts ||= []; this.data.tx ||= []; this.data.smsInbox ||= []; this.data.categories ||= ['Food & Dining','Groceries','Rent & Housing','Utilities','Transportation','Shopping','Entertainment','Salary','Investment','Bank Charges','Healthcare','Cash Withdrawal','Transfer','Uncategorized','Other Income']; this.data.budgets ||= {}; this.data.yearly ||= []; this.data.goals ||= []; this.data.shared ||= []; this.data.members ||= []; this.data.bankProfiles ||= {}; this.data.importHistory ||= [];
-                    this.currentPassword = pwd; setTimeout(()=>this.checkDefaultPassword(),300);
+                    this.currentPassword = pwd; setTimeout(()=>this.checkDefaultPassword(),300); setTimeout(()=>{ try{ this.afterUnlock?.(); }catch(e){ console.error(e); } },900); // e.g. the Developer edition checks the phone for new bank SMS
                     input.value = '';
                     this.enterApp();
                 } finally {
@@ -406,10 +406,12 @@
              */
             applyEdition(){
                 const pro=this.isPro(); if(!this.isDeveloper())document.querySelectorAll('[data-dev-only]').forEach(e=>e.remove()); document.body.classList.toggle('edition-lite',!pro); document.body.classList.toggle('edition-pro',pro);
-                const label='Money Manager v1.2610.84 Lite';
+                // Version from js/04-version.js: "Money Manager v1.2610.85 · Developer" (the edition is a word, not a letter on the number)
+                const v=window.aificoVersion?window.aificoVersion():{label:'',detail:''}; const label=`Money Manager ${v.label} · ${this.editionName()}`;
+                document.querySelectorAll('[data-app-version]').forEach(el=>{el.textContent=`${v.label} · ${this.editionName()} · ${v.detail}`;});
                 document.querySelectorAll('[data-edition-label]').forEach(el=>{el.textContent=label;});
                 document.querySelectorAll('[data-edition-title]').forEach(el=>{el.textContent=`aifico Money Manager ${this.editionName()}`;});
-                document.title=`aifico Money Manager ${this.editionName()} v1.2610.84`;
+                document.title=`aifico Money Manager ${v.label} · ${this.editionName()}`;
                 if(!pro){
                     ['yearly','goals','shared'].forEach(t=>document.querySelectorAll(`#app-sidebar [data-tab="${t}"]`).forEach(b=>{ if(!b.querySelector('.pro-badge'))b.insertAdjacentHTML('beforeend','<span class="pro-badge pro-badge-sm">PRO</span>'); }));
                     document.querySelectorAll('.set-card .set-title').forEach(h=>{ if(/^(Import|Money Manager spreadsheet)$/.test(h.textContent.trim())&&!h.querySelector('.pro-badge'))h.insertAdjacentHTML('beforeend',' <span class="pro-badge pro-badge-sm">PRO</span>'); });
@@ -812,7 +814,7 @@
                 return this.uiDialog(options.title || 'Please confirm', message, {
                     type: 'confirm', danger: !!options.danger,
                     okLabel: options.okLabel || (options.danger ? 'Delete' : 'Continue'),
-                    cancelLabel: 'Cancel'
+                    cancelLabel: options.cancelLabel || 'Cancel'
                 });
             }
             /**

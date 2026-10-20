@@ -1,4 +1,4 @@
-/* v1.2610.84M: richer, consistent icon colors inspired by the approved visual reference.
+/* v1.2610.84: richer, consistent icon colors inspired by the approved visual reference.
    CSS-only presentation layer; no financial logic, data, or navigation handlers changed. */
 :root{--ico-blue:#2878e8;--ico-teal:#079b91;--ico-green:#16a875;--ico-red:#ef476f;--ico-orange:#f59e0b;--ico-purple:#8555ef;--ico-cyan:#0ea5e9;--ico-pink:#ec4899}
 /* Sidebar and bottom navigation use clear, consistent semantic colors. */

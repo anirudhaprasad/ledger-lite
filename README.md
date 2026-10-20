@@ -1,6 +1,6 @@
 # aifico Money Manager Lite
 
-Money Manager v1.2610.84 Lite: a private, offline money manager that runs in the browser. Your data is encrypted with your master password and stays on your device.
+Money Manager Lite: a private, offline money manager that runs in the browser. Your data is encrypted with your master password and stays on your device.
 
 ## What's included
 
