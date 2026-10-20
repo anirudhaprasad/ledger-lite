@@ -284,3 +284,9 @@ body.nav-bottom #app-toast { bottom: calc(146px + env(safe-area-inset-bottom, 0p
 /* brand-logo:end */
 /* Lock screen: the app icon above the title */
 .brand-logo-lg { width: 56px; height: 56px; margin-bottom: 4px; box-shadow: 0 6px 18px rgba(15,23,42,.18); }
+
+/* Lock screen: edition as a small tag after the name; first run (no vault yet) shows only "Restore backup" */
+.vault-edition{display:inline-block;vertical-align:middle;margin-left:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.02em;line-height:1.5;background:#ecfdf5;color:#047857;white-space:nowrap}
+.dark .vault-edition{background:rgba(16,185,129,.15);color:#6ee7b7}
+.vault-first-run .vault-only{display:none}
+.vault-first-run .vault-links{justify-content:center}

@@ -102,28 +102,28 @@
     <div id="app" class="h-full flex flex-col">
         <!-- Vault Lock / Setup Screen -->
         <div id="vault-screen" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-8 space-y-5">
+            <div class="vault-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-5">
                 <div class="text-center space-y-1">
                     <span class="brand-logo brand-logo-lg" role="img" aria-label="aifico"></span>
-                    <h1 class="text-2xl font-bold tracking-tight" data-edition-title>aifico Money Manager</h1><button type="button" id="vault-help-btn" class="vault-help-btn" onclick="app.openPasswordHelp()" aria-label="Help with your password">?</button>
-                    <p id="vault-subtitle" class="text-sm text-slate-500 dark:text-slate-400">Enter your master password to unlock your vault</p>
+                    <h1 class="text-xl font-bold tracking-tight" data-edition-title>aifico Money Manager</h1><button type="button" id="vault-help-btn" class="vault-help-btn" onclick="app.openPasswordHelp()" aria-label="Help with your password">?</button>
+                    <p id="vault-subtitle" class="text-sm text-slate-500 dark:text-slate-400">Unlock your vault</p>
                 </div>
 
                 <div id="vault-form-container" class="space-y-4">
                     <div class="ip-field fl login-field">
                         <span>Master password</span>
-                        <input type="password" id="vault-password" autocomplete="current-password" autocapitalize="none" spellcheck="false" aria-describedby="vault-login-status" placeholder="Enter your master password" aria-label="Master password" class="w-full px-4 py-3 pr-14 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                        <input type="password" id="vault-password" autocomplete="current-password" autocapitalize="none" spellcheck="false" aria-describedby="vault-login-status" aria-label="Master password" class="w-full px-4 py-3 pr-14 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
                         <button type="button" id="vault-password-toggle" aria-label="Show password" aria-pressed="false" class="absolute inset-y-0 right-0 px-4 text-sm font-semibold text-slate-500 hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-500 rounded-r-xl">Show</button>
                     </div>
-                    <p id="vault-default-hint" class="vault-default-hint" hidden>New here? Choose a master password of at least 5 characters and write it down somewhere safe. It cannot be recovered if you forget it.</p>
+                    <p id="vault-default-hint" class="vault-default-hint" hidden>At least 5 characters. Write it down: it can't be recovered.</p>
                     <p id="vault-login-status" role="status" aria-live="polite" class="hidden text-sm rounded-lg px-3 py-2"></p>
-                    <p class="text-xs leading-relaxed text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2">Forgot password? Restore a Full Erase backup with its separate recovery code. Normal backups need the original password.</p>
                     <button id="vault-action-btn" type="button" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-wait text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/20 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">Unlock Vault</button>
                     
-                    <div class="flex items-center justify-between pt-2 text-xs text-slate-500">
-                        <button id="vault-reset-link" class="hover:underline">Reset / New Vault</button>
+                    <div class="vault-links flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                        <button type="button" class="vault-only hover:underline" onclick="app.openPasswordHelp()">Forgot password?</button>
+                        <button id="vault-reset-link" type="button" class="vault-only hover:underline">New vault</button>
                         <label class="hover:underline cursor-pointer">
-                            Restore Encrypted Backup (.json) <input type="file" id="vault-restore-file" class="hidden" accept=".json,application/json">
+                            Restore backup <input type="file" id="vault-restore-file" class="hidden" accept=".json,application/json">
                         </label>
                     </div>
                 </div>
@@ -662,10 +662,10 @@
                             <p class="text-sm text-slate-500 dark:text-slate-400">Version <span data-app-version></span> · Use this guide as a quick reference while working in the app.</p>
                             <div class="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-4 text-sm text-amber-900 dark:text-amber-200"><strong>Safety first:</strong> Before destructive actions, download and verify a full encrypted vault backup. Use dummy data to test unfamiliar workflows. Keep backup files private because they may contain sensitive financial information.</div>
                         </section>
-                    <section class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 guide-password" id="guide-password"><h3 class="font-bold text-lg">Your master password</h3><h4>First time on this device</h4><ol><li>The screen says <b>Create a master password</b>.</li><li>Type your own password (at least 5 characters). Avoid simple passwords such as a run of numbers.</li><li>Tap <b>Initialize Vault</b>. Your data is encrypted on this device with that password.</li></ol>
+                    <section class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 guide-password" id="guide-password"><h3 class="font-bold text-lg">Your master password</h3><h4>First time on this device</h4><ol><li>The screen says <b>Create a master password</b>.</li><li>Type your own password (at least 5 characters). Avoid simple passwords such as a run of numbers.</li><li>Tap <b>Create Vault</b>. Your data is encrypted on this device with that password.</li></ol>
 <h4>Still using the old default password?</h4><p>Vaults created by earlier versions may still use it, and the app shows a reminder after every unlock. Change it immediately: <b>Backup &amp; Settings → Security → Change password</b>. Until you do, anyone who knows the default can open your data.</p>
-<h4>Forgot your password?</h4><p>There is no "forgot password" — the data never leaves your device. You can recover only with a <b>Full Erase backup plus its recovery code</b>. Otherwise use <b>Reset / New Vault</b> (this deletes the data on this device; a normal backup can be restored with its original password).</p>
-<h4>Good habits</h4><ul><li>Write your password down somewhere safe.</li><li>Back up regularly: Backup &amp; Settings → Back up now.</li><li>New phone: back up on the old one, then <b>Restore Encrypted Backup</b> on the new one with the same password.</li></ul></section>
+<h4>Forgot your password?</h4><p>There is no "forgot password" — the data never leaves your device. You can recover only with a <b>Full Erase backup plus its recovery code</b>. Otherwise use <b>New vault</b> (this deletes the data on this device; a normal backup can be restored with its original password).</p>
+<h4>Good habits</h4><ul><li>Write your password down somewhere safe.</li><li>Back up regularly: Backup &amp; Settings → Back up now.</li><li>New phone: back up on the old one, then <b>Restore backup</b> on the new one with the same password.</li></ul></section>
                         <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">1. Start and protect your vault</h3><ol class="list-decimal pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Create or unlock the vault with your master password.</li><li>Keep the password private; do not share it with anyone.</li><li>Lock the vault when you finish using the app.</li><li>Use a strong password that you can safely retain. A recovery code is included only in a backup created as part of Full Erase; ordinary backups do not include one.</li></ol></article>
                             <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">2. Dashboard</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li><strong>Net worth</strong>: what you own minus what you owe. It adds savings, checking, cash, investments and money others owe you.</li><li><strong>Liquid cash</strong>: money you can spend now, in checking, savings and cash accounts only.</li><li><strong>Income</strong>, <strong>Spending</strong> and <strong>Net</strong> are for this month so far, from Core Ledger entries, each with the change from last month. Transfers between your own accounts are not counted, and neither are excluded entries.</li><li>Tap a figure to see the accounts or entries behind it. Review figures against your bank if something looks unexpected.</li></ul></article>

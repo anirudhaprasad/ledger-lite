@@ -64,10 +64,11 @@
                 const persistenceGranted = await this.storage.requestPersistentStorage();
                 console.info('AIFICO storage mode:', this.storage.mode, '| browser persistent-storage grant:', persistenceGranted ? 'granted' : 'not granted/unsupported');
                 if (!storedVault) {
-                    const vaultSubtitle = document.getElementById('vault-subtitle'); if (vaultSubtitle) vaultSubtitle.innerText = 'Create a master password to secure your local financial vault';
-                    document.getElementById('vault-action-btn').innerText = 'Initialize Vault';
+                    const vaultSubtitle = document.getElementById('vault-subtitle'); if (vaultSubtitle) vaultSubtitle.innerText = 'Create a master password';
+                    document.getElementById('vault-action-btn').innerText = 'Create Vault';
                     document.getElementById('vault-action-btn').onclick = () => this.createVault();
                     const dh=document.getElementById('vault-default-hint'); if(dh)dh.hidden=false;
+                    document.getElementById('vault-screen')?.classList.add('vault-first-run');
                 } else {
                     document.getElementById('vault-action-btn').onclick = () => this.unlockVault();
                 }
@@ -169,10 +170,10 @@
              * Parameters: none. Side effects, if any, are described by the statements below.
              */
             // ---------- Password help (login "?") and the default-password reminder ----------
-            passwordHelpHtml(){ return `<h4>First time on this device</h4><ol><li>The screen says <b>Create a master password</b>.</li><li>Type your own password (at least 5 characters). Avoid simple passwords such as a run of numbers.</li><li>Tap <b>Initialize Vault</b>. Your data is encrypted on this device with that password.</li></ol>
+            passwordHelpHtml(){ return `<h4>First time on this device</h4><ol><li>The screen says <b>Create a master password</b>.</li><li>Type your own password (at least 5 characters). Avoid simple passwords such as a run of numbers.</li><li>Tap <b>Create Vault</b>. Your data is encrypted on this device with that password.</li></ol>
 <h4>Still using the old default password?</h4><p>Vaults created by earlier versions may still use it, and the app shows a reminder after every unlock. Change it immediately: <b>Backup &amp; Settings → Security → Change password</b>. Until you do, anyone who knows the default can open your data.</p>
-<h4>Forgot your password?</h4><p>There is no "forgot password" — the data never leaves your device. You can recover only with a <b>Full Erase backup plus its recovery code</b>. Otherwise use <b>Reset / New Vault</b> (this deletes the data on this device; a normal backup can be restored with its original password).</p>
-<h4>Good habits</h4><ul><li>Write your password down somewhere safe.</li><li>Back up regularly: Backup &amp; Settings → Back up now.</li><li>New phone: back up on the old one, then <b>Restore Encrypted Backup</b> on the new one with the same password.</li></ul>`; }
+<h4>Forgot your password?</h4><p>There is no "forgot password" — the data never leaves your device. You can recover only with a <b>Full Erase backup plus its recovery code</b>. Otherwise use <b>New vault</b> (this deletes the data on this device; a normal backup can be restored with its original password).</p>
+<h4>Good habits</h4><ul><li>Write your password down somewhere safe.</li><li>Back up regularly: Backup &amp; Settings → Back up now.</li><li>New phone: back up on the old one, then <b>Restore backup</b> on the new one with the same password.</li></ul>`; }
             openPasswordHelp(){
                 document.getElementById('pw-help-overlay')?.remove();
                 const o=document.createElement('div'); o.id='pw-help-overlay'; o.setAttribute('role','dialog'); o.setAttribute('aria-modal','true'); o.setAttribute('aria-label','Password help');
@@ -207,7 +208,7 @@
                         return;
                     }
                     if (!stored) {
-                        this.setVaultLoginStatus('No existing vault was found. Use Reset / New Vault only if you intend to create a new vault, or restore a verified backup.');
+                        this.setVaultLoginStatus('No existing vault was found. Use New vault only if you intend to create a new vault, or restore a verified backup.');
                         return;
                     }
                     try {
@@ -300,13 +301,14 @@
                 document.getElementById('vault-screen').classList.remove('hidden');
                 document.getElementById('vault-password').value = '';
                 // The vault exists now, so the lock screen always asks to unlock (first-run screens said "Create")
-                const sub = document.getElementById('vault-subtitle'); if (sub) sub.innerText = 'Enter your master password to unlock your vault';
+                const sub = document.getElementById('vault-subtitle'); if (sub) sub.innerText = 'Unlock your vault';
                 const btn = document.getElementById('vault-action-btn'); if (btn) { btn.innerText = 'Unlock Vault'; btn.onclick = () => this.unlockVault(); }
                 const dh = document.getElementById('vault-default-hint'); if (dh) dh.hidden = true;
+                document.getElementById('vault-screen').classList.remove('vault-first-run');
                 this.setVaultLoginStatus('', '');
                 // Clear what was drawn behind the lock screen, so no figures stay in the page while it is locked
                 try { this.renderAll(); } catch (e) {}
-                if (opts.reason === 'auto') this.setVaultLoginStatus(`Locked after ${opts.minutes < 1 ? 'less than a minute' : opts.minutes + ' minute' + (opts.minutes === 1 ? '' : 's')} without use. Enter your master password to continue.`, 'info');
+                if (opts.reason === 'auto') this.setVaultLoginStatus(`Locked after ${opts.minutes} min without use.`, 'info');
             }
 
             /**
@@ -316,7 +318,7 @@
             async resetVault() {
                 const stored = await this.storage.getItem('aifico_vault');
                 if (!stored) {
-                    await this.uiDialog('No vault found','No existing vault was found. You are already at the new-vault setup screen. Enter a new master password and choose Initialize Vault.',{type:'notice'});
+                    await this.uiDialog('No vault found','No existing vault was found. You are already at the new-vault setup screen. Enter a new master password and choose Create Vault.',{type:'notice'});
                     return;
                 }
 
@@ -440,7 +442,7 @@
                 const v=window.aificoVersion?window.aificoVersion():{label:'',detail:''}; const label=`Money Manager ${v.label} · ${this.editionName()}`;
                 document.querySelectorAll('[data-app-version]').forEach(el=>{el.textContent=`${v.label} · ${this.editionName()} · ${v.detail}`;});
                 document.querySelectorAll('[data-edition-label]').forEach(el=>{el.textContent=label;});
-                document.querySelectorAll('[data-edition-title]').forEach(el=>{el.textContent=`aifico Money Manager ${this.editionName()}`;});
+                document.querySelectorAll('[data-edition-title]').forEach(el=>{el.innerHTML=`aifico Money Manager <span class="vault-edition">${this.escapeHtml(this.editionName())}</span>`;});
                 document.title=`aifico Money Manager ${v.label} · ${this.editionName()}`;
                 if(!pro){
                     ['yearly','goals','shared'].forEach(t=>document.querySelectorAll(`#app-sidebar [data-tab="${t}"]`).forEach(b=>{ if(!b.querySelector('.pro-badge'))b.insertAdjacentHTML('beforeend','<span class="pro-badge pro-badge-sm">PRO</span>'); }));
