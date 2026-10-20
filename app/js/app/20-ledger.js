@@ -520,20 +520,8 @@
              */
             editTransaction(id) {
                 const t=this.data.tx.find(x=>String(x.id)===String(id)); if(!t)return;
-                const box=document.getElementById('modal-box');
-                const esc=v=>this.escapeHtml(String(v??''));
-                const categories=[...new Set([...(this.data.categories||[]),t.category||'Uncategorized'])];
-                box.innerHTML=`<div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3"><h3 class="font-bold text-base">Edit Transaction</h3><button type="button" onclick="app.closeModal()" class="text-slate-400">✕</button></div>
-                <form onsubmit="app.saveEditedTransaction(event,'${String(t.id).replace(/'/g,"\\'")}')" class="space-y-4 pt-2">
-                <div class="grid grid-cols-2 gap-3"><div><label class="text-xs font-semibold text-slate-500">Transaction Date</label><input id="edit-tx-date" type="date" required value="${esc(this.normalizeLedgerDate(t.date)||'')}" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800">${t.source==='sms'||t.originalSmsDate?`<p class="text-xs text-slate-500 mt-1">Original SMS date: ${esc(t.originalSmsDate||t.date||'Not recorded')} (preserved separately)</p>`:''}</div><div><label class="text-xs font-semibold text-slate-500">Type</label><select id="edit-tx-type" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800">${['Expense','Income','Transfer','EMI','Installment'].map(x=>`<option ${t.type===x?'selected':''}>${x}</option>`).join('')}</select></div></div>
-                <div><label class="text-xs font-semibold text-slate-500">Amount${CURL()}</label><input id="edit-tx-amount" type="number" min="0.01" step="0.01" required value="${esc(t.amount)}" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800"><button type="button" onclick="app.openAmountCalculator('edit-tx-amount')" class="mt-1 text-xs text-emerald-600 hover:underline">🧮 Calculator</button></div>
-                <div><label class="text-xs font-semibold text-slate-500">Payee</label><input id="edit-tx-payee" required value="${esc(t.payee)}" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></div>
-                <div class="grid grid-cols-2 gap-3"><div><label class="text-xs font-semibold text-slate-500">Category</label><input id="edit-tx-category" list="edit-category-options" value="${esc(t.category||'Uncategorized')}" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800"><datalist id="edit-category-options">${categories.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div><div><label class="text-xs font-semibold text-slate-500">Subcategory</label><input id="edit-tx-subcategory" value="${esc(t.subcategory||'')}" placeholder="e.g. HouseRent, Computer" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></div></div>
-                <div><label class="text-xs font-semibold text-slate-500">Account</label><select id="edit-tx-account" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800">${this.data.accounts.map(a=>`<option value="${esc(a.name)}" ${t.account===a.name?'selected':''}>${esc(a.name)}</option>`).join('')}</select></div>
-                <div><label class="text-xs font-semibold text-slate-500">Note</label><textarea id="edit-tx-note" rows="2" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800">${esc(t.note??t.notes??'')}</textarea></div>
-                <div><label class="text-xs font-semibold text-slate-500">Description</label><textarea id="edit-tx-description" rows="4" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800">${esc(t.description??'')}</textarea></div>
-                <div class="flex justify-end gap-3 border-t pt-4"><button type="button" onclick="app.closeModal()" class="px-4 py-2 border rounded-xl">Cancel</button><button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-xl">Save Changes</button></div></form>`;
-                document.getElementById('modal-container').classList.remove('hidden');
+                // Edit uses the same form as Add, so the category picker, accounts and Transfer (From / To) work the same way
+                this.openTransactionModal({editId:t.id,type:t.type,date:this.normalizeLedgerDate(t.date)||t.date,amount:t.amount,payee:t.payee||'',category:t.type==='Transfer'?'':t.category,subcategory:t.subcategory,account:t.account,destinationAccount:t.destinationAccount||t.toAccount||'',note:t.notes??t.note??'',description:t.description??'',smsDate:t.source==='sms'||t.originalSmsDate?(t.originalSmsDate||t.date||''):''});
             }
 
             /**
@@ -541,16 +529,27 @@
              * Parameters: event,id. Side effects, if any, are described by the statements below.
              */
             saveEditedTransaction(event,id) {
-                event.preventDefault(); const t=this.data.tx.find(x=>String(x.id)===String(id)); if(!t)return; const beforeEdit={...t}; if(this.isLockedDate(t.date))return this.lockedAlert(t.date);
-                const oldAmount=Number(t.amount)||0, oldType=t.type, oldAccount=t.account;
-                const amount=Number(document.getElementById('edit-tx-amount').value); if(!Number.isFinite(amount)||amount<=0)return alert('Enter an amount greater than zero.');
-                const oldAcc=this.data.accounts.find(a=>a.name===oldAccount);
-                this.applyTxEffects(beforeEdit,-1);
-                const enteredDate=document.getElementById('edit-tx-date').value; const normalizedDate=this.normalizeLedgerDate(enteredDate); if(enteredDate && !normalizedDate)return alert('Please enter a valid date in YYYY-MM-DD format.'); const previousTransactionDate=t.date; const preservedOriginalSmsDate=t.originalSmsDate; t.date=normalizedDate || this.normalizeLedgerDate(previousTransactionDate) || previousTransactionDate; if(preservedOriginalSmsDate!==undefined)t.originalSmsDate=preservedOriginalSmsDate; t.type=document.getElementById('edit-tx-type').value; t.amount=amount;
-                t.payee=document.getElementById('edit-tx-payee').value.trim(); t.category=document.getElementById('edit-tx-category').value.trim()||'Uncategorized';
-                t.subcategory=document.getElementById('edit-tx-subcategory').value.trim(); t.note=document.getElementById('edit-tx-note').value; t.notes=t.note; t.description=document.getElementById('edit-tx-description').value; t.account=document.getElementById('edit-tx-account').value;
+                event.preventDefault(); const t=this.data.tx.find(x=>String(x.id)===String(id)); if(!t)return; if(this.isLockedDate(t.date))return this.lockedAlert(t.date);
+                const val=k=>document.getElementById(k)?.value??'';
+                const type=val('modal-tx-type')||t.type||'Expense', transfer=type==='Transfer';
+                const amount=Number(val('modal-tx-amount')); if(!Number.isFinite(amount)||amount<=0)return alert('Enter an amount greater than zero.');
+                const date=this.normalizeLedgerDate(val('modal-tx-date')); if(!date)return alert('Please enter a valid date.');
+                if(this.isLockedDate(date))return this.lockedAlert(date);
+                const account=val('modal-tx-account'); if(!account)return alert('Select an account.');
+                const destinationAccount=transfer?val('modal-tx-destination'):'';
+                // A one-sided imported transfer (money in or out, other account not recorded) may stay one-sided
+                const oneSided=transfer&&!destinationAccount&&!!t.transferDirection;
+                if(transfer&&!oneSided&&(!destinationAccount||destinationAccount===account))return alert('Choose a destination account that is different from the source account.');
+                const category=transfer?'Transfer':(val('modal-tx-category')||'Uncategorized'), subcategory=transfer?'':val('modal-tx-subcategory').trim();
+                this.applyTxEffects({...t},-1);
+                Object.assign(t,{date,type,amount,account,category,payee:val('modal-tx-payee').trim()});
+                if(subcategory)t.subcategory=subcategory; else delete t.subcategory;
+                if(destinationAccount){ t.destinationAccount=destinationAccount; delete t.toAccount; } else if(!oneSided){ delete t.destinationAccount; delete t.toAccount; }
+                if(!oneSided)delete t.transferDirection;
+                const note=val('modal-tx-note').trim(); t.notes=note; if(note)t.note=note; else delete t.note;
+                if(document.getElementById('modal-tx-description'))t.description=val('modal-tx-description');
                 this.applyTxEffects(t,1);
-                if(!this.data.categories.some(c=>String(c).toLowerCase()===t.category.toLowerCase()))this.data.categories.push(t.category);
+                if(!transfer)this.ensureCategoryAndSubcategory(category,subcategory);
                 const flagged=this.autoFlagSmsDuplicates();
                 this.saveVault();this.renderAll();this.closeModal();
                 if(flagged)alert(this.smsDuplicateNotice(flagged));
@@ -579,18 +578,23 @@
              */
             openTransactionModal(prefill) {
                 const p=prefill&&typeof prefill==='object'?prefill:{}; const esc=v=>this.escapeHtml(String(v??''));
+                const edit=p.editId!=null?(this.data.tx||[]).find(x=>String(x.id)===String(p.editId)):null;
+                const oneSided=!!(edit&&edit.type==='Transfer'&&edit.transferDirection&&!p.destinationAccount);
+                const editJs=edit?esc(String(edit.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'")):'';
                 const accounts=this.data.accounts||[]; const def=p.account||this.getGlobalDefaultAccount()?.name||accounts[0]?.name||'';
                 // Your categories, plus any that only your transactions use (imports, older data), so every one can be picked
                 const cats=[...new Set([...(this.data.categories||[]),...(this.data.tx||[]).map(t=>t&&t.type!=='Transfer'&&t.category).filter(Boolean),...(p.category?[p.category]:[])])];
-                const acctOpts=sel=>accounts.map(a=>`<option value="${esc(a.name)}" ${String(a.name)===String(sel)?'selected':''}>${esc(a.name)}</option>`).join('');
+                // An account that is not in your list (e.g. "SMS (Unreconciled)" on older imports) is still shown, so it can be changed
+                const extraAcct=sel=>sel&&!accounts.some(a=>String(a.name)===String(sel))?`<option value="${esc(sel)}" selected>${esc(sel)} (not in your accounts)</option>`:'';
+                const acctOpts=sel=>extraAcct(sel)+accounts.map(a=>`<option value="${esc(a.name)}" ${String(a.name)===String(sel)?'selected':''}>${esc(a.name)}</option>`).join('');
                 const type=['Expense','Income','Transfer','EMI','Installment'].includes(p.type)?p.type:'Expense';
                 const box = document.getElementById('modal-box');
                 box.innerHTML = `
                     <div class="flex justify-between items-center pb-2">
-                        <h3 class="font-bold text-base" id="af-title">${p.type?'Copy transaction':'New transaction'}</h3>
+                        <h3 class="font-bold text-base" id="af-title">${edit?'Edit transaction':p.type?'Copy transaction':'New transaction'}</h3>
                         <button type="button" onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600" aria-label="Close"><i data-lucide="x" class="w-5 h-5"></i></button>
                     </div>
-                    <form id="af-form" onsubmit="app.saveNewTransaction(event)" class="af-form" data-type="${type}">
+                    <form id="af-form" onsubmit="${edit?`app.saveEditedTransaction(event,'${editJs}')`:'app.saveNewTransaction(event)'}" class="af-form" data-type="${type}">
                         <div class="af-types" role="tablist" aria-label="Transaction type">
                             <button type="button" role="tab" data-t="Income">Income</button>
                             <button type="button" role="tab" data-t="Expense">Expense</button>
@@ -598,15 +602,15 @@
                             <select id="af-more-type" aria-label="Other types"><option value="">More</option><option value="EMI">EMI</option><option value="Installment">Installment</option></select>
                         </div>
                         <select id="modal-tx-type" hidden aria-hidden="true" tabindex="-1">${['Expense','Income','Transfer','EMI','Installment'].map(x=>`<option value="${x}" ${x===type?'selected':''}>${x}</option>`).join('')}</select>
-                        <label class="af-row"><span>Date</span><input type="date" id="modal-tx-date" required value="${this.todayISO()}"></label>
+                        <label class="af-row"><span>Date</span><input type="date" id="modal-tx-date" required value="${edit&&p.date?esc(p.date):this.todayISO()}"></label>${edit&&p.smsDate?`<p class="af-note">Original SMS date: ${esc(p.smsDate)} (kept separately)</p>`:''}
                         <label class="af-row af-amount"><span>Amount${CURL()}</span><input type="number" step="0.01" min="0.01" id="modal-tx-amount" data-money="0" required inputmode="decimal" placeholder="0.00" value="${p.amount?esc(p.amount):''}"><button type="button" class="af-calc" onclick="app.openAmountCalculator('modal-tx-amount')" aria-label="Calculator">🧮</button></label>
                         <label class="af-row" data-show="cat"><span>Category</span><span class="af-cat"><i class="cat-dot" id="af-cat-dot"></i><select id="modal-tx-category">${cats.map(c=>`<option value="${esc(c)}" ${c===p.category?'selected':''}>${esc(c)}</option>`).join('')}</select></span></label>
                         <label class="af-row" data-show="cat"><span>Subcategory</span><input id="modal-tx-subcategory" list="af-sub-options" placeholder="Optional" value="${esc(p.subcategory||'')}"><datalist id="af-sub-options"></datalist></label>
                         <label class="af-row"><span id="af-account-label">Account</span><select id="modal-tx-account">${acctOpts(def)}</select></label>
-                        <label class="af-row" id="modal-tx-destination-wrap" data-show="to"><span>To</span><select id="modal-tx-destination">${accounts.map(a=>`<option value="${esc(a.name)}" ${String(a.name)===String(p.destinationAccount||'')?'selected':''}>${esc(a.name)} (${esc(a.type||'Account')})</option>`).join('')}</select></label>
+                        <label class="af-row" id="modal-tx-destination-wrap" data-show="to"><span>To</span><select id="modal-tx-destination">${oneSided?`<option value="" selected>Not recorded (${edit.transferDirection==='in'?'money in':'money out'})</option>`:extraAcct(p.destinationAccount)}${accounts.map(a=>`<option value="${esc(a.name)}" ${String(a.name)===String(p.destinationAccount||'')?'selected':''}>${esc(a.name)} (${esc(a.type||'Account')})</option>`).join('')}</select></label>
                         <label class="af-row"><span>Payee</span><input type="text" id="modal-tx-payee" required placeholder="Shop or person" value="${esc(p.payee||'')}"></label>
-                        <label class="af-row"><span>Note</span><input type="text" id="modal-tx-note" placeholder="Optional" value="${esc(p.note||'')}"></label>
-                        <div class="af-section">
+                        <label class="af-row"><span>Note</span><input type="text" id="modal-tx-note" placeholder="Optional" value="${esc(p.note||'')}"></label>${edit?`<label class="af-desc"><span>Description</span><textarea id="modal-tx-description" rows="5" placeholder="Optional">${esc(p.description||'')}</textarea></label>`:''}
+                        <div class="af-section"${edit?' hidden':''}>
                             <label class="af-row"><span>Repeat</span><select id="af-repeat"><option value="">Never</option><option value="daily">Every day</option><option value="weekly">Every week</option><option value="monthly">Every month</option><option value="quarterly">Every 3 months</option><option value="yearly">Every year</option></select></label>
                             <div class="af-row" id="af-ends-row" hidden><span>Ends</span><span class="af-ends"><select id="af-ends" aria-label="Repeat ends"><option value="never">Never</option><option value="date">On date</option><option value="count">After</option></select><input type="date" id="af-ends-date" aria-label="Last date" hidden><input type="number" id="af-ends-count" data-money="0" min="1" max="600" step="1" value="12" aria-label="Number of times" hidden><em id="af-ends-unit" hidden>times</em></span></div>
                             <label class="af-row" id="af-inst-row" data-show="inst"><span>Installments</span><select id="af-inst"><option value="">None (pay in full)</option>${[2,3,4,5,6,9,12,15,18,24,36].map(n=>`<option value="${n}">${n} months</option>`).join('')}</select></label>
@@ -627,7 +631,7 @@
                     form.querySelectorAll('.af-types [data-t]').forEach(b=>{ const on=b.dataset.t===t; b.classList.toggle('on',on); b.setAttribute('aria-selected',String(on)); });
                     const more=$('af-more-type'); more.classList.toggle('on',['EMI','Installment'].includes(t)); more.value=['EMI','Installment'].includes(t)?t:'';
                     form.querySelectorAll('[data-show="cat"]').forEach(r=>{ r.hidden=transfer; }); $('modal-tx-destination-wrap').hidden=!transfer; $('af-account-label').textContent=transfer?'From':'Account';
-                    if(transfer&&dst.value===src.value){ const other=[...dst.options].find(o=>o.value!==src.value); if(other)dst.value=other.value; }
+                    if(transfer&&dst.value&&dst.value===src.value){ const other=[...dst.options].find(o=>o.value!==src.value); if(other)dst.value=other.value; }
                     $('af-inst-row').hidden=!expenseLike; if(!expenseLike)$('af-inst').value='';
                     const inst=Number($('af-inst').value)||0; const rep=$('af-repeat').value;
                     $('af-repeat').disabled=inst>1; if(inst>1)$('af-repeat').value='';
@@ -639,7 +643,7 @@
                     if(inst>1){ const each=Math.floor(amt/inst*100)/100; hint=amt?`${inst} monthly installments of ${this.fmtMoney(each)} from ${when}${Math.abs(each*inst-amt)>0.001?` (the last one is ${this.fmtMoney(Math.round((amt-each*(inst-1))*100)/100)})`:''}. They are listed in Schedules and appear in the ledger as each one falls due.`:`Split the amount into ${inst} monthly installments.`; }
                     else if(rep){ hint=`${this.frequencyLabel(rep)} from ${when}${ends==='count'?`, ${Number($('af-ends-count').value)||1} times in all`:ends==='date'&&$('af-ends-date').value?`, until ${new Date($('af-ends-date').value+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}`:''}. Saved as a schedule; each entry is added to the ledger on its date.`; }
                     $('af-hint').hidden=!hint; $('af-hint').textContent=hint;
-                    $('af-save').textContent=inst>1?'Save installments':rep?'Save and repeat':'Save';
+                    $('af-save').textContent=edit?'Save changes':inst>1?'Save installments':rep?'Save and repeat':'Save';
                 };
                 // Until the person picks a category, follow the type: the category they use most for income, or for spending.
                 let catTouched=!!p.category;

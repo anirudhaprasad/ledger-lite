@@ -290,3 +290,13 @@ body.nav-bottom #app-toast { bottom: calc(146px + env(safe-area-inset-bottom, 0p
 .dark .vault-edition{background:rgba(16,185,129,.15);color:#6ee7b7}
 .vault-first-run .vault-only{display:none}
 .vault-first-run .vault-links{justify-content:center}
+/* Edit form: original SMS date; Description (often the whole bank SMS) as a small label over a bigger box with smaller text */
+.af-note { margin: 4px 0 2px; font-size: 12px; color: #64748b; }
+.dark .af-note { color: #94a3b8; }
+.af-desc { display: block; padding: 10px 0 12px; border-bottom: 1px solid #e2e8f0; }
+.dark .af-desc { border-color: #1e293b; }
+#modal-box form .af-desc > span:first-child { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 500; color: #64748b; }
+.dark #modal-box form .af-desc > span:first-child { color: #94a3b8; }
+#modal-box .af-desc textarea { display: block; width: 100%; min-height: 120px; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; color: inherit; font-size: 13px; line-height: 1.5; resize: vertical; }
+.dark #modal-box .af-desc textarea { background: #0f172a; border-color: #334155; }
+#modal-box .af-desc textarea:focus { outline: none; border-color: var(--af); box-shadow: 0 0 0 1px var(--af); }
