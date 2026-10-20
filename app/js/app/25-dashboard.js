@@ -36,11 +36,16 @@
                 document.getElementById('kpi-expense').innerText = `${CUR()}${expense.toLocaleString('en-IN', {minimumFractionDigits: 2,maximumFractionDigits:2})}`;
                 this.renderMonthlyComparison();
                 const tbody = document.getElementById('dashboard-tx-tbody');
-                tbody.innerHTML = this.countedTx().slice(0,5).map(t => `<tr title="Open transaction details" class="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50" onclick="app.editTransaction('${String(t.id).replace(/'/g, '\\\'')}')"><td class="py-3 text-slate-500">${this.escapeHtml(t.date||'')}</td><td class="py-3 font-medium">${this.escapeHtml(t.payee||t.description||'')}</td><td class="py-3"><span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 dark:bg-slate-800">${this.escapeHtml(t.category||'Uncategorized')}</span></td><td class="py-3 text-slate-500">${this.escapeHtml(t.account||'')}</td><td class="py-3 text-right font-semibold ${t.type==='Income'?'text-emerald-600':'text-slate-800 dark:text-slate-200'}">${t.type==='Income'?'+':'-'}${CUR()}${num(t.amount).toLocaleString('en-IN')}</td></tr>`).join('');
+                // Latest five by date (not by when they were typed in). Money in shows +, money out −, a move between your own accounts no sign.
+                const recent=[...this.countedTx()].sort((a,b)=>(this.normalizeLedgerDate(b.date)||'').localeCompare(this.normalizeLedgerDate(a.date)||'')).slice(0,5);
+                const sign=t=>t.type==='Income'||(t.type==='Transfer'&&t.transferDirection==='in')?'+':t.type==='Transfer'&&t.transferDirection!=='out'?'':'−';
+                tbody.innerHTML = recent.map(t => `<tr title="Open transaction details" class="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50" onclick="app.editTransaction('${String(t.id).replace(/'/g, '\\\'')}')"><td class="py-3 text-slate-500">${this.escapeHtml(t.date||'')}</td><td class="py-3 font-medium">${this.escapeHtml(t.payee||t.description||'')}</td><td class="py-3"><span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 dark:bg-slate-800">${this.escapeHtml(t.category||'Uncategorized')}</span></td><td class="py-3 text-slate-500">${this.escapeHtml(t.account||'')}</td><td class="py-3 text-right font-semibold whitespace-nowrap ${sign(t)==='+'?'text-emerald-600':'text-slate-800 dark:text-slate-200'}">${sign(t)}${CUR()}${num(t.amount).toLocaleString('en-IN')}</td></tr>`).join('');
                 const remList = document.getElementById('reminders-list');
-                const scheduledItems = (Array.isArray(this.data.yearly)?this.data.yearly:[]).filter(y=>y.enabled!==false);
+                // Upcoming = enabled schedules that still have a next date, soonest first; Due shows that next date.
+                const nextOf=y=>{ try{ return y.startDate&&this.scheduleProgress?this.scheduleProgress(y,0).next:''; }catch(e){ return ''; } };
+                const scheduledItems = (Array.isArray(this.data.yearly)?this.data.yearly:[]).filter(y=>y.enabled!==false).map(y=>({y,next:nextOf(y)})).filter(x=>x.next||!x.y.startDate).sort((a,b)=>(a.next||'9999').localeCompare(b.next||'9999')).map(x=>({...x.y,__next:x.next}));
                 remList.innerHTML = scheduledItems.map(y => {
-                    const due = y.startDate || y.dueDate || 'Not set';
+                    const due = y.__next ? new Date(y.__next+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : (y.startDate || y.dueDate || 'Not set');
                     const mode = y.destinationType || (y.sourceAccount && y.destinationAccount ? 'account' : 'legacy');
                     let destination = '';
                     if (mode === 'account') destination = `To account: ${this.escapeHtml(y.destinationAccountName || y.destinationAccount || 'Destination account')}`;
@@ -64,7 +69,6 @@
                 const current = new Date(now.getFullYear(), now.getMonth(), 1);
                 const previous = new Date(now.getFullYear(), now.getMonth()-1, 1);
                 const key = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-                const label = d => d.toLocaleDateString('en-IN',{month:'short',year:'numeric'});
                 const flowExpense = t => ['Expense','EMI','Installment'].includes(t.type);
                 const totals = monthKey => {
                     const rows=this.countedTx().filter(t=>(this.parseLedgerDate(t.date)||'').slice(0,7)===monthKey);
@@ -73,13 +77,20 @@
                     return {income,expense,net:income-expense};
                 };
                 const cur=totals(key(current)), prev=totals(key(previous));
-                const money=v=>`${CUR()}${v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-                const change=(a,b)=>{const diff=a-b;const pct=b===0?(a===0?'0.0%':'—'):`${Math.abs(diff/b*100).toFixed(1)}%`;return `${diff>0?'+':diff<0?'−':''}${money(Math.abs(diff))} (${diff>0?'+':diff<0?'−':''}${pct}) vs ${label(previous)}`;};
                 const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
-                set('dashboard-comparison-period',`${label(current)} vs ${label(previous)}`);
-                set('comparison-current-income',money(cur.income)); set('comparison-current-expense',money(cur.expense)); set('comparison-current-net',money(cur.net));
-                set('comparison-income-change',change(cur.income,prev.income)); set('comparison-expense-change',change(cur.expense,prev.expense)); set('comparison-net-change',change(cur.net,prev.net));
-                const netEl=document.getElementById('comparison-current-net'); if(netEl)netEl.className=`text-lg font-bold mt-1 ${cur.net>=0?'text-emerald-600':'text-rose-600'}`;
+                const short=now.toLocaleDateString('en-IN',{month:'short'}), prevShort=previous.toLocaleDateString('en-IN',{month:'short'});
+                document.querySelectorAll('#dash-kpis .dk-month').forEach(el=>{ el.textContent=short; });
+                set('kpi-net',this.fmtMoney(cur.net));
+                const netEl=document.getElementById('kpi-net'); if(netEl)netEl.classList.toggle('dk-out',cur.net<0);
+                // "▲ ₹2,499 · 1.7% vs Sep": green when it helps you (more income, less spending, higher net), red when it doesn't.
+                const change=(id,a,b,higherIsGood)=>{ const el=document.getElementById(id); if(!el)return; const diff=a-b;
+                    if(!a&&!b){ el.textContent=`Nothing yet in ${prevShort} or ${short}`; el.className='dk-s'; return; }
+                    const pct=b?` · ${Math.abs(diff/Math.abs(b)*100).toFixed(Math.abs(diff/b)<0.1?1:0)}%`:'';
+                    el.textContent=diff===0?`Same as ${prevShort}`:`${diff>0?'▲':'▼'} ${this.fmtMoney0(Math.abs(diff))}${pct} vs ${prevShort}`;
+                    el.className='dk-s '+(diff===0?'':((diff>0)===higherIsGood?'dk-good':'dk-bad')); };
+                change('kpi-income-change',cur.income,prev.income,true);
+                change('kpi-expense-change',cur.expense,prev.expense,false);
+                change('kpi-net-change',cur.net,prev.net,true);
             }
 
             /**

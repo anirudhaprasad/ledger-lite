@@ -23,7 +23,7 @@
                 names.forEach(idOf); if(!old.length)return;
                 const trip={id:this.newUid(),name:'Earlier shared expenses',members:[...new Set(old.flatMap(s=>(s.members||[]).map(idOf)).concat('me'))],start:'',end:'',closed:false};
                 d.trips.push(trip);
-                old.forEach(s=>{ const shares={}; Object.entries(s.shares||{}).forEach(([n,v])=>{ if(Number(v)>0)shares[idOf(n)]=Number(v); }); const payer=idOf(s.paidBy); const date=String(s.createdAt||'').slice(0,10)||new Date().toISOString().slice(0,10);
+                old.forEach(s=>{ const shares={}; Object.entries(s.shares||{}).forEach(([n,v])=>{ if(Number(v)>0)shares[idOf(n)]=Number(v); }); const payer=idOf(s.paidBy); const date=String(s.createdAt||'').slice(0,10)||this.todayISO();
                     d.expenses.push({id:this.newUid(),trip:trip.id,date,desc:s.title||'Shared expense',amount:Number(s.total)||0,payer,split:Object.keys(shares).length?'exact':'equal',among:[],shares});
                     Object.entries(s.settlements||{}).forEach(([n,v])=>{ const from=idOf(n); if(from===payer)return; const amt=typeof v==='number'?v:(v===true||v?.settled)?(shares[from]||0):0; if(amt>0)d.settlements.push({id:this.newUid(),date,from,to:payer,amount:amt,trip:trip.id}); });
                     if(s.settled&&!Object.keys(s.settlements||{}).length) Object.entries(shares).forEach(([pid,amt])=>{ if(pid!==payer&&amt>0)d.settlements.push({id:this.newUid(),date,from:pid,to:payer,amount:amt,trip:trip.id}); });
@@ -244,7 +244,7 @@
              * Parameters: id. Side effects, if any, are described by the statements below.
              */
             ssEventForm(id){
-                const d=this.splitData(); const t=id?this.ssTrip(id):null; const esc=v=>this.escapeHtml(String(v??'')); const today=new Date().toISOString().slice(0,10);
+                const d=this.splitData(); const t=id?this.ssTrip(id):null; const esc=v=>this.escapeHtml(String(v??'')); const today=this.todayISO();
                 const box=document.getElementById('modal-box');
                 box.innerHTML=`<div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3"><h3 class="font-bold text-lg">${t?'Edit trip or event':'New trip or event'}</h3><button type="button" onclick="app.closeModal()" aria-label="Close">✕</button></div>
                   <form id="ss-event-form" class="ip-form"><label class="ip-field"><span>Trip or event name</span><input id="ss-ev-name" required maxlength="80" value="${esc(t?.name||'')}" placeholder="e.g. Goa trip, Diwali, Flat expenses"></label>
@@ -261,7 +261,7 @@
              * Parameters: id. Side effects, if any, are described by the statements below.
              */
             ssExpenseForm(id){
-                const d=this.splitData(); const e=id?d.expenses.find(x=>x.id===id):null; const esc=v=>this.escapeHtml(String(v??'')); const today=new Date().toISOString().slice(0,10);
+                const d=this.splitData(); const e=id?d.expenses.find(x=>x.id===id):null; const esc=v=>this.escapeHtml(String(v??'')); const today=this.todayISO();
                 const tripId=e?.trip||this.ssSelectedTrip||d.trips.find(t=>!t.closed)?.id||'';
                 const box=document.getElementById('modal-box');
                 box.innerHTML=`<div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3"><h3 class="font-bold text-lg">${e?'Edit shared expense':'Add shared expense'}</h3><button type="button" onclick="app.closeModal()" aria-label="Close">✕</button></div>
@@ -296,7 +296,7 @@
             ssSettleForm(from,to,amount,tid=''){
                 const d=this.splitData(); const esc=v=>this.escapeHtml(String(v??'')); const box=document.getElementById('modal-box');
                 box.innerHTML=`<div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3"><div><h3 class="font-bold text-lg">Record settlement</h3><p class="ss-sub">${esc(this.ssPerson(from))} pays ${esc(this.ssPerson(to))}</p></div><button type="button" onclick="app.closeModal()" aria-label="Close">✕</button></div>
-                  <form id="ss-settle-form" class="ip-form"><div class="ip-two"><label class="ip-field"><span>Date</span><input id="ss-st-date" type="date" required value="${new Date().toISOString().slice(0,10)}"></label><label class="ip-field"><span>Amount${CURL()}</span><input id="ss-st-amount" type="number" min="0.01" step="0.01" inputmode="decimal" required value="${esc(amount)}"></label></div>
+                  <form id="ss-settle-form" class="ip-form"><div class="ip-two"><label class="ip-field"><span>Date</span><input id="ss-st-date" type="date" required value="${this.todayISO()}"></label><label class="ip-field"><span>Amount${CURL()}</span><input id="ss-st-amount" type="number" min="0.01" step="0.01" inputmode="decimal" required value="${esc(amount)}"></label></div>
                   <label class="ip-field"><span>Trip or event (optional)</span><select id="ss-st-trip"><option value="">All open events / general</option>${d.trips.map(t=>`<option value="${esc(t.id)}" ${t.id===tid?'selected':''}>${esc(t.name)}</option>`).join('')}</select></label>
                   ${(from==='me'||to==='me')?`<label class="ip-field"><span>${to==='me'?'Received into':'Paid from'}</span><select id="ss-st-account">${this.ssAccountOptions(this.ssDefaultAccountName())}</select></label><label class="lh-opt"><input type="checkbox" id="ss-st-ledger" checked><span>Record in Core Ledger</span></label>`:''}
                   <div class="ip-form-actions"><button type="button" class="s-btn s-secondary" onclick="app.closeModal()">Cancel</button><button type="submit" class="s-btn s-primary">Record as paid</button></div></form>`;

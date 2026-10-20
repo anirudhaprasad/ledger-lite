@@ -247,12 +247,12 @@ Type REMOVE SMS to continue:`);
                     const typeMatch=baseType||(/\b(transfer|neft|imps|rtgs|sip|investment|premium|insurance|emi|installment|instalment|mandate|subscription renewal)\b/i.test(line)?'Expense':null);
                     if(!amountMatch||!typeMatch){ignored++;continue;}
                     const amount=Number(amountMatch[1].replace(/,/g,''));if(!Number.isFinite(amount)||amount<=0){ignored++;continue;}
-                    let date='';if(msg.date&&/^\d{10,13}$/.test(String(msg.date))){const stamp=Number(msg.date),d=new Date(stamp<1e12?stamp*1000:stamp);if(!Number.isNaN(d.getTime()))date=d.toISOString().slice(0,10);}
+                    let date='';if(msg.date&&/^\d{10,13}$/.test(String(msg.date))){const stamp=Number(msg.date),d=new Date(stamp<1e12?stamp*1000:stamp);if(!Number.isNaN(d.getTime()))date=this.todayISO(d);}
                     if(!date){const d=line.match(/\b(\d{1,2})[-/ ]([A-Za-z]{3})[-/ ](\d{2,4})\b/),numeric=line.match(/\b(\d{4})-(\d{2})-(\d{2})\b/),
                         // Indian bank SMS write numeric dates day-first: 15-10-26, 15/10/2026, 15.10.26
                         dmy=line.match(/\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{2}|\d{4})\b/);
                         const validDmy=dmy&&+dmy[1]>=1&&+dmy[1]<=31&&+dmy[2]>=1&&+dmy[2]<=12;
-                        if(numeric)date=`${numeric[1]}-${numeric[2]}-${numeric[3]}`;else if(d){const months={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};let y=Number(d[3]);if(y<100)y+=2000;date=`${y}-${String(months[d[2].toLowerCase()]||1).padStart(2,'0')}-${d[1].padStart(2,'0')}`;}else if(validDmy){let y=Number(dmy[3]);if(y<100)y+=2000;date=`${y}-${dmy[2].padStart(2,'0')}-${dmy[1].padStart(2,'0')}`;}else date=new Date().toISOString().slice(0,10);}
+                        if(numeric)date=`${numeric[1]}-${numeric[2]}-${numeric[3]}`;else if(d){const months={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};let y=Number(d[3]);if(y<100)y+=2000;date=`${y}-${String(months[d[2].toLowerCase()]||1).padStart(2,'0')}-${d[1].padStart(2,'0')}`;}else if(validDmy){let y=Number(dmy[3]);if(y<100)y+=2000;date=`${y}-${dmy[2].padStart(2,'0')}-${dmy[1].padStart(2,'0')}`;}else date=this.todayISO();}
                     const payeeMatch=line.match(/\b(?:to|at|from|towards|for)\s+([A-Za-z][A-Za-z0-9 .&@_-]{1,35}?)(?=\s+(?:on|ref|upi|txn|transaction|avl|available|bal|a\/c|ac\s|ending)\b|[.;,]|$)/i);
                     const payee=payeeMatch?payeeMatch[1].trim().replace(/\s+/g,' '):(typeMatch==='Income'?'Bank Credit':'Bank Payment');
                     const accountMatch=line.match(/(?:A\/C|account|ac)\s*(?:no\.?\s*)?(?:ending\s*)?(?:XX|\*+)?(\d{3,6})/i);

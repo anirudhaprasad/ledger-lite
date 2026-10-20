@@ -244,3 +244,28 @@ body.nav-bottom #app-toast { bottom: calc(146px + env(safe-area-inset-bottom, 0p
   .lv-tabs button { padding: 6px 2px 7px; }
   #panel-ledger > div:first-child { padding-top: 4px !important; }
 }
+/* ---------- Dashboard: one compact row of figures (net worth, liquid cash, and this month's income, spending, net) ---------- */
+#panel-dashboard { container-type: inline-size; container-name: dash; }
+#dash-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.dk { display: flex; flex-direction: column; align-items: stretch; gap: 2px; min-width: 0; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; text-align: left; }
+.dk:hover { border-color: #6ee7b7; } .dk:focus-visible { outline: 2px solid #10b981; outline-offset: 2px; }
+.dk-l { font-size: 12px; font-weight: 600; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dk-v { font-size: clamp(16px, 1.9cqi, 22px); font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.dk-s { font-size: 11.5px; color: #94a3b8; line-height: 1.35; }
+.dk-in { color: #059669; } .dk-out { color: #e11d48; } .dk-good { color: #059669; } .dk-bad { color: #e11d48; }
+.dark .dk { background: #0f172a; border-color: #1e293b; } .dark .dk-v { color: #f1f5f9; }
+.dark .dk-in, .dark .dk-good { color: #34d399; } .dark .dk-out, .dark .dk-bad { color: #fb7185; }
+.dash-note { margin: 6px 2px 0; font-size: 11.5px; color: #94a3b8; }
+#panel-dashboard > #dash-kpis + .dash-note { margin-top: 6px !important; }
+@container dash (max-width: 819px) {
+  #dash-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .dk-net { grid-column: 1 / -1; }
+  .dk { padding: 10px 12px; }
+  .dk-v { font-size: clamp(15px, 4.9cqi, 21px); }
+}
+/* ---------- Projects: four figures in a 2 x 2 grid on phones and one row on wide screens; tags never split ---------- */
+#panel-projects { container-type: inline-size; container-name: projects; }
+.pj-figs { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; row-gap: 10px; }
+.pj-figs b { white-space: nowrap; overflow-wrap: normal !important; }
+@container projects (min-width: 700px) { .pj-figs { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; } }
+.pj-tag { display: inline-block; white-space: nowrap; }

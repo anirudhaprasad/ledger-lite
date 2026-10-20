@@ -618,13 +618,8 @@
                     settings:()=>'', guide:()=>'', importer:()=>'', dashboard:()=>month,
                     stats:()=>{ const s=this.statsState?.(); if(!s)return ''; return (s.mode==='year'?s.key:this.monthLabel(s.key,true))+' · '+(s.kind==='income'?'Income':'Expenses'); }};
                 if(meta){ try{ meta.textContent=(metaFor[tab]||(()=>''))(); }catch(e){ meta.textContent=''; } }
-                if(tab==='dashboard'&&this.data){
-                    const now=new Date(); const key=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`; let inc=0,exp=0,trf=0;
-                    (this.countedTx?this.countedTx():(this.data.tx||[])).forEach(t=>{ if(t.excludedFromLedger)return; if(!(this.parseLedgerDate(t.date)||'').startsWith(key))return; const a=Math.abs(Number(t.amount)||0); if(t.type==='Income')inc+=a; else if(['Expense','EMI','Installment'].includes(t.type))exp+=a; else if(t.type==='Transfer'&&t.transferDirection!=='in')trf+=a; });
-                    const m=v=>(CUR())+v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
-                    const el=document.querySelector('#ptb-tools [data-ptb="dashboard"]'); if(el)el.innerHTML=`<div class="ptb-totals" title="This month: ${now.toLocaleDateString('en-IN',{month:'long',year:'numeric'})}"><div><span>Income</span><b class="ip-pos">${m(inc)}</b></div><div><span>Expenses</span><b class="ip-neg">${m(exp)}</b></div><div><span>Transfers</span><b>${m(trf)}</b></div><div><span>Net</span><b class="${inc-exp<0?'ip-neg':''}">${m(inc-exp)}</b></div></div>`;
-                    if(meta)meta.textContent=now.toLocaleDateString('en-IN',{month:'long',year:'numeric'});
-                }
+                // The dashboard's monthly figures are in its own tiles, so the title bar shows only the month.
+                if(tab==='dashboard'&&meta)meta.textContent=new Date().toLocaleDateString('en-IN',{month:'long',year:'numeric'});
             }
             // ---------- Title bar: one page title, the page's main action at the far right ----------
             /**
@@ -930,7 +925,7 @@
                   <label class="block text-sm">Salary description<input id="salary-title" required value="${this.escapeHtml(s.title||'Monthly Salary')}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"></label>
                   <label class="block text-sm">Net salary amount${CURL()}<input id="salary-amount" type="number" min="0.01" step="0.01" required value="${Number(s.amount)||''}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"><button type="button" onclick="app.openAmountCalculator('salary-amount')" class="mt-1 text-xs text-emerald-600 hover:underline">🧮 Calculator</button></label>
                   <label class="block text-sm">Checking / salary account<select id="salary-account" required class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"><option value="">Select account</option>${options}</select></label>
-                  <div class="grid grid-cols-2 gap-3"><label class="block text-sm">Salary day of month<input id="salary-day" type="number" min="1" max="28" required value="${Number(s.day)||1}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"></label><label class="block text-sm">Start month<input id="salary-start" type="month" required value="${this.escapeHtml(s.startMonth||new Date().toISOString().slice(0,7))}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"></label></div>
+                  <div class="grid grid-cols-2 gap-3"><label class="block text-sm">Salary day of month<input id="salary-day" type="number" min="1" max="28" required value="${Number(s.day)||1}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"></label><label class="block text-sm">Start month<input id="salary-start" type="month" required value="${this.escapeHtml(s.startMonth||this.todayISO().slice(0,7))}" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"></label></div>
                   <p class="text-xs text-slate-500">When the app is opened after the salary date, it adds one income entry for each missed month from the start month, without duplicating months already recorded. It does not contact your bank.</p>
                   <div class="flex justify-end gap-2"><button type="button" onclick="app.closeModal()" class="px-4 py-2 border rounded-lg">Cancel</button><button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg">Save schedule</button></div>
                 </form>`;

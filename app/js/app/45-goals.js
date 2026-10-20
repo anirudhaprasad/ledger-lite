@@ -75,7 +75,7 @@
                 let loan=null;
                 if(useLoan){ const L=futureCost-saveTarget, n=Math.round((Number(p.loanYears)||0)*12), li=(Number(p.loanRate)||0)/1200; const emi=n?(li?L*li*Math.pow(1+li,n)/(Math.pow(1+li,n)-1):L/n):0; loan={amount:L,emi,months:n,totalInterest:Math.max(0,emi*n-L)}; }
                 const target=new Date(); target.setMonth(target.getMonth()+months);
-                return {futureCost,saveTarget,savedFuture,gap,monthly,loan,months,targetDate:target.toISOString().slice(0,10)};
+                return {futureCost,saveTarget,savedFuture,gap,monthly,loan,months,targetDate:this.todayISO(target)};
             }
             // How many months it would take at a given monthly saving (cost keeps rising with inflation meanwhile).
             /**
@@ -121,8 +121,8 @@
                 form.addEventListener('input',update); update();
                 form.addEventListener('submit',e=>{ e.preventDefault(); const o=read(); const c=this.planCalc(o); if(!c)return alert('Enter the cost and how many years away it is.');
                     const name=o.name||`${types[o.type]?.label||'Goal'} plan`;
-                    const fields={title:name,target:Math.round(c.saveTarget),deadline:c.targetDate,cadence:'monthly',contribution:Math.ceil(c.monthly/100)*100,plan:{...o,savedAt:new Date().toISOString().slice(0,10)}};
-                    if(g){ Object.assign(g,fields); } else { const next=new Date(); next.setMonth(next.getMonth()+1,1); this.data.goals ||= []; this.data.goals.push({id:'goal_'+Date.now(),...fields,current:Number(o.saved)||0,nextDue:next.toISOString().slice(0,10),accountId:'',accountName:'',createdAt:new Date().toISOString().slice(0,10)}); }
+                    const fields={title:name,target:Math.round(c.saveTarget),deadline:c.targetDate,cadence:'monthly',contribution:Math.ceil(c.monthly/100)*100,plan:{...o,savedAt:this.todayISO()}};
+                    if(g){ Object.assign(g,fields); } else { const next=new Date(); next.setMonth(next.getMonth()+1,1); this.data.goals ||= []; this.data.goals.push({id:'goal_'+Date.now(),...fields,current:Number(o.saved)||0,nextDue:this.todayISO(next),accountId:'',accountName:'',createdAt:this.todayISO()}); }
                     this.saveVault(); this.closeModal(); this.renderAll(); });
             }
             /**
@@ -192,7 +192,7 @@
                     else if(cadence==='monthly')d.setMonth(d.getMonth()+1);
                     else return '';
                 }
-                return d.toISOString().slice(0,10);
+                return this.todayISO(d);
             }
             /**
              * Opens the  goal modal advanced screen, dialog, or workflow.
@@ -228,7 +228,7 @@
                 const account=this.data.accounts.find(a=>String(a.id||a.name)===String(accountId)||String(a.name)===String(accountId));
                 const fields={title,target,deadline:document.getElementById('goal-deadline').value,cadence:document.getElementById('goal-cadence').value,contribution,nextDue:document.getElementById('goal-nextdue').value,accountId:account?String(account.id||account.name):'',accountName:account?account.name:'',linkAccountBalance:true};
                 if(id){const g=this.data.goals.find(x=>String(x.id)===String(id));if(g)Object.assign(g,fields);}
-                else this.data.goals.push({id:'goal_'+Date.now(),...fields,current:0,createdAt:new Date().toISOString().slice(0,10)});
+                else this.data.goals.push({id:'goal_'+Date.now(),...fields,current:0,createdAt:this.todayISO()});
                 this.saveVault();this.renderAll();this.closeModal();
             }
             /**

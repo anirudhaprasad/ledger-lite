@@ -225,51 +225,23 @@
                 <!-- Page Title (page level, fixed): page name, page action, and that page's data -->
                 <section id="page-title-bar" aria-label="Page title">
                     <div class="ptb-row"><h1 id="tab-title" class="ptb-name">Dashboard</h1><span id="ptb-meta" class="ptb-meta"></span><div id="header-page-action" hidden></div></div>
-                    <div id="ptb-tools"><div data-ptb="ledger" hidden></div><div data-ptb="dashboard" hidden></div></div>
+                    <div id="ptb-tools"><div data-ptb="ledger" hidden></div></div>
                 </section>
                 <!-- Scrollable Content View -->
                 <div id="app-scroll" class="flex-1 overflow-y-auto p-8">
                     
                     <!-- TAB 1: DASHBOARD -->
                     <div id="panel-dashboard" class="tab-panel space-y-6">
-                        <!-- Summary KPI Cards -->
-                        <div id="kpi-grid" class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                            <button type="button" onclick="app.openDashboardDrilldown('Net Worth — Account Breakdown','accounts-networth')" class="text-left bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1 hover:border-emerald-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Net Worth</span>
-                                <div id="kpi-net-worth" class="text-2xl font-bold tracking-tight"><span data-cur>₹</span>0.00</div>
-                                <div class="text-xs text-emerald-600 font-medium pt-1">Click to view account breakdown</div>
-                            </button>
-                            <button type="button" onclick="app.openDashboardDrilldown('Liquid Cash — Account Breakdown','accounts-liquid')" class="text-left bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1 hover:border-emerald-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Liquid Cash</span>
-                                <div id="kpi-liquid" class="text-2xl font-bold tracking-tight"><span data-cur>₹</span>0.00</div>
-                                <div class="text-xs text-slate-500 pt-1">Click to view included accounts</div>
-                            </button>
-                            <button type="button" onclick="app.openDashboardDrilldown('Monthly Income — Actual Entries','income-current')" class="text-left bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1 hover:border-emerald-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Monthly Income</span>
-                                <div id="kpi-income" class="text-2xl font-bold tracking-tight text-emerald-600"><span data-cur>₹</span>0.00</div>
-                                <div class="text-xs text-slate-500 pt-1">Click to view actual income entries</div>
-                            </button>
-                            <button type="button" onclick="app.openDashboardDrilldown('Monthly Expenses — Actual Entries','expense-current')" class="text-left bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1 hover:border-rose-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-rose-500">
-                                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Monthly Expenses</span>
-                                <div id="kpi-expense" class="text-2xl font-bold tracking-tight text-rose-600"><span data-cur>₹</span>0.00</div>
-                                <div class="text-xs text-slate-500 pt-1">Click to view actual expense entries</div>
-                            </button>
+                        <!-- Summary: what you have today (net worth, liquid cash) and this month so far (income, spending, net),
+                             each with the change from last month. One place for each figure. -->
+                        <div id="dash-kpis">
+                            <button type="button" class="dk" onclick="app.openDashboardDrilldown('Net Worth — Account Breakdown','accounts-networth')"><span class="dk-l">Net worth</span><div id="kpi-net-worth" class="dk-v"><span data-cur>₹</span>0.00</div><span class="dk-s">All your accounts</span></button>
+                            <button type="button" class="dk" onclick="app.openDashboardDrilldown('Liquid Cash — Account Breakdown','accounts-liquid')"><span class="dk-l">Liquid cash</span><div id="kpi-liquid" class="dk-v"><span data-cur>₹</span>0.00</div><span class="dk-s">Bank and cash accounts</span></button>
+                            <button type="button" class="dk" onclick="app.openDashboardDrilldown('Monthly Income — Actual Entries','income-current')"><span class="dk-l">Income · <span class="dk-month">this month</span></span><div id="kpi-income" class="dk-v dk-in"><span data-cur>₹</span>0.00</div><span id="kpi-income-change" class="dk-s">Compared with last month</span></button>
+                            <button type="button" class="dk" onclick="app.openDashboardDrilldown('Monthly Expenses — Actual Entries','expense-current')"><span class="dk-l">Spending · <span class="dk-month">this month</span></span><div id="kpi-expense" class="dk-v dk-out"><span data-cur>₹</span>0.00</div><span id="kpi-expense-change" class="dk-s">Compared with last month</span></button>
+                            <button type="button" class="dk dk-net" onclick="app.switchTab('ledger')"><span class="dk-l">Net · <span class="dk-month">this month</span></span><div id="kpi-net" class="dk-v"><span data-cur>₹</span>0.00</div><span id="kpi-net-change" class="dk-s">Income minus spending</span></button>
                         </div>
-
-                        <!-- Phase 5: month-over-month financial summary (read-only, derived from counted ledger entries) -->
-                        <section id="dashboard-month-comparison" class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                            <div class="flex flex-wrap items-center justify-between gap-3">
-                                <div><h3 class="font-bold text-sm">Monthly Financial Comparison</h3><p class="text-xs text-slate-500 mt-1">Current month versus previous month · calculated from counted Core Ledger entries</p></div>
-                                <span id="dashboard-comparison-period" class="text-xs text-slate-500"></span>
-                            </div>
-                            <div id="cmp-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <button type="button" onclick="app.openDashboardDrilldown('Current month income','income-current')" class="text-left rounded-xl border border-slate-200 dark:border-slate-700 p-4 hover:border-emerald-400"><div class="text-xs text-slate-500">Income · current month</div><div id="comparison-current-income" class="text-lg font-bold text-emerald-600 mt-1"><span data-cur>₹</span>0.00</div><div id="comparison-income-change" class="text-xs text-slate-500 mt-1">Compared with previous month</div></button>
-                                <button type="button" onclick="app.openDashboardDrilldown('Current month expenses','expense-current')" class="text-left rounded-xl border border-slate-200 dark:border-slate-700 p-4 hover:border-rose-400"><div class="text-xs text-slate-500">Expenses · current month</div><div id="comparison-current-expense" class="text-lg font-bold text-rose-600 mt-1"><span data-cur>₹</span>0.00</div><div id="comparison-expense-change" class="text-xs text-slate-500 mt-1">Compared with previous month</div></button>
-                                <div class="rounded-xl border border-slate-200 dark:border-slate-700 p-4"><div class="text-xs text-slate-500">Net cash flow · current month</div><div id="comparison-current-net" class="text-lg font-bold mt-1"><span data-cur>₹</span>0.00</div><div id="comparison-net-change" class="text-xs text-slate-500 mt-1">Compared with previous month</div></div>
-                            </div>
-                            <p class="text-xs text-slate-500">This comparison is informational only. It does not modify account balances or transaction records. Transfers between your own accounts are not counted as income or expenses.</p>
-                        </section>
-
+                        <p class="dash-note">Monthly figures use Core Ledger entries; transfers between your accounts aren't counted. Tap a figure for details.</p>
                         <!-- Charts Section -->
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             <div class="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
@@ -697,7 +669,7 @@
 <h4>Good habits</h4><ul><li>Write your password down somewhere safe.</li><li>Back up regularly: Backup &amp; Settings → Back up now.</li><li>New phone: back up on the old one, then <b>Restore Encrypted Backup</b> on the new one with the same password.</li></ul></section>
                         <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">1. Start and protect your vault</h3><ol class="list-decimal pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Create or unlock the vault with your master password.</li><li>Keep the password private; do not share it with anyone.</li><li>Lock the vault when you finish using the app.</li><li>Use a strong password that you can safely retain. A recovery code is included only in a backup created as part of Full Erase; ordinary backups do not include one.</li></ol></article>
-                            <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">2. Dashboard</h3><p class="text-sm text-slate-600 dark:text-slate-300">Use the dashboard for a high-level view of your finances. Some summary cards can be opened to view account breakdowns. Review figures against your source accounts if something looks unexpected.</p></article>
+                            <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">2. Dashboard</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li><strong>Net worth</strong>: what you own minus what you owe. It adds savings, checking, cash, investments and money others owe you.</li><li><strong>Liquid cash</strong>: money you can spend now, in checking, savings and cash accounts only.</li><li><strong>Income</strong>, <strong>Spending</strong> and <strong>Net</strong> are for this month so far, from Core Ledger entries, each with the change from last month. Transfers between your own accounts are not counted, and neither are excluded entries.</li><li>Tap a figure to see the accounts or entries behind it. Review figures against your bank if something looks unexpected.</li></ul></article>
                             <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">3. Core Ledger</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Use the ledger to review recorded income and expenses. It opens on the current month: use <strong>‹</strong> and <strong>›</strong> to move a month back or forward, or tap the month name to pick another month or <strong>All time</strong>.</li><li><strong>Daily</strong> lists entries by day with each day's income and spending. <strong>Calendar</strong> shows the month as a grid; tap a day to see its entries. <strong>Monthly</strong> shows each month of the year with income, expenses and net; tap a month to open it. <strong>Total</strong> shows all-time figures, monthly averages and one row per year.</li><li>Each row shows the category in its colour, the payee and account, and the amount: green for income, red for spending. Tap a row for its details and <strong>Edit</strong>, <strong>Copy</strong>, <strong>Exclude</strong> or <strong>Delete</strong>.</li><li>Check the date, account, amount, category and description before saving or editing.</li><li>Imported records may need duplicate or reconciliation review; do not assume every imported match is correct.</li></ul></article>
                             <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">4. Accounts & Wallets</h3><p class="text-sm text-slate-600 dark:text-slate-300">Maintain the accounts used by transactions and review their balances. When a balance looks wrong, inspect related transactions and imported entries before making a manual correction.</p></article>
                             <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">5. Budgets, goals and schedules</h3><p class="text-sm text-slate-600 dark:text-slate-300">Use Budgets to set spending limits, Goals to track financial targets, and Schedules for your monthly salary and regular payments. Keep dates and amounts current.</p></article>
@@ -734,9 +706,9 @@
             </main>
             <nav id="bottom-nav" aria-label="Main sections">
                 <button type="button" data-tab="ledger" onclick="app.switchTab('ledger')"><i data-lucide="receipt"></i><span>Ledger</span></button>
+                <button type="button" data-tab="stats" onclick="app.switchTab('stats')"><i data-lucide="chart-pie"></i><span>Stats</span></button>
                 <button type="button" data-tab="dashboard" onclick="app.switchTab('dashboard')"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></button>
                 <button type="button" data-tab="accounts" onclick="app.switchTab('accounts')"><i data-lucide="wallet"></i><span>Accounts</span></button>
-                <button type="button" data-tab="stats" onclick="app.switchTab('stats')"><i data-lucide="chart-pie"></i><span>Stats</span></button>
                 <button type="button" data-tab="more" onclick="app.openMoreSheet()"><i data-lucide="more-horizontal"></i><span>More</span></button>
             </nav>
         </div>
