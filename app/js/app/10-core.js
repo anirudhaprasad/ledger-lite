@@ -85,9 +85,11 @@
                 if (!status) return;
                 status.textContent = message || '';
                 status.classList.toggle('hidden', !message);
-                status.classList.remove('text-rose-700','bg-rose-50','dark:text-rose-300','dark:bg-rose-950/40','text-emerald-700','bg-emerald-50','dark:text-emerald-300','dark:bg-emerald-950/40');
+                status.classList.remove('text-rose-700','bg-rose-50','dark:text-rose-300','dark:bg-rose-950/40','text-emerald-700','bg-emerald-50','dark:text-emerald-300','dark:bg-emerald-950/40','text-slate-700','bg-slate-100','dark:text-slate-200','dark:bg-slate-800');
                 if (message) {
                     const success = kind === 'success';
+                    // 'info' (e.g. locked after inactivity): a plain notice, not an error
+                    if (kind === 'info') { status.classList.add('text-slate-700','bg-slate-100','dark:text-slate-200','dark:bg-slate-800'); return; }
                     status.classList.add(...(success
                         ? ['text-emerald-700','bg-emerald-50','dark:text-emerald-300','dark:bg-emerald-950/40']
                         : ['text-rose-700','bg-rose-50','dark:text-rose-300','dark:bg-rose-950/40']));
@@ -265,18 +267,46 @@
                 document.getElementById('vault-screen').classList.add('hidden');
                 document.getElementById('main-layout').classList.remove('hidden');
                 this.renderAll();
+                this.startAutoLock();
+            }
+
+            // ---------- Auto-lock: lock the vault after a few minutes without use (default 5; Backup & Settings → Security) ----------
+            autoLockMinutes(){ const v=this.data?.settings?.autoLockMinutes; return v===undefined||v===null||!(Number(v)>=0)?5:Number(v); }
+            setAutoLockMinutes(v){ this.data.settings ||= {}; this.data.settings.autoLockMinutes=Math.max(0,Number(v)||0); this._lastActivity=Date.now(); this.saveVault(); this.renderAutoLockSetting(); }
+            renderAutoLockSetting(){ const s=document.getElementById('auto-lock-select'); if(s)s.value=String(this.autoLockMinutes()); }
+            /** Locks when the app has not been used for the chosen time. Also checked the moment the app comes back to the front. */
+            checkAutoLock(){ if(!this.currentPassword)return false; const mins=this.autoLockMinutes(); if(!mins)return false; if(Date.now()-(this._lastActivity||Date.now())<mins*60000)return false; this.lockVault({reason:'auto',minutes:mins}); return true; }
+            /** Things to run when the app returns to the front. The Android app calls window.aificoOnResume(); browsers fire visibilitychange. */
+            onResume(fn){ (this._resumeHooks ||= []).push(fn); }
+            startAutoLock(){
+                this._lastActivity=Date.now(); if(this._autoLockStarted)return; this._autoLockStarted=true;
+                const bump=()=>{ if(this.currentPassword)this._lastActivity=Date.now(); };
+                ['pointerdown','keydown','wheel','touchstart','input','scroll'].forEach(ev=>document.addEventListener(ev,bump,{capture:true,passive:true}));
+                setInterval(()=>this.checkAutoLock(),15000);
+                const resume=()=>{ if(this.checkAutoLock())return; (this._resumeHooks||[]).forEach(f=>{ try{ f(); }catch(e){ console.error(e); } }); };
+                window.aificoOnResume=resume;
+                document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible')resume(); });
             }
 
             /**
              * Handles the lock vault workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: none. Side effects, if any, are described by the statements below.
              */
-            lockVault() {
+            lockVault(opts={}) {
                 this.currentPassword = null;
                 this.data = this.getDefaultData();
+                try { this.closeModal(); document.getElementById('app-toast')?.remove(); } catch (e) {}
                 document.getElementById('main-layout').classList.add('hidden');
                 document.getElementById('vault-screen').classList.remove('hidden');
                 document.getElementById('vault-password').value = '';
+                // The vault exists now, so the lock screen always asks to unlock (first-run screens said "Create")
+                const sub = document.getElementById('vault-subtitle'); if (sub) sub.innerText = 'Enter your master password to unlock your vault';
+                const btn = document.getElementById('vault-action-btn'); if (btn) { btn.innerText = 'Unlock Vault'; btn.onclick = () => this.unlockVault(); }
+                const dh = document.getElementById('vault-default-hint'); if (dh) dh.hidden = true;
+                this.setVaultLoginStatus('', '');
+                // Clear what was drawn behind the lock screen, so no figures stay in the page while it is locked
+                try { this.renderAll(); } catch (e) {}
+                if (opts.reason === 'auto') this.setVaultLoginStatus(`Locked after ${opts.minutes < 1 ? 'less than a minute' : opts.minutes + ' minute' + (opts.minutes === 1 ? '' : 's')} without use. Enter your master password to continue.`, 'info');
             }
 
             /**
@@ -895,6 +925,7 @@
                 try { this.renderReconSettings(); } catch (e) {}
                 try { if (this.isDeveloper()) this.renderProjects(); } catch (e) { console.error('Projects could not be shown', e); }
                 this.renderGlobalDefaultAccount();
+                try { this.renderAutoLockSetting(); } catch (e) {}
                 try { this.renderCurrencySetting(); aificoApplyCurrencyToPage(); } catch (e) { console.error('Currency display could not be updated', e); }
                 this.processSalarySchedule();
                 if (this.isPro()) this.processRecurringPayments();
