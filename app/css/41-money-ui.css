@@ -300,3 +300,64 @@ body.nav-bottom #app-toast { bottom: calc(146px + env(safe-area-inset-bottom, 0p
 #modal-box .af-desc textarea { display: block; width: 100%; min-height: 120px; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; color: inherit; font-size: 13px; line-height: 1.5; resize: vertical; }
 .dark #modal-box .af-desc textarea { background: #0f172a; border-color: #334155; }
 #modal-box .af-desc textarea:focus { outline: none; border-color: var(--af); box-shadow: 0 0 0 1px var(--af); }
+
+/* Accounts & Wallets: one compact row per account on phones (the cards stay on wider screens); a row opens the account sheet */
+.acct-rows { display: none; }
+#accounts-grid > .acct-rows { grid-column: 1 / -1; margin: 0; padding: 0; list-style: none; }
+.acct-row { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; column-gap: 12px; width: 100%; min-height: 60px; padding: 10px 2px; border: 0; border-bottom: 1px solid #e2e8f0; background: none; text-align: left; color: inherit; }
+.acct-rows li:last-child .acct-row { border-bottom: 0; }
+.dark .acct-row { border-color: #1e293b; }
+.acct-row:active { background: #f1f5f9; }
+.dark .acct-row:active { background: #1e293b; }
+.acct-ic { display: inline-grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 10px; }
+.acct-ic svg { width: 18px; height: 18px; }
+.acct-ic-bank { background: #e0f2fe; color: #0369a1; } .acct-ic-cash { background: #dcfce7; color: #15803d; } .acct-ic-card { background: #fef3c7; color: #b45309; }
+.acct-ic-loan { background: #ffe4e6; color: #be123c; } .acct-ic-save { background: #ede9fe; color: #6d28d9; } .acct-ic-invest { background: #ccfbf1; color: #0f766e; } .acct-ic-recv { background: #f1f5f9; color: #475569; }
+.dark .acct-ic-bank { background: rgba(56,189,248,.15); color: #7dd3fc; } .dark .acct-ic-cash { background: rgba(74,222,128,.15); color: #86efac; } .dark .acct-ic-card { background: rgba(251,191,36,.15); color: #fcd34d; }
+.dark .acct-ic-loan { background: rgba(251,113,133,.15); color: #fda4af; } .dark .acct-ic-save { background: rgba(167,139,250,.15); color: #c4b5fd; } .dark .acct-ic-invest { background: rgba(45,212,191,.15); color: #5eead4; } .dark .acct-ic-recv { background: #1e293b; color: #cbd5e1; }
+.acct-main { display: flex; flex-direction: column; min-width: 0; }
+.acct-name { overflow: hidden; font-size: 15px; font-weight: 600; color: #0f172a; white-space: nowrap; text-overflow: ellipsis; }
+.dark .acct-name { color: #f1f5f9; }
+.acct-sub { overflow: hidden; font-size: 12.5px; color: #64748b; white-space: nowrap; text-overflow: ellipsis; }
+.dark .acct-sub { color: #94a3b8; }
+.acct-bal { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; color: #0f172a; white-space: nowrap; }
+.dark .acct-bal { color: #f1f5f9; }
+.acct-bal.neg { color: #e11d48; } .dark .acct-bal.neg { color: #fb7185; }
+.more-head .acct-ic { width: 30px; height: 30px; margin-right: 8px; border-radius: 8px; vertical-align: middle; }
+.more-head .acct-ic svg { width: 16px; height: 16px; }
+.acct-sheet-card { margin: 4px 0 12px; }
+.txa-actions.acct-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 767px) {
+  #accounts-grid > .acct-rows { display: block; }
+  #accounts-grid > .acct-card { display: none !important; }
+  /* The page title is in the top bar on phones: drop the spacing left for the hidden header, and the inner padding */
+  #panel-accounts > div > #accounts-grid { margin-top: 0 !important; padding: 0 !important; }
+  /* Summary tiles: label and amount only */
+  #acct-kpis .kpi-tile { min-height: 0 !important; padding: 10px 12px !important; gap: 2px !important; }
+  #acct-kpis .kpi-tile > div:nth-child(2) { font-size: 17px !important; line-height: 1.3 !important; }
+  #acct-kpis .kpi-tile > div:nth-child(n+3) { display: none !important; }
+}
+
+/* Phones (the whole page scrolls): keep the title bar and each page's controls at the top, compact.
+   main used overflow:hidden, which stops anything inside it from staying in place; clip still clips but allows it. */
+@media (max-width: 767px) {
+  #main-layout > main { overflow: clip !important; }
+  /* The page area grows with its content here, so it must not be a scroll box either (that also stops pinning) */
+  #app-scroll { overflow-x: clip !important; overflow-y: visible !important; }
+  /* Core Ledger toolbar (month, views, search/filters) under the title bar — unless "stays at the top" is switched off */
+  #page-title-bar { position: sticky; top: 62px; z-index: 24; }
+  #page-title-bar:has(#ledger-sticky.lh-unpinned) { position: static; }
+  body.page-scrolled #page-title-bar { box-shadow: 0 6px 12px -10px rgba(15,23,42,.35); }
+  body.page-scrolled #page-title-bar #ledger-totals { display: none !important; }
+  body.page-scrolled #page-title-bar { padding-top: 6px !important; padding-bottom: 6px !important; }
+  /* Stats: month, Month/Year and Expenses/Income */
+  #panel-stats .st-head { position: sticky; top: 62px; z-index: 20; margin: -15px -15px 0; padding: 10px 15px 0; background-color: inherit; border-radius: inherit; }
+  #panel-stats .st-head .st-kind { margin-bottom: 0; }
+  body.page-scrolled #panel-stats .st-head { box-shadow: 0 6px 12px -10px rgba(15,23,42,.35); border-radius: 0; padding-top: 6px; }
+  body.page-scrolled #panel-stats .st-kind button { flex-direction: row; justify-content: center; gap: 6px; padding: 6px 4px 7px; }
+  /* Shared & Split: the tabs in one row you can swipe, kept at the top */
+  #panel-shared #ss-tabs { position: sticky; top: 62px; z-index: 20; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -15px; padding: 8px 15px; background-color: inherit; }
+  #panel-shared #ss-tabs::-webkit-scrollbar { display: none; }
+  #panel-shared #ss-tabs > button { flex: none; white-space: nowrap; }
+  body.page-scrolled #panel-shared #ss-tabs { box-shadow: 0 6px 12px -10px rgba(15,23,42,.35); }
+}

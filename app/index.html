@@ -407,20 +407,22 @@
                     <!-- STATS: spending or income by category for a month or a year -->
                     <div id="panel-stats" class="tab-panel space-y-6 hidden">
                         <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                            <div class="st-top">
-                                <div class="lp-month">
-                                    <button type="button" class="lp-nav" onclick="app.shiftStatsPeriod(-1)" aria-label="Previous"><i data-lucide="chevron-left"></i></button>
-                                    <button type="button" id="stats-period-label" class="lp-label" onclick="app.setStatsPeriod('now')" title="Back to now">This month</button>
-                                    <button type="button" class="lp-nav" onclick="app.shiftStatsPeriod(1)" aria-label="Next"><i data-lucide="chevron-right"></i></button>
+                            <div class="st-head">
+                                <div class="st-top">
+                                    <div class="lp-month">
+                                        <button type="button" class="lp-nav" onclick="app.shiftStatsPeriod(-1)" aria-label="Previous"><i data-lucide="chevron-left"></i></button>
+                                        <button type="button" id="stats-period-label" class="lp-label" onclick="app.setStatsPeriod('now')" title="Back to now">This month</button>
+                                        <button type="button" class="lp-nav" onclick="app.shiftStatsPeriod(1)" aria-label="Next"><i data-lucide="chevron-right"></i></button>
+                                    </div>
+                                    <div class="st-mode" role="tablist" aria-label="Period">
+                                        <button type="button" role="tab" data-mode="month" onclick="app.setStatsMode('month')">Month</button>
+                                        <button type="button" role="tab" data-mode="year" onclick="app.setStatsMode('year')">Year</button>
+                                    </div>
                                 </div>
-                                <div class="st-mode" role="tablist" aria-label="Period">
-                                    <button type="button" role="tab" data-mode="month" onclick="app.setStatsMode('month')">Month</button>
-                                    <button type="button" role="tab" data-mode="year" onclick="app.setStatsMode('year')">Year</button>
+                                <div class="st-kind" role="tablist" aria-label="Income or expenses">
+                                    <button type="button" role="tab" data-kind="expense" onclick="app.setStatsKind('expense')"><span>Expenses</span><b id="stats-total-expense"><span data-cur>₹</span>0</b></button>
+                                    <button type="button" role="tab" data-kind="income" onclick="app.setStatsKind('income')"><span>Income</span><b id="stats-total-income"><span data-cur>₹</span>0</b></button>
                                 </div>
-                            </div>
-                            <div class="st-kind" role="tablist" aria-label="Income or expenses">
-                                <button type="button" role="tab" data-kind="expense" onclick="app.setStatsKind('expense')"><span>Expenses</span><b id="stats-total-expense"><span data-cur>₹</span>0</b></button>
-                                <button type="button" role="tab" data-kind="income" onclick="app.setStatsKind('income')"><span>Income</span><b id="stats-total-income"><span data-cur>₹</span>0</b></button>
                             </div>
                             <div class="st-body">
                                 <div class="st-chart"><canvas id="chart-stats" aria-label="Share of each category"></canvas><div id="stats-center" class="st-center"></div></div>

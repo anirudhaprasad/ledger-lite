@@ -300,13 +300,14 @@ This only changes the account balance; all Core Ledger transactions remain uncha
                 const liabilityTypes=['Loan Account','Loan'];
                 const assets=this.data.accounts.filter(a=>assetTypes.includes(a.type)).reduce((n,a)=>n+(Number(a.balance)||0),0);
                 const liabilities=this.data.accounts.filter(a=>liabilityTypes.includes(a.type)).reduce((n,a)=>n+Math.abs(Number(a.balance)||0),0); const cardDues=this.data.accounts.filter(a=>this.isCardType(a.type)).reduce((n,a)=>n+this.cardStatements(a).outstanding,0);
-                grid.innerHTML = `<div id="acct-kpis" class="kpi-row"><div class="kpi-tile"><div class="text-xs text-emerald-700">Total Assets</div><div class="text-2xl font-bold text-emerald-800">${CUR()}${assets.toLocaleString('en-IN',{minimumFractionDigits:2})}</div><div class="text-xs text-emerald-700">Includes savings, cash and investments</div></div><div class="kpi-tile"><div class="text-xs text-slate-600">Net Worth</div><div class="text-2xl font-bold">${CUR()}${(assets-liabilities).toLocaleString('en-IN',{minimumFractionDigits:2})}</div></div></div>` + this.data.accounts.map((a, originalIndex) => ({a, originalIndex})).sort((left, right) => {
+                const ordered=this.data.accounts.map((a, originalIndex) => ({a, originalIndex})).sort((left, right) => {
                     const leftIsCard=this.isCardType(left.a.type), rightIsCard=this.isCardType(right.a.type);
                     return Number(leftIsCard)-Number(rightIsCard) || left.originalIndex-right.originalIndex;
-                }).map(({a, originalIndex: accountIndex}) => {
-                    const linkedCount=(this.data.tx||[]).filter(t=>String(t.account||'')===String(a.name||'')||String(t.destinationAccount||t.toAccount||'')===String(a.name||'')).length;
+                });
+                grid.innerHTML = `<div id="acct-kpis" class="kpi-row"><div class="kpi-tile"><div class="text-xs text-emerald-700">Total Assets</div><div class="text-2xl font-bold text-emerald-800">${CUR()}${assets.toLocaleString('en-IN',{minimumFractionDigits:2})}</div><div class="text-xs text-emerald-700">Includes savings, cash and investments</div></div><div class="kpi-tile"><div class="text-xs text-slate-600">Net Worth</div><div class="text-2xl font-bold">${CUR()}${(assets-liabilities).toLocaleString('en-IN',{minimumFractionDigits:2})}</div></div></div>` + `<ul id="acct-rows" class="acct-rows" aria-label="Accounts">${ordered.map(({a, originalIndex}) => this.accountRowHtml(a, originalIndex)).join('')}</ul>` + ordered.map(({a, originalIndex: accountIndex}) => {
+                    const linkedCount=this.accountLinkedCount(a);
                     return `
-                    <div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+                    <div class="acct-card p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
                         <div class="flex items-center justify-between gap-2">
                             <button type="button" onclick="app.openAccountLedgerEntriesByIndex(${accountIndex})" class="text-left font-bold text-sm hover:text-emerald-700 dark:hover:text-emerald-400 hover:underline" title="View this account's Core Ledger entries">${this.escapeHtml(a.name)}</button>
                             <span class="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">${this.escapeHtml(({'Loan Account':'Loan','Fixed Deposit':'Fixed Deposit','Recurring Deposit':'Recurring Deposit','RD':'Recurring Deposit'})[a.type]||a.type)}</span>
@@ -319,6 +320,30 @@ This only changes the account balance; all Core Ledger transactions remain uncha
                         </div>${this.isCardType(a.type)?this.cardAccountSummary(a):''}
                     </div>`;
                 }).join('');
+            }
+
+            accountLinkedCount(a){ const n=String(a?.name||''); return (this.data.tx||[]).filter(t=>String(t.account||'')===n||String(t.destinationAccount||t.toAccount||'')===n).length; }
+            accountMoney(a){ const v=Number(a?.balance)||0; return (v<0?'-':'')+CUR()+Math.abs(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+            accountTypeLabel(type){ return ({'Loan Account':'Loan','RD':'Recurring Deposit'})[type]||type||'Account'; }
+            accountIcon(type){ const t=String(type||''); if(this.isCardType(t))return ['credit-card','card']; if(/loan/i.test(t))return ['hand-coins','loan']; if(/cash/i.test(t))return ['wallet','cash'];
+                if(/fixed|recurring|^rd$/i.test(t))return ['piggy-bank','save']; if(/invest/i.test(t))return ['trending-up','invest']; if(/receivable/i.test(t))return ['handshake','recv']; return ['landmark','bank']; }
+            /** One compact row per account on phones: icon, name, type and entries, balance. Tap for details and actions. */
+            accountRowHtml(a,index){
+                const esc=v=>this.escapeHtml(String(v??'')); const [icon,kind]=this.accountIcon(a.type); const n=this.accountLinkedCount(a);
+                const due=this.isCardType(a.type)&&this.cardStatements?this.cardStatements(a).outstanding:0;
+                const sub=[this.accountTypeLabel(a.type), due?`${CUR()}${due.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})} due`:`${n} entr${n===1?'y':'ies'}`].map(esc).join(' · ');
+                return `<li><button type="button" class="acct-row" onclick="app.openAccountSheet(${index})" aria-label="${esc(a.name)}, ${esc(this.accountTypeLabel(a.type))}, balance ${esc(this.accountMoney(a))}"><span class="acct-ic acct-ic-${kind}" aria-hidden="true"><i data-lucide="${icon}"></i></span><span class="acct-main"><span class="acct-name">${esc(a.name)}</span><span class="acct-sub">${sub}</span></span><span class="acct-bal${Number(a.balance)<0?' neg':''}">${esc(this.accountMoney(a))}</span></button></li>`;
+            }
+            /** Bottom sheet for one account: balance, entries, card summary, and View entries / Edit / Delete. */
+            openAccountSheet(index){
+                const a=(this.data.accounts||[])[index]; if(!a)return; const esc=v=>this.escapeHtml(String(v??'')); const id=esc(String(a.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'"));
+                const n=this.accountLinkedCount(a); const [icon,kind]=this.accountIcon(a.type); const card=this.isCardType(a.type);
+                document.getElementById('modal-box').innerHTML=`<div class="more-head"><h3 class="font-bold text-lg min-w-0 truncate"><span class="acct-ic acct-ic-${kind}" aria-hidden="true"><i data-lucide="${icon}"></i></span>${esc(a.name)}</h3><button type="button" onclick="app.closeModal()" aria-label="Close">✕</button></div>
+                <div class="txa-amt${Number(a.balance)<0?' lx-out':''}">${esc(this.accountMoney(a))}</div>
+                <dl class="txa-info"><div><dt>Type</dt><dd>${esc(this.accountTypeLabel(a.type))}</dd></div><div><dt>Core Ledger</dt><dd>${n} linked entr${n===1?'y':'ies'}</dd></div></dl>
+                ${card&&this.cardAccountSummary?`<div class="acct-sheet-card">${this.cardAccountSummary(a)}</div>`:''}
+                <div class="txa-actions acct-actions"><button type="button" class="s-btn s-primary" onclick="app.closeModal();app.openAccountLedgerEntriesByIndex(${index})"><i data-lucide="list"></i><span>View entries</span></button><button type="button" class="s-btn s-secondary" onclick="app.closeModal();app.editAccount('${id}')"><i data-lucide="pencil"></i><span>Edit</span></button><button type="button" class="s-btn s-danger-outline" onclick="app.closeModal();app.deleteAccount('${id}')"><i data-lucide="trash-2"></i><span>Delete</span></button></div>`;
+                const mc=document.getElementById('modal-container'); mc.classList.add('more-sheet'); mc.classList.remove('hidden'); window.lucide?.createIcons?.();
             }
 
             /**

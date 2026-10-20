@@ -269,6 +269,7 @@
                 document.getElementById('main-layout').classList.remove('hidden');
                 this.renderAll();
                 this.startAutoLock();
+                this.watchPageScroll();
             }
 
             // ---------- Auto-lock: lock the vault after a few minutes without use (default 5; Backup & Settings → Security) ----------
@@ -277,6 +278,12 @@
             renderAutoLockSetting(){ const s=document.getElementById('auto-lock-select'); if(s)s.value=String(this.autoLockMinutes()); }
             /** Locks when the app has not been used for the chosen time. Also checked the moment the app comes back to the front. */
             checkAutoLock(){ if(!this.currentPassword)return false; const mins=this.autoLockMinutes(); if(!mins)return false; if(Date.now()-(this._lastActivity||Date.now())<mins*60000)return false; this.lockVault({reason:'auto',minutes:mins}); return true; }
+            /** Phones scroll the whole page: mark it scrolled (with a gap between on and off, so the pinned bar folding never flickers). */
+            watchPageScroll(){
+                if(this._pageScrollWatch)return; this._pageScrollWatch=true; let on=false, queued=false;
+                const check=()=>{ queued=false; const y=window.scrollY||document.documentElement.scrollTop||0; const next=on?y>24:y>140; if(next!==on){ on=next; document.body.classList.toggle('page-scrolled',on); } };
+                window.addEventListener('scroll',()=>{ if(!queued){ queued=true; requestAnimationFrame(check); } },{passive:true}); check();
+            }
             /** Things to run when the app returns to the front. The Android app calls window.aificoOnResume(); browsers fire visibilitychange. */
             onResume(fn){ (this._resumeHooks ||= []).push(fn); }
             startAutoLock(){
