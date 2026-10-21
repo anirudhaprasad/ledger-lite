@@ -782,6 +782,7 @@
                 if(tabId==='projects'&&!this.isDeveloper())return;
                 if(!this.isPro()&&['yearly','goals','shared','sms'].includes(tabId)){ this.closeNavigation(); return this.requirePro(tabId); }
                 this.closeNavigation();
+                { const mc=document.getElementById('modal-container'); if(mc&&!mc.classList.contains('hidden')&&mc.classList.contains('embedded'))this.closeModal(); }
                 this.currentTab=tabId; this.syncBottomNav(tabId);
                 { const mc=document.getElementById('modal-container'); if(mc&&mc.classList.contains('more-sheet')) mc.classList.remove('more-sheet'); }
                 document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
@@ -834,6 +835,7 @@
                     const cancelLabel=options.cancelLabel||'Cancel';
                     const inputHtml=type==='input'?`<input id="aifico-dialog-value" type="${inputType==='password'?'password':'text'}" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white" value="${inputType==='password'?'':esc(value)}" autocomplete="${inputType==='password'?'current-password':'off'}" spellcheck="false">`:'';
                     const messageHtml=esc(message).replace(/\n/g,'<br>');
+                    container.classList.add('is-dialog');   // short questions stay pop-ups; forms open inside the page
                     box.innerHTML=`<section class="w-full space-y-5" role="dialog" aria-modal="true" aria-labelledby="aifico-dialog-title"><div class="flex items-start gap-3"><div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${options.danger?'bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300':'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300'}"><span class="text-lg">${options.danger?'!':'i'}</span></div><div class="min-w-0 flex-1"><h3 id="aifico-dialog-title" class="text-lg font-semibold text-slate-900 dark:text-slate-100">${esc(title)}</h3><p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">${messageHtml}</p></div><button type="button" id="aifico-dialog-x" class="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Close dialog">✕</button></div>${inputHtml}<div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" id="aifico-dialog-cancel" class="${type==='notice'?'hidden ':''}rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">${esc(cancelLabel)}</button><button type="button" id="aifico-dialog-ok" class="rounded-xl ${options.danger?'bg-rose-600 hover:bg-rose-700':'bg-emerald-600 hover:bg-emerald-700'} px-5 py-2.5 text-sm font-semibold text-white shadow-sm">${esc(okLabel)}</button></div></section>`;
                     container.classList.remove('hidden');
                     let finished=false;
@@ -1060,6 +1062,6 @@
             closeModal() {
                 // Bottom-sheet styling (More, row actions) belongs to that sheet only, not to the next dialog.
                 document.getElementById('modal-container').classList.add('hidden');
-                document.getElementById('modal-container').classList.remove('more-sheet');
+                document.getElementById('modal-container').classList.remove('more-sheet','is-dialog');
             }
         }

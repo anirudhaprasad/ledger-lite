@@ -199,6 +199,15 @@
                 <div class="lmon"><div class="lmon-head"><span>Year</span><span>Income</span><span>Expenses</span><span>Net</span></div>${rows||'<p class="lx-none">No transactions yet.</p>'}</div>`;
             }
             /** One compact ledger row: category on the left, payee and account in the middle, the amount on the right. */
+            /** One-tap include / exclude on a ledger row: an open eye when it counts in totals, a crossed-out eye when excluded. */
+            /** An SMS's original date for display: phone-read SMS store a millisecond timestamp, imports a date text. */
+            smsDateText(v){ const n=Number(v); if(/^\d{10,13}$/.test(String(v||'').trim())&&Number.isFinite(n)){ const d=new Date(String(v).trim().length===10?n*1000:n); return d.toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); } return String(v||''); }
+            ledgerIncludeButton(t,jsId){
+                const ex=!!t.excludedFromLedger; const label=ex?'Include in totals':'Exclude from totals';
+                const eye='<path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/>';
+                const eyeOff='<path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="m2 2 20 20"/>';
+                return `<button type="button" class="lx-inc${ex?' off':''}" title="${label}" aria-label="${label}" aria-pressed="${!ex}" onclick="event.stopPropagation();app.toggleLedgerExclusion('${jsId(t.id)}')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ex?eyeOff:eye}</svg></button>`;
+            }
             ledgerRowHtml(t,jsId){
                 const esc=v=>this.escapeHtml(String(v??'')); const cat=t.category||'Uncategorized';
                 const kind=t.type==='Income'?'lx-in':t.type==='Transfer'?'lx-tr':'lx-out';
@@ -210,6 +219,7 @@
                     <div class="lx-cat"><i class="cat-dot" style="--c:${this.categoryColor(cat)}"></i><span><b>${esc(cat)}</b>${t.subcategory?`<small>${esc(t.subcategory)}</small>`:''}</span></div>
                     <div class="lx-main"><b class="lx-payee">${esc(t.payee||t.description||note||'—')}</b>${badges}<small class="lx-sub">${acct}${note&&note!==(t.payee||t.description)?` · ${esc(note)}`:''}</small></div>
                     <div class="lx-amt ${kind}">${this.fmtMoney(t.amount)}${['Transfer','EMI','Installment'].includes(t.type)?`<small>${esc(t.type)}</small>`:''}</div>
+                    ${this.ledgerIncludeButton(t,jsId)}
                 </div></td></tr>`;
             }
             /** Tap a row: a small sheet with the entry's details and Edit, Exclude/Restore, Copy and Delete. */
@@ -250,7 +260,7 @@
                 const excludedMode=document.getElementById('ledger-excluded-filter')?.value||'active';
                 return (this.data?.tx||[]).filter(t => {
                     const isExcluded=!!t.excludedFromLedger;
-                    if(excludedMode==='active' && isExcluded) return false;
+                    if(excludedMode==='active' && isExcluded && !(opts.withParked && t.parkedFromSms)) return false;
                     if(excludedMode==='excluded' && !isExcluded) return false;
                     if(excludedMode==='duplicates' && !t.duplicateOf) return false;
                     const haystack = [t.payee,t.notes,t.note,t.description,t.category,t.subcategory,t.account,t.date].map(v=>String(v||'').toLowerCase()).join(' ');
@@ -315,7 +325,9 @@
                 // What the totals cover: Daily = the month (or day) in the list; Calendar = the month; Monthly = the year; Total = everything.
                 const calMonth=this.ledgerMonth()==='all'?this.todayISO().slice(0,7):this.ledgerMonth(); const year=this.ledgerYearView||new Date().getFullYear();
                 let filtered;
-                if(view==='daily') filtered=this.getFilteredLedger();
+                // Daily list also shows SMS entries parked for review (Excluded until included); they never count in totals or views
+                let listed=null;
+                if(view==='daily'){ listed=this.getFilteredLedger({withParked:true}); filtered=listed.filter(t=>!(t.parkedFromSms&&t.excludedFromLedger&&(document.getElementById('ledger-excluded-filter')?.value||'active')==='active')); }
                 else { const base=this.getFilteredLedger({period:'all'}); filtered=view==='calendar'?base.filter(t=>this.normalizeLedgerDate(t.date).slice(0,7)===calMonth):view==='monthly'?base.filter(t=>this.normalizeLedgerDate(t.date).slice(0,4)===String(year)):base; }
                 const income=filtered.filter(t=>t.type==='Income').reduce((sum,t)=>sum+(Number(t.amount)||0),0);
                 const expense=filtered.filter(t=>['Expense','EMI','Installment'].includes(t.type)).reduce((sum,t)=>sum+(Number(t.amount)||0),0);
@@ -337,21 +349,21 @@
                 // Long ledgers are shown 150 entries at a time ("Show more" adds the next 150). Drawing thousands of rows at once
                 // took 15+ seconds on mid-range phones. Totals above still cover every matching entry.
                 const pageSize=150; if(!this.ledgerShown)this.ledgerShown=pageSize;
-                const shownList=filtered.slice(0,this.ledgerShown);
+                const shownList=(listed||filtered).slice(0,this.ledgerShown);
                 // Selection only ever covers rows currently on screen, so bulk actions never touch hidden or excluded entries by accident.
                 const visibleIds=new Set(shownList.map(t=>String(t.id)));
                 this.selectedTransactionIds=new Set([...(this.selectedTransactionIds||[])].filter(id=>visibleIds.has(id)));
                 const jsId=id=>this.escapeHtml(String(id??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"));
                 tbody.innerHTML = this.ledgerRowsWithDayHeaders(shownList, t => this.ledgerRowHtml(t,jsId));
-                if(filtered.length>shownList.length){ const left=filtered.length-shownList.length; tbody.insertAdjacentHTML('beforeend',`<tr class="ledger-more"><td colspan="8" class="py-4 text-center"><button type="button" class="s-btn s-secondary" onclick="app.showMoreLedger()">Show ${Math.min(pageSize,left)} more · ${left.toLocaleString('en-IN')} older entr${left===1?'y':'ies'}</button></td></tr>`); }
+                if((listed||filtered).length>shownList.length){ const left=(listed||filtered).length-shownList.length; tbody.insertAdjacentHTML('beforeend',`<tr class="ledger-more"><td colspan="8" class="py-4 text-center"><button type="button" class="s-btn s-secondary" onclick="app.showMoreLedger()">Show ${Math.min(pageSize,left)} more · ${left.toLocaleString('en-IN')} older entr${left===1?'y':'ies'}</button></td></tr>`); }
                 // Empty filtered view: say so instead of leaving a blank list.
-                if(!filtered.length){ const mode=document.getElementById('ledger-excluded-filter')?.value||'active'; const month=this.ledgerMonth();
+                if(!(listed||filtered).length){ const mode=document.getElementById('ledger-excluded-filter')?.value||'active'; const month=this.ledgerMonth();
                     const where=this.ledgerDay?' on this day':month!=='all'?` in ${this.monthLabel(month,true)}`:'';
                     const filtersOn=this.ledgerActiveFilters().some(a=>!a.always)||!!this.ledgerCategory||!!document.getElementById('ledger-search')?.value;
                     const msg={excluded:`No excluded transactions${where}. Entries you exclude appear here so you can restore them.`,duplicates:`No SMS duplicates found${where}.`}[mode]||(filtersOn?`No transactions match the current filters${where}.`:`No transactions${where}.`);
                     const more=month!=='all'&&(this.data.tx||[]).length?`<div class="mt-3"><button type="button" class="s-btn s-secondary" onclick="app.setLedgerPeriod('all')">Show all months</button></div>`:'';
                     tbody.innerHTML=`<tr class="lx-empty"><td colspan="8" class="py-8 text-center text-sm text-slate-500">${msg}${more}</td></tr>`; }
-                if(bulkBar)bulkBar.hidden=!filtered.length;
+                if(bulkBar)bulkBar.hidden=!(listed||filtered).length;
                 const selectAll=document.getElementById('ledger-select-all');
                 if(selectAll){selectAll.checked=shownList.length>0 && shownList.every(t=>this.selectedTransactionIds?.has(String(t.id)));selectAll.indeterminate=shownList.some(t=>this.selectedTransactionIds?.has(String(t.id)))&&!selectAll.checked;}
                 const count=document.getElementById('ledger-selected-count');
@@ -368,6 +380,7 @@
                 const excluding=!tx.excludedFromLedger;
                 const label=tx.payee||tx.description||tx.notes||'this transaction';
                 const restoreNotes=[];
+                if(tx.parkedFromSms&&!excluding){ if(!await this.uiConfirm(`Include "${label}" in Core Ledger?\n\nIt will count in totals, and ${this.fmtMoney(tx.amount)} will be applied to ${tx.account||'its account'}${tx.type==='Transfer'&&tx.destinationAccount?' and '+tx.destinationAccount:''}.`,{okLabel:'Include'}))return; this.setLedgerExclusion(tx,false); delete tx.parkedFromSms; this.saveVault(); this.renderAll(); return this.showToast(`Included "${label}".`); }
                 if(tx.duplicateOf)restoreNotes.push(`It was marked as an SMS duplicate (${tx.duplicateReason||'matched another transaction'}). Restoring keeps it counted from now on.`);
                 restoreNotes.push(tx.balanceEffectRemoved?`Its amount will be re-applied to the ${tx.account||'account'} balance.`:'Account balances are not changed.');
                 // Restoring an SMS duplicate changes balances and clears its duplicate link, so it cannot be undone cleanly: confirm first.
@@ -402,7 +415,7 @@
              * Changes the select all and refreshes dependent UI.
              * Parameters: checked. Side effects, if any, are described by the statements below.
              */
-            toggleSelectAll(checked){this.selectedTransactionIds ||= new Set();this.getFilteredLedger().slice(0,this.ledgerShown||150).forEach(t=>{if(checked)this.selectedTransactionIds.add(String(t.id));else this.selectedTransactionIds.delete(String(t.id));});this.renderLedger();}
+            toggleSelectAll(checked){this.selectedTransactionIds ||= new Set();this.getFilteredLedger({withParked:true}).slice(0,this.ledgerShown||150).forEach(t=>{if(checked)this.selectedTransactionIds.add(String(t.id));else this.selectedTransactionIds.delete(String(t.id));});this.renderLedger();}
             /**
              * Handles the clear transaction selection workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: none. Side effects, if any, are described by the statements below.
@@ -528,6 +541,29 @@
              * Validates and saves  edited transaction.
              * Parameters: event,id. Side effects, if any, are described by the statements below.
              */
+            /** Saves a reviewed SMS (Merge) into Core Ledger, parked: excluded and without balance effect until you include it. */
+            saveSmsReview(event,inboxId){
+                event.preventDefault(); const item=(this.data.smsInbox||[]).find(x=>String(x.id)===String(inboxId)); if(!item||item.status!=='pending')return this.closeModal();
+                const val=k=>document.getElementById(k)?.value??'';
+                const type=val('modal-tx-type')||item.type||'Expense', transfer=type==='Transfer';
+                const amount=Number(val('modal-tx-amount')); if(!Number.isFinite(amount)||amount<=0)return alert('Enter an amount greater than zero.');
+                const date=this.normalizeLedgerDate(val('modal-tx-date')); if(!date)return alert('Please enter a valid date.');
+                if(this.isLockedDate(date))return this.lockedAlert(date);
+                const account=val('modal-tx-account'); if(!account)return alert('Select an account.');
+                const destinationAccount=transfer?val('modal-tx-destination'):'';
+                if(transfer&&(!destinationAccount||destinationAccount===account))return alert('Choose a destination account that is different from the source account.');
+                const category=transfer?'Transfer':(val('modal-tx-category')||'Uncategorized'), subcategory=transfer?'':val('modal-tx-subcategory').trim(), note=val('modal-tx-note').trim();
+                const tx={id:'sms_merge_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),uid:this.newUid(),date,type,amount,account,category,...(subcategory?{subcategory}:{}),payee:val('modal-tx-payee').trim(),notes:note,...(note?{note}:{}),...(destinationAccount?{destinationAccount}:{}),
+                    description:val('modal-tx-description'),reference:item.reference||'',originalSmsDate:item.originalSmsDate||item.date,source:'sms-reconciled',smsInboxId:item.id,
+                    // Parked: shown in Core Ledger as Excluded; including it (eye icon) applies the amount to the account
+                    excludedFromLedger:true,balanceEffectRemoved:true,parkedFromSms:true};
+                if(!transfer)this.ensureCategoryAndSubcategory(category,subcategory);
+                this.data.tx.unshift(tx);
+                item.status='merged'; item.mergedTransactionId=tx.id; item.mergedAt=new Date().toISOString(); item.mergedAccount=account;
+                this.saveVault(); this.closeModal(); this.renderAll(); try{ this.renderSmsReconciliation(); }catch(e){}
+                this.showToast(`Added "${tx.payee||'SMS entry'}" to Core Ledger as Excluded. Include it when it's right.`,{action:{label:'Include now',run:()=>this.toggleLedgerExclusion(tx.id)}});
+            }
+
             saveEditedTransaction(event,id) {
                 event.preventDefault(); const t=this.data.tx.find(x=>String(x.id)===String(id)); if(!t)return; if(this.isLockedDate(t.date))return this.lockedAlert(t.date);
                 const val=k=>document.getElementById(k)?.value??'';
@@ -580,6 +616,9 @@
                 const p=prefill&&typeof prefill==='object'?prefill:{}; const esc=v=>this.escapeHtml(String(v??''));
                 const edit=p.editId!=null?(this.data.tx||[]).find(x=>String(x.id)===String(p.editId)):null;
                 const oneSided=!!(edit&&edit.type==='Transfer'&&edit.transferDirection&&!p.destinationAccount);
+                // SMS review (Merge on the SMS page): same form; saving parks the entry in Core Ledger as Excluded
+                const smsItem=!edit&&p.smsInboxId!=null?(this.data.smsInbox||[]).find(x=>String(x.id)===String(p.smsInboxId)):null; const review=edit||smsItem;
+                const smsJs=smsItem?esc(String(smsItem.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'")):'';
                 const editJs=edit?esc(String(edit.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'")):'';
                 const accounts=this.data.accounts||[]; const def=p.account||this.getGlobalDefaultAccount()?.name||accounts[0]?.name||'';
                 // Your categories, plus any that only your transactions use (imports, older data), so every one can be picked
@@ -591,10 +630,10 @@
                 const box = document.getElementById('modal-box');
                 box.innerHTML = `
                     <div class="flex justify-between items-center pb-2">
-                        <h3 class="font-bold text-base" id="af-title">${edit?'Edit transaction':p.type?'Copy transaction':'New transaction'}</h3>
+                        <h3 class="font-bold text-base" id="af-title">${edit?'Edit transaction':smsItem?'Review SMS entry':p.type?'Copy transaction':'New transaction'}</h3>
                         <button type="button" onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600" aria-label="Close"><i data-lucide="x" class="w-5 h-5"></i></button>
                     </div>
-                    <form id="af-form" onsubmit="${edit?`app.saveEditedTransaction(event,'${editJs}')`:'app.saveNewTransaction(event)'}" class="af-form" data-type="${type}">
+                    <form id="af-form" onsubmit="${edit?`app.saveEditedTransaction(event,'${editJs}')`:smsItem?`app.saveSmsReview(event,'${smsJs}')`:'app.saveNewTransaction(event)'}" class="af-form" data-type="${type}">
                         <div class="af-types" role="tablist" aria-label="Transaction type">
                             <button type="button" role="tab" data-t="Income">Income</button>
                             <button type="button" role="tab" data-t="Expense">Expense</button>
@@ -602,15 +641,15 @@
                             <select id="af-more-type" aria-label="Other types"><option value="">More</option><option value="EMI">EMI</option><option value="Installment">Installment</option></select>
                         </div>
                         <select id="modal-tx-type" hidden aria-hidden="true" tabindex="-1">${['Expense','Income','Transfer','EMI','Installment'].map(x=>`<option value="${x}" ${x===type?'selected':''}>${x}</option>`).join('')}</select>
-                        <label class="af-row"><span>Date</span><input type="date" id="modal-tx-date" required value="${edit&&p.date?esc(p.date):this.todayISO()}"></label>${edit&&p.smsDate?`<p class="af-note">Original SMS date: ${esc(p.smsDate)} (kept separately)</p>`:''}
+                        <label class="af-row"><span>Date</span><input type="date" id="modal-tx-date" required value="${review&&p.date?esc(p.date):this.todayISO()}"></label>${review&&p.smsDate?`<p class="af-note">Original SMS date: ${esc(this.smsDateText(p.smsDate))} (kept separately)</p>`:''}
                         <label class="af-row af-amount"><span>Amount${CURL()}</span><input type="number" step="0.01" min="0.01" id="modal-tx-amount" data-money="0" required inputmode="decimal" placeholder="0.00" value="${p.amount?esc(p.amount):''}"><button type="button" class="af-calc" onclick="app.openAmountCalculator('modal-tx-amount')" aria-label="Calculator">🧮</button></label>
                         <label class="af-row" data-show="cat"><span>Category</span><span class="af-cat"><i class="cat-dot" id="af-cat-dot"></i><select id="modal-tx-category">${cats.map(c=>`<option value="${esc(c)}" ${c===p.category?'selected':''}>${esc(c)}</option>`).join('')}</select></span></label>
                         <label class="af-row" data-show="cat"><span>Subcategory</span><input id="modal-tx-subcategory" list="af-sub-options" placeholder="Optional" value="${esc(p.subcategory||'')}"><datalist id="af-sub-options"></datalist></label>
                         <label class="af-row"><span id="af-account-label">Account</span><select id="modal-tx-account">${acctOpts(def)}</select></label>
                         <label class="af-row" id="modal-tx-destination-wrap" data-show="to"><span>To</span><select id="modal-tx-destination">${oneSided?`<option value="" selected>Not recorded (${edit.transferDirection==='in'?'money in':'money out'})</option>`:extraAcct(p.destinationAccount)}${accounts.map(a=>`<option value="${esc(a.name)}" ${String(a.name)===String(p.destinationAccount||'')?'selected':''}>${esc(a.name)} (${esc(a.type||'Account')})</option>`).join('')}</select></label>
                         <label class="af-row"><span>Payee</span><input type="text" id="modal-tx-payee" required placeholder="Shop or person" value="${esc(p.payee||'')}"></label>
-                        <label class="af-row"><span>Note</span><input type="text" id="modal-tx-note" placeholder="Optional" value="${esc(p.note||'')}"></label>${edit?`<label class="af-desc"><span>Description</span><textarea id="modal-tx-description" rows="5" placeholder="Optional">${esc(p.description||'')}</textarea></label>`:''}
-                        <div class="af-section"${edit?' hidden':''}>
+                        <label class="af-row"><span>Note</span><input type="text" id="modal-tx-note" placeholder="Optional" value="${esc(p.note||'')}"></label>${review?`<label class="af-desc"><span>Description</span><textarea id="modal-tx-description" rows="5" placeholder="Optional">${esc(p.description||'')}</textarea></label>`:''}
+                        ${smsItem?`<p class="af-hint af-park">Saved to Core Ledger as <b>Excluded</b>: it doesn't count in totals or change balances until you include it (the eye icon on its row).</p>`:''}<div class="af-section"${review?' hidden':''}>
                             <label class="af-row"><span>Repeat</span><select id="af-repeat"><option value="">Never</option><option value="daily">Every day</option><option value="weekly">Every week</option><option value="monthly">Every month</option><option value="quarterly">Every 3 months</option><option value="yearly">Every year</option></select></label>
                             <div class="af-row" id="af-ends-row" hidden><span>Ends</span><span class="af-ends"><select id="af-ends" aria-label="Repeat ends"><option value="never">Never</option><option value="date">On date</option><option value="count">After</option></select><input type="date" id="af-ends-date" aria-label="Last date" hidden><input type="number" id="af-ends-count" data-money="0" min="1" max="600" step="1" value="12" aria-label="Number of times" hidden><em id="af-ends-unit" hidden>times</em></span></div>
                             <label class="af-row" id="af-inst-row" data-show="inst"><span>Installments</span><select id="af-inst"><option value="">None (pay in full)</option>${[2,3,4,5,6,9,12,15,18,24,36].map(n=>`<option value="${n}">${n} months</option>`).join('')}</select></label>
@@ -643,7 +682,7 @@
                     if(inst>1){ const each=Math.floor(amt/inst*100)/100; hint=amt?`${inst} monthly installments of ${this.fmtMoney(each)} from ${when}${Math.abs(each*inst-amt)>0.001?` (the last one is ${this.fmtMoney(Math.round((amt-each*(inst-1))*100)/100)})`:''}. They are listed in Schedules and appear in the ledger as each one falls due.`:`Split the amount into ${inst} monthly installments.`; }
                     else if(rep){ hint=`${this.frequencyLabel(rep)} from ${when}${ends==='count'?`, ${Number($('af-ends-count').value)||1} times in all`:ends==='date'&&$('af-ends-date').value?`, until ${new Date($('af-ends-date').value+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}`:''}. Saved as a schedule; each entry is added to the ledger on its date.`; }
                     $('af-hint').hidden=!hint; $('af-hint').textContent=hint;
-                    $('af-save').textContent=edit?'Save changes':inst>1?'Save installments':rep?'Save and repeat':'Save';
+                    $('af-save').textContent=edit?'Save changes':smsItem?'Save to Core Ledger':inst>1?'Save installments':rep?'Save and repeat':'Save';
                 };
                 // Until the person picks a category, follow the type: the category they use most for income, or for spending.
                 let catTouched=!!p.category;

@@ -361,3 +361,33 @@ body.nav-bottom #app-toast { bottom: calc(146px + env(safe-area-inset-bottom, 0p
   #panel-shared #ss-tabs > button { flex: none; white-space: nowrap; }
   body.page-scrolled #panel-shared #ss-tabs { box-shadow: 0 6px 12px -10px rgba(15,23,42,.35); }
 }
+
+/* Core Ledger: include / exclude on every row (eye = counts in totals, crossed eye = excluded) */
+.lx-row { grid-template-columns: 18px minmax(96px, 26%) minmax(0, 1fr) auto 30px; }
+.lx-inc { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; border: 0; background: none; color: #94a3b8; cursor: pointer; }
+.lx-inc:hover { background: #f1f5f9; color: #059669; }
+.lx-inc.off { color: #d97706; }
+.lx-inc.off:hover { background: #fef3c7; color: #b45309; }
+.dark .lx-inc { color: #64748b; } .dark .lx-inc:hover { background: #1e293b; color: #34d399; }
+.dark .lx-inc.off { color: #fbbf24; } .dark .lx-inc.off:hover { background: rgba(251,191,36,.15); }
+.lx-excluded .lx-inc { opacity: 1; }
+.af-park { margin: 10px 0 0; }
+@media (max-width: 767px) { .lx-row { grid-template-columns: 16px minmax(78px, 30%) minmax(0, 1fr) auto 28px; } .lx-inc { width: 28px; height: 28px; } }
+/* Smallest phones (under 360px): tighter ledger rows so names are never split mid-word (cut with … instead) */
+@media (max-width: 359px) {
+  .lx-row { grid-template-columns: 14px minmax(64px, 27%) minmax(0, 1fr) auto 24px; column-gap: 6px; }
+  .lx-inc { width: 24px; height: 24px; }
+  .lx-inc svg { width: 16px; height: 16px; }
+  .lx-payee { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; word-break: normal; overflow-wrap: normal; }
+}
+
+/* Forms and detail windows inside the page (#modal-container.embedded, see installEmbeddedForms): no dimmed overlay,
+   the page content is hidden while one is open, and the form is a card in the page's content area. */
+#modal-container.embedded { position: static !important; inset: auto !important; display: block !important; z-index: auto !important; padding: 0 !important; background: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+#modal-container.embedded #modal-box { width: 100%; max-width: 760px; max-height: none !important; overflow: visible !important; margin: 0 auto; border-radius: 16px !important; box-shadow: none !important; padding-bottom: 20px; }
+#modal-container.embedded.more-sheet #modal-box { max-width: 760px; border-radius: 16px !important; padding-bottom: 20px; }
+body.form-open #app-scroll > :not(#modal-container) { display: none !important; }
+body.form-open #page-title-bar { display: none !important; }
+/* Forms inside the page: no floating + over them, and scrolling to a form button stops above the bottom menu */
+body.form-open.nav-bottom #app-main-header button[onclick="app.openTransactionModal()"] { display: none !important; }
+#modal-container.embedded #modal-box :is(button, input, select, textarea) { scroll-margin-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); scroll-margin-top: 76px; }

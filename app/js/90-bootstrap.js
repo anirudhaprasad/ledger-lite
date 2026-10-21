@@ -45,13 +45,38 @@
             };
         })();
         // v14 accessibility: keep keyboard focus inside an open modal surface.
+        // Forms and detail windows open inside the page (they replace the page content, like a page of their own) instead of
+        // over a dimmed page. Short questions (uiDialog) and anything opened on the lock screen stay pop-ups.
+        // Close / Cancel / Back returns to the page, scrolled to where it was.
+        (function installEmbeddedForms(){
+            const mc=document.getElementById('modal-container'); if(!mc)return; const home=mc.parentNode; let saved=null;
+            const scroller=()=>{ const a=document.getElementById('app-scroll'); return a&&a.scrollHeight>a.clientHeight+5&&/auto|scroll/.test(getComputedStyle(a).overflowY)?a:(document.scrollingElement||document.documentElement); };
+            const sync=()=>{
+                const open=!mc.classList.contains('hidden');
+                const unlocked=!document.getElementById('main-layout')?.classList.contains('hidden');
+                const host=document.getElementById('app-scroll');
+                const embed=open&&unlocked&&!!host&&!mc.classList.contains('is-dialog');
+                if(embed){
+                    if(!mc.classList.contains('embedded')){ if(saved===null){ const s=scroller(); saved={el:s,top:s.scrollTop}; } mc.classList.add('embedded'); }
+                    if(mc.parentNode!==host)host.prepend(mc);
+                    if(!document.body.classList.contains('form-open')){ document.body.classList.add('form-open'); const s=scroller(); s.scrollTop=0; window.scrollTo(0,0); }
+                } else {
+                    if(mc.classList.contains('embedded'))mc.classList.remove('embedded');
+                    if(mc.parentNode!==home)home.appendChild(mc);
+                    if(document.body.classList.contains('form-open'))document.body.classList.remove('form-open');
+                    if(!open&&saved){ const {el,top}=saved; saved=null; if(top>24)document.body.classList.add('page-scrolled'); requestAnimationFrame(()=>{ el.scrollTop=top; if(el===document.scrollingElement)window.scrollTo(0,top); }); }   // fold the pinned bar first (as it was), so the page lands where it was
+                }
+            };
+            new MutationObserver(sync).observe(mc,{attributes:true,attributeFilter:['class']});
+            const ml=document.getElementById('main-layout'); if(ml)new MutationObserver(sync).observe(ml,{attributes:true,attributeFilter:['class']});
+        })();
         (function installAificoFocusContainment(){
             const selector = 'button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
             document.addEventListener('keydown', function(e){
                 if(e.key !== 'Tab') return;
                 const modal = document.getElementById('modal-container');
                 const alertOverlay = document.getElementById('aifico-alert-overlay');
-                const activeSurface = alertOverlay && alertOverlay.style.display === 'flex' ? alertOverlay : (modal && !modal.classList.contains('hidden') ? modal : null);
+                const activeSurface = alertOverlay && alertOverlay.style.display === 'flex' ? alertOverlay : (modal && !modal.classList.contains('hidden') && !modal.classList.contains('embedded') ? modal : null);
                 if(!activeSurface) return;
                 const items = [...activeSurface.querySelectorAll(selector)].filter(el => el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
                 if(!items.length){ e.preventDefault(); return; }
