@@ -279,7 +279,7 @@ ${lines.join('\n')}`;
                 if (forFullErase) {
                     // Generate a separate downloadable recovery-code file, never include the
                     // plaintext code in the encrypted backup, and verify recovery payload before downloads.
-                    const codeText = `AIFICO Money Manager — Full Erase Recovery Code\n\nBackup file: aificomm-${stamp}-full-backup-encrypted.json\nCreated: ${backup.createdAt}\n\nRecovery code:\n${recoveryCode}\n\nKeep this file separate from the encrypted backup. Anyone with both files can access your financial data. Do not upload either file to a public location.\n`;
+                    const codeText = `aifico Ledger — Full Erase Recovery Code\n\nBackup file: aificomm-${stamp}-full-backup-encrypted.json\nCreated: ${backup.createdAt}\n\nRecovery code:\n${recoveryCode}\n\nKeep this file separate from the encrypted backup. Anyone with both files can access your financial data. Do not upload either file to a public location.\n`;
                     const codeBlob = new Blob([codeText], { type: 'text/plain;charset=utf-8' });
                     const codeUrl = URL.createObjectURL(codeBlob);
                     const codeAnchor = document.createElement('a');

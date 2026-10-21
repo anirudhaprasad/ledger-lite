@@ -445,12 +445,12 @@
              */
             applyEdition(){
                 const pro=this.isPro(); if(!this.isDeveloper())document.querySelectorAll('[data-dev-only]').forEach(e=>e.remove()); document.body.classList.toggle('edition-lite',!pro); document.body.classList.toggle('edition-pro',pro);
-                // Version from js/04-version.js: "Money Manager v1.2610.85 · Developer" (the edition is a word, not a letter on the number)
-                const v=window.aificoVersion?window.aificoVersion():{label:'',detail:''}; const label=`Money Manager ${v.label} · ${this.editionName()}`;
+                // Version from js/04-version.js: "Ledger v1.2610.85 · Developer" under "aifico" in the side menu (the edition is a word, not a letter on the number)
+                const v=window.aificoVersion?window.aificoVersion():{label:'',detail:''}; const label=`Ledger ${v.label} · ${this.editionName()}`;
                 document.querySelectorAll('[data-app-version]').forEach(el=>{el.textContent=`${v.label} · ${this.editionName()} · ${v.detail}`;});
                 document.querySelectorAll('[data-edition-label]').forEach(el=>{el.textContent=label;});
-                document.querySelectorAll('[data-edition-title]').forEach(el=>{el.innerHTML=`aifico Money Manager <span class="vault-edition">${this.escapeHtml(this.editionName())}</span>`;});
-                document.title=`aifico Money Manager ${v.label} · ${this.editionName()}`;
+                document.querySelectorAll('[data-edition-title]').forEach(el=>{el.innerHTML=`aifico Ledger <span class="vault-edition">${this.escapeHtml(this.editionName())}</span>`;});
+                document.title=`aifico Ledger ${v.label} · ${this.editionName()}`;
                 if(!pro){
                     ['yearly','goals','shared'].forEach(t=>document.querySelectorAll(`#app-sidebar [data-tab="${t}"]`).forEach(b=>{ if(!b.querySelector('.pro-badge'))b.insertAdjacentHTML('beforeend','<span class="pro-badge pro-badge-sm">PRO</span>'); }));
                     document.querySelectorAll('.set-card .set-title').forEach(h=>{ if(/^(Import|Money Manager spreadsheet)$/.test(h.textContent.trim())&&!h.querySelector('.pro-badge'))h.insertAdjacentHTML('beforeend',' <span class="pro-badge pro-badge-sm">PRO</span>'); });

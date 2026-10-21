@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- SOURCE GUIDE: the version is in js/04-version.js. Read the inline JavaScript comments for method intent, side effects, validation paths, storage behavior, and financial formulas. Comments are documentation only; functional code is unchanged. -->
-<!-- aifico Money Manager v1.2610.33M (mobile build: login password warning) — official product version branding. Based on the tested v24 restore-preview build; previous files remain unchanged. -->
+<!-- aifico Ledger (formerly aifico Money Manager) v1.2610.33M (mobile build: login password warning) — official product version branding. Based on the tested v24 restore-preview build; previous files remain unchanged. -->
 <html lang="en" class="h-full">
 <head>
     <script src="js/01-android-download-bridge.js"></script>
@@ -11,7 +11,7 @@
     <script src="js/02-edition.js"></script>
     <script src="js/04-version.js"></script>
     <script src="js/05-currency.js"></script>
-    <title>aifico Money Manager</title>
+    <title>aifico Ledger</title>
     <!-- Bundled libraries (no network needed): Chart.js 4.5.1, Lucide 1.59.0 -->
     <script src="vendor/chart.umd.min.js"></script>
     <script src="vendor/lucide.min.js"></script>
@@ -105,7 +105,7 @@
             <div class="vault-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-5">
                 <div class="text-center space-y-1">
                     <span class="brand-logo brand-logo-lg" role="img" aria-label="aifico"></span>
-                    <h1 class="text-xl font-bold tracking-tight" data-edition-title>aifico Money Manager</h1><button type="button" id="vault-help-btn" class="vault-help-btn" onclick="app.openPasswordHelp()" aria-label="Help with your password">?</button>
+                    <h1 class="text-xl font-bold tracking-tight" data-edition-title>aifico Ledger</h1><button type="button" id="vault-help-btn" class="vault-help-btn" onclick="app.openPasswordHelp()" aria-label="Help with your password">?</button>
                     <p id="vault-subtitle" class="text-sm text-slate-500 dark:text-slate-400">Unlock your vault</p>
                 </div>
 
@@ -139,7 +139,7 @@
                         <span class="brand-logo w-9 h-9 shadow-md" role="img" aria-label="aifico"></span>
                         <div class="min-w-0">
                             <h2 class="font-bold text-sm leading-tight">aifico</h2>
-                            <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium" data-edition-label>Money Manager</p>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium" data-edition-label>Ledger</p>
                         </div>
                     </div>
                     <button id="nav-close" type="button" aria-label="Hide navigation" title="Hide navigation" onclick="app.closeNavigation()" class="sm:hidden shrink-0 ml-2 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"><i data-lucide="x" class="w-5 h-5"></i></button>
@@ -212,7 +212,7 @@
             <main class="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
                 <!-- Top Header Bar -->
                 <header id="app-main-header" class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-8 flex items-center justify-between z-10">
-                    <div class="flex items-center gap-3 min-w-0"><button id="nav-toggle" aria-label="Open navigation" title="Open navigation" onclick="app.toggleNavigation()" class="shrink-0 p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"><i data-lucide="menu" class="w-5 h-5"></i></button><span id="hdr-app" class="hdr-app">aifico <span>Money Manager</span><em id="hdr-crumb" class="hdr-crumb"></em></span></div>
+                    <div class="flex items-center gap-3 min-w-0"><button id="nav-toggle" aria-label="Open navigation" title="Open navigation" onclick="app.toggleNavigation()" class="shrink-0 p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"><i data-lucide="menu" class="w-5 h-5"></i></button><span id="hdr-app" class="hdr-app">aifico <span>Ledger</span><em id="hdr-crumb" class="hdr-crumb"></em></span></div>
                     <div class="flex items-center space-x-3">
                         <button onclick="app.openTransactionModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl text-sm shadow-sm flex items-center space-x-2">
                             <i data-lucide="plus" class="w-4 h-4"></i>
@@ -550,7 +550,7 @@
                     <div id="panel-configuration" class="tab-panel space-y-6 hidden">
                         <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
                             
-                            <p class="text-sm text-slate-500">Set up how aifico Money Manager organizes your records. These choices affect categorization and reporting; they do not delete transaction history.</p>
+                            <p class="text-sm text-slate-500">Set up how aifico Ledger organizes your records. These choices affect categorization and reporting; they do not delete transaction history.</p>
                         </div>
                         <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
                             <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 gap-3">
@@ -660,7 +660,7 @@
                     <div id="panel-guide" class="tab-panel space-y-6 hidden">
                         <section class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
                             <p class="text-xs font-semibold uppercase tracking-wider text-emerald-600">In-app reference</p>
-                            <h2 class="text-2xl font-bold">aifico Money Manager User Guide</h2>
+                            <h2 class="text-2xl font-bold">aifico Ledger User Guide</h2>
                             <p class="text-sm text-slate-500 dark:text-slate-400">Version <span data-app-version></span> · Use this guide as a quick reference while working in the app.</p>
                             <div class="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-4 text-sm text-amber-900 dark:text-amber-200"><strong>Safety first:</strong> Before destructive actions, download and verify a full encrypted vault backup. Use dummy data to test unfamiliar workflows. Keep backup files private because they may contain sensitive financial information.</div>
                         </section>
@@ -689,7 +689,7 @@
                         <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">Scheduled payments and salary</h3><ol class="list-decimal pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Open Schedules. Tap <strong>Set Monthly Salary</strong> and enter a title, the amount, the account it is paid into, the day of the month and the start date. The salary is added to Core Ledger automatically each month on that day.</li><li>Tap <strong>Add Auto Debit / Transfer</strong> for a regular payment. Choose the paying account, then either another account (a transfer, such as a SIP) or a category (an expense, such as rent or insurance). Set the amount, frequency (daily, weekly, monthly, quarterly or yearly), start date, and an optional end date or number of times. Choose the Income type for money that comes in.</li><li>Entries saved with <strong>Repeat</strong> or <strong>Installments</strong> in the Add form are listed here too, with the next date and how many are done.</li><li>On each due date the entry is posted to Core Ledger and the balances update. Each date is posted only once.</li><li>Use <strong>Edit</strong>, <strong>Enable</strong> / <strong>Disable</strong> or <strong>Delete</strong> on a schedule to change it. A disabled schedule posts nothing.</li></ol></article>
                         <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">Shared &amp; Split expenses</h3><ol class="list-decimal pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Open Shared &amp; Split and add the people you share costs with under <strong>People</strong>. "Me" is always there.</li><li>Tap <strong>+</strong> (New event) to create a trip, event or shared household and choose who takes part.</li><li>Under <strong>Expenses</strong>, pick the event and tap <strong>+ Add shared expense</strong>. Enter the amount, description, date and who paid, then how to split it: <strong>Equally among everyone</strong>, <strong>Selected people only</strong>, or <strong>exact amounts</strong> per person (these must add up to the total).</li><li>Leave <strong>Record my share in Core Ledger</strong> ticked to add your part to your own spending.</li><li>Each event shows everyone's balance: who <em>owes</em> and who <em>gets back</em>. <strong>Overview</strong> and <strong>Settlements</strong> suggest the fewest payments to settle up.</li><li>When someone pays, use <strong>Record settlement</strong>. Once everyone is square the event shows <em>Settled</em>, and you can close it.</li></ol></article>
                         <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">Categories</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li>Open Categories and tap <strong>Add Category</strong>, or <strong>Add subcategory</strong> under a category.</li><li>Categories used by imports, projects, loans and schedules are created for you when needed.</li><li>Budgets and dashboard charts group spending by these categories, so keep names consistent.</li><li>Each category has its own colour, used in Core Ledger, Stats, Budgets and the dashboard chart. Tap <strong>Edit</strong>, then the coloured circle next to a category to change it.</li></ul></article>
-                        <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">What Lite includes</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li><strong>Money Manager Lite</strong> includes Dashboard, Core Ledger (daily, calendar, monthly and total views), Stats, up to 5 accounts, Budgets, Categories, Goals with the big-purchase planner, Schedules (monthly salary and auto debits or transfers), Shared &amp; Split, SMS import and reconciliation, encrypted backup and restore, and dark mode. No limit on transactions or history.</li><li>Loans, fixed and recurring deposits, credit card statements, bank statement import and the Money Manager spreadsheet are part of the Pro edition.</li><li>Both editions use the same data. A Lite backup restores into Pro with nothing lost. A Pro backup restored into Lite keeps all its data, but Lite does not show or post Pro-only items.</li></ul></article>
+                        <article class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2"><h3 class="font-bold text-lg">What Lite includes</h3><ul class="list-disc pl-5 text-sm space-y-2 text-slate-600 dark:text-slate-300"><li><strong>aifico Ledger Lite</strong> includes Dashboard, Core Ledger (daily, calendar, monthly and total views), Stats, up to 5 accounts, Budgets, Categories, Goals with the big-purchase planner, Schedules (monthly salary and auto debits or transfers), Shared &amp; Split, SMS import and reconciliation, encrypted backup and restore, and dark mode. No limit on transactions or history.</li><li>Loans, fixed and recurring deposits, credit card statements, bank statement import and the Money Manager spreadsheet are part of the Pro edition.</li><li>Both editions use the same data. A Lite backup restores into Pro with nothing lost. A Pro backup restored into Lite keeps all its data, but Lite does not show or post Pro-only items.</li></ul></article>
                         </section>
                         <section class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4">
                             <h3 class="font-bold text-xl">7. Backup and restore</h3>
