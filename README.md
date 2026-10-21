@@ -1,6 +1,6 @@
-# aifico Ledger Lite
+# aifico ledger lite
 
-aifico Ledger Lite: a private, offline money tracker that runs in the browser. Your data is encrypted with your master password and stays on your device.
+aifico ledger lite: a private, offline money tracker that runs in the browser. Your data is encrypted with your master password and stays on your device.
 
 ## What's included
 
@@ -22,7 +22,7 @@ aifico Ledger Lite: a private, offline money tracker that runs in the browser. Y
 ## Build a single file (for a phone)
 
 ```bash
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\build.ps1 -App app -Out dist\aifico_money_manager_lite.html
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\build.ps1 -App app -Out dist\aifico_ledger_lite.html
 ```
 
 ## Run locally

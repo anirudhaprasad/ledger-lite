@@ -1,7 +1,7 @@
 # Bundle app\ back into one self-contained HTML file (for opening on a phone).
 # Inlines local stylesheets, scripts (including vendor\ libraries) and fonts, so the file works offline.
-# Usage: powershell -File tools\build.ps1 [-App app] [-Out dist\aifico_money_manager.html]
-param([string]$App = 'app', [string]$Out = 'dist\aifico_money_manager.html')
+# Usage: powershell -File tools\build.ps1 [-App app] [-Out dist\aifico_ledger.html]
+param([string]$App = 'app', [string]$Out = 'dist\aifico_ledger.html')
 $ErrorActionPreference = 'Stop'
 $utf8 = New-Object Text.UTF8Encoding $false
 $root = (Resolve-Path $App).Path

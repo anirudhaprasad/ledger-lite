@@ -241,7 +241,7 @@ ${lines.join('\n')}`;
                     }
                 }
                 const backup = {
-                    app: 'aifico-money-manager',
+                    app: 'aifico-ledger',
                     backupType: 'full-encrypted-vault',
                     backupFormatVersion: 2,
                     createdAt: new Date().toISOString(),
@@ -263,14 +263,12 @@ ${lines.join('\n')}`;
                 const blob = new Blob([json], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                // Filename stamp: local date/time, sortable and filesystem-safe.
-                const backupDate = new Date();
-                const pad2 = value => String(value).padStart(2, '0');
-                const stamp = `${backupDate.getFullYear()}${pad2(backupDate.getMonth() + 1)}${pad2(backupDate.getDate())}-${pad2(backupDate.getHours())}${pad2(backupDate.getMinutes())}${pad2(backupDate.getSeconds())}`;
+                // File name: aificoledger-YYMMDD-HHmm (see fileStamp)
+                const stamp = this.fileStamp();
                 a.href = url;
                 a.download = forFullErase
-                    ? `aificomm-${stamp}-full-backup-encrypted.json`
-                    : `aificomm-${stamp}-full-backup-encrypted.json`;
+                    ? `${stamp}-full-backup-encrypted.json`
+                    : `${stamp}-full-backup-encrypted.json`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
@@ -279,17 +277,17 @@ ${lines.join('\n')}`;
                 if (forFullErase) {
                     // Generate a separate downloadable recovery-code file, never include the
                     // plaintext code in the encrypted backup, and verify recovery payload before downloads.
-                    const codeText = `aifico Ledger — Full Erase Recovery Code\n\nBackup file: aificomm-${stamp}-full-backup-encrypted.json\nCreated: ${backup.createdAt}\n\nRecovery code:\n${recoveryCode}\n\nKeep this file separate from the encrypted backup. Anyone with both files can access your financial data. Do not upload either file to a public location.\n`;
+                    const codeText = `aifico ledger — Full Erase Recovery Code\n\nBackup file: ${stamp}-full-backup-encrypted.json\nCreated: ${backup.createdAt}\n\nRecovery code:\n${recoveryCode}\n\nKeep this file separate from the encrypted backup. Anyone with both files can access your financial data. Do not upload either file to a public location.\n`;
                     const codeBlob = new Blob([codeText], { type: 'text/plain;charset=utf-8' });
                     const codeUrl = URL.createObjectURL(codeBlob);
                     const codeAnchor = document.createElement('a');
                     codeAnchor.href = codeUrl;
-                    codeAnchor.download = `aificomm-${stamp}-full-backup-code.txt`;
+                    codeAnchor.download = `${stamp}-full-backup-code.txt`;
                     document.body.appendChild(codeAnchor);
                     codeAnchor.click();
                     codeAnchor.remove();
                     setTimeout(() => URL.revokeObjectURL(codeUrl), 1500);
-                    alert(`FULL ERASE BACKUP VERIFIED\n\nTwo files should download:\n1. aificomm-${stamp}-full-backup-encrypted.json\n2. aificomm-${stamp}-full-backup-code.txt\n\nRecovery code — save it separately from the backup file:\n\n${recoveryCode}\n\nThis code can decrypt the recovery copy inside THIS Full Erase backup if you forget the master password. It is not stored in plain text in the encrypted backup or in the app. Anyone with both files can access your financial data. Copy it exactly and store it securely. The app will ask you to confirm that you saved both files before erase can continue.`);
+                    alert(`FULL ERASE BACKUP VERIFIED\n\nTwo files should download:\n1. ${stamp}-full-backup-encrypted.json\n2. ${stamp}-full-backup-code.txt\n\nRecovery code — save it separately from the backup file:\n\n${recoveryCode}\n\nThis code can decrypt the recovery copy inside THIS Full Erase backup if you forget the master password. It is not stored in plain text in the encrypted backup or in the app. Anyone with both files can access your financial data. Copy it exactly and store it securely. The app will ask you to confirm that you saved both files before erase can continue.`);
                     try { await navigator.clipboard?.writeText(recoveryCode); } catch (_) {}
                 } else {
                     alert(`VERIFIED FULL VAULT BACKUP PREPARED\n\nCore Ledger transactions (all records): ${c.transactions}\n  Active: ${c.ledgerActive} | Excluded but retained: ${c.ledgerExcluded}\nAccounts & Wallets: ${c.accounts}\nCategories / subcategories: ${c.categories} / ${c.subcategories}\nBudgets: ${c.budgets}\nYearly scheduled items: ${c.yearlyScheduledItems}\nRecurring schedule entries: ${c.recurringSchedules}\nGoals: ${c.goals}\nShared expense splits: ${c.sharedSplits}\nSplit members: ${c.splitMembers}\nSalary schedule: ${c.salarySchedule ? 'included' : 'not present'}\nBank/import profiles: ${c.bankProfiles}\nImport history: ${c.importHistory}\n\nThe encrypted payload includes the complete vault object, not just these counted sections. Keep this file and remember the master password. No recovery code was generated for this normal backup.`);
@@ -375,14 +373,14 @@ ${lines.join('\n')}`;
                 try {
                     if (file.size <= 0) throw new Error('The selected backup file is empty.');
                     if (file.size > 250 * 1024 * 1024) throw new Error('The selected backup is unusually large (over 250 MB) and was rejected for safety.');
-                    if (!/\.json$/i.test(file.name)) throw new Error('Please select the encrypted Full Backup JSON file (aificomm-…-full-backup-encrypted.json). Do not select the recovery-code TXT file or a raw .db file.');
+                    if (!/\.json$/i.test(file.name)) throw new Error('Please select the encrypted Full Backup JSON file (aificoledger-…-full-backup-encrypted.json). Do not select the recovery-code TXT file or a raw .db file.');
                     const content = await file.text();
                     let payload;
                     try { payload = JSON.parse(content); }
-                    catch (_) { throw new Error('The selected file is not valid JSON. Choose the matching aificomm-…-full-backup-encrypted.json file, not a database file or recovery-code TXT file.'); }
+                    catch (_) { throw new Error('The selected file is not valid JSON. Choose the matching aificoledger-…-full-backup-encrypted.json file, not a database file or recovery-code TXT file.'); }
                     let encryptedPayload;
                     let backupMeta = null;
-                    if (payload && payload.app === 'aifico-money-manager' && payload.backupType === 'full-encrypted-vault') {
+                    if (payload && ['aifico-ledger','aifico-money-manager'].includes(payload.app) && payload.backupType === 'full-encrypted-vault') {
                         if (payload.backupFormatVersion !== 2) throw new Error('Unsupported full-backup format version: ' + String(payload.backupFormatVersion));
                         if (!payload.encryptedVault || !Array.isArray(payload.encryptedVault.salt) || payload.encryptedVault.salt.length === 0 || !Array.isArray(payload.encryptedVault.iv) || payload.encryptedVault.iv.length === 0 || !Array.isArray(payload.encryptedVault.ciphertext) || payload.encryptedVault.ciphertext.length === 0) throw new Error('The full backup is missing or has an incomplete encrypted vault payload.');
                         if (!payload.recordCounts || typeof payload.recordCounts !== 'object' || Array.isArray(payload.recordCounts)) throw new Error('Backup integrity check failed: record-count metadata is missing or invalid. The current vault has not been changed.');

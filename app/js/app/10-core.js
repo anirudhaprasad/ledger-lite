@@ -278,6 +278,8 @@
             renderAutoLockSetting(){ const s=document.getElementById('auto-lock-select'); if(s)s.value=String(this.autoLockMinutes()); }
             /** Locks when the app has not been used for the chosen time. Also checked the moment the app comes back to the front. */
             checkAutoLock(){ if(!this.currentPassword)return false; const mins=this.autoLockMinutes(); if(!mins)return false; if(Date.now()-(this._lastActivity||Date.now())<mins*60000)return false; this.lockVault({reason:'auto',minutes:mins}); return true; }
+            /** Name prefix for every file the app saves (backups, exports): aificoledger-YYMMDD-HHmm, local time, sorts by date. */
+            fileStamp(d=new Date()){ const p=v=>String(v).padStart(2,'0'); return `aificoledger-${p(d.getFullYear()%100)}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`; }
             /** Phones scroll the whole page: mark it scrolled (with a gap between on and off, so the pinned bar folding never flickers). */
             watchPageScroll(){
                 if(this._pageScrollWatch)return; this._pageScrollWatch=true; let on=false, queued=false;
@@ -423,7 +425,7 @@
                 shared:['Shared & Split','Shared expenses and split settlements with family and friends.'],
                 sms:['SMS import & reconciliation','Read bank SMS, match them with Core Ledger and merge only what is missing.'],
                 importer:['Bank statement import','Import Excel, CSV, XML or OFX statements and review them before adding.'],
-                spreadsheet:['Money Manager spreadsheet sync','Import and export your ledger as Excel or CSV for Money Manager.'],
+                spreadsheet:['aifico ledger spreadsheet sync','Import and export your ledger as an Excel or CSV spreadsheet.'],
                 card:['Credit card statements','Statement cycles, due dates, minimum due, and Settled/Unsettled spends.'],
                 plans:['Loans, FDs & RDs','EMIs, FD and RD maturity, activation and automatic Core Ledger entries.'],
                 accounts:['More than 3 accounts','Lite includes up to 3 accounts. Pro has no limit.']})[key]||['This feature','Available in aifico Pro.']; }
@@ -445,15 +447,15 @@
              */
             applyEdition(){
                 const pro=this.isPro(); if(!this.isDeveloper())document.querySelectorAll('[data-dev-only]').forEach(e=>e.remove()); document.body.classList.toggle('edition-lite',!pro); document.body.classList.toggle('edition-pro',pro);
-                // Version from js/04-version.js: "Ledger v1.2610.85 · Developer" under "aifico" in the side menu (the edition is a word, not a letter on the number)
-                const v=window.aificoVersion?window.aificoVersion():{label:'',detail:''}; const label=`Ledger ${v.label} · ${this.editionName()}`;
+                // Version from js/04-version.js: "ledger v1.2610.85 · Developer" under "aifico" in the side menu (the edition is a word, not a letter on the number)
+                const v=window.aificoVersion?window.aificoVersion():{label:'',detail:''}; const label=`ledger ${v.label} · ${this.editionName()}`;
                 document.querySelectorAll('[data-app-version]').forEach(el=>{el.textContent=`${v.label} · ${this.editionName()} · ${v.detail}`;});
                 document.querySelectorAll('[data-edition-label]').forEach(el=>{el.textContent=label;});
-                document.querySelectorAll('[data-edition-title]').forEach(el=>{el.innerHTML=`aifico Ledger <span class="vault-edition">${this.escapeHtml(this.editionName())}</span>`;});
-                document.title=`aifico Ledger ${v.label} · ${this.editionName()}`;
+                document.querySelectorAll('[data-edition-title]').forEach(el=>{el.innerHTML=`aifico ledger <span class="vault-edition">${this.escapeHtml(this.editionName())}</span>`;});
+                document.title=`aifico ledger ${v.label} · ${this.editionName()}`;
                 if(!pro){
                     ['yearly','goals','shared'].forEach(t=>document.querySelectorAll(`#app-sidebar [data-tab="${t}"]`).forEach(b=>{ if(!b.querySelector('.pro-badge'))b.insertAdjacentHTML('beforeend','<span class="pro-badge pro-badge-sm">PRO</span>'); }));
-                    document.querySelectorAll('.set-card .set-title').forEach(h=>{ if(/^(Import|Money Manager spreadsheet)$/.test(h.textContent.trim())&&!h.querySelector('.pro-badge'))h.insertAdjacentHTML('beforeend',' <span class="pro-badge pro-badge-sm">PRO</span>'); });
+                    document.querySelectorAll('.set-card .set-title').forEach(h=>{ if(/^(Import|aifico ledger spreadsheet)$/.test(h.textContent.trim())&&!h.querySelector('.pro-badge'))h.insertAdjacentHTML('beforeend',' <span class="pro-badge pro-badge-sm">PRO</span>'); });
                     const sched=document.querySelector('#bottom-nav button[data-tab="yearly"]');
                     if(sched){ sched.dataset.tab='budgets'; sched.setAttribute('onclick',"app.switchTab('budgets')"); sched.innerHTML='<i data-lucide="pie-chart"></i><span>Budgets</span>'; window.lucide?.createIcons?.(); }
                 }
@@ -625,7 +627,7 @@
             saveLedgerHeaderPrefs(p){ try{ localStorage.setItem('aifico_ledger_header',JSON.stringify(p)); }catch(e){} this.applyLedgerHeader(); }
             // Backup & Settings: an icon on every card; descriptions sit behind an ⓘ button
             decorateSettings(){
-                const icons={'backup & restore':'archive-restore','default account':'landmark','navigation':'navigation','import':'file-down','money manager spreadsheet':'sheet','data health':'heart-pulse','security':'shield-check','sms entries in core ledger':'message-square','erase all data':'trash-2','reconciliation':'scale'};
+                const icons={'backup & restore':'archive-restore','default account':'landmark','navigation':'navigation','import':'file-down','aifico ledger spreadsheet':'sheet','data health':'heart-pulse','security':'shield-check','sms entries in core ledger':'message-square','erase all data':'trash-2','reconciliation':'scale'};
                 document.querySelectorAll('#panel-settings .set-card').forEach(card=>{ if(card.dataset.decorated)return; const h=card.querySelector('.set-title'); if(!h)return; card.dataset.decorated='1';
                     const key=h.childNodes[0]?.textContent?.trim().toLowerCase()||h.textContent.trim().toLowerCase(); const ic=icons[Object.keys(icons).find(k=>key.startsWith(k))]||'settings';
                     h.insertAdjacentHTML('afterbegin',`<i data-lucide="${ic}" class="set-ic"></i>`);

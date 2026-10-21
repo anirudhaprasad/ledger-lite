@@ -1,7 +1,7 @@
         // Persistent encrypted-vault storage: IndexedDB primary, legacy localStorage migration/fallback.
         // Existing data is copied only when the IndexedDB key is absent; no automatic overwrite/reset occurs.
         /*
-         * AIFICO LEDGER (formerly Money Manager) — SOURCE GUIDE
+         * AIFICO LEDGER — SOURCE GUIDE
          * This file is the v1.2610.84 working baseline. Comments document intent;
          * executable statements, formulas, data structures, and UI behavior are unchanged.
          * Data is held in the app model and persisted through the storage/vault layer.

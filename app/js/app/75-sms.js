@@ -18,7 +18,7 @@
             applyBalanceEffect(t,sign){ const acc=(this.data.accounts||[]).find(a=>a.name===t.account); const delta=this.smsBalanceEffect(t)*sign; if(acc&&delta)acc.balance=(Number(acc.balance)||0)+delta; }
             // An SMS entry is a duplicate when another counted transaction has the same account, amount and direction, and
             // either the same reference ID, or (when either side has no reference ID) a date within one day.
-            // Non-SMS entries (manual, Money Manager, statement, scheduled) are always the actual record; among SMS entries the first one imported wins.
+            // Non-SMS entries (manual, aifico ledger spreadsheet, statement, scheduled) are always the actual record; among SMS entries the first one imported wins.
             /**
              * Handles the detect sms duplicates workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: none. Side effects, if any, are described by the statements below.
