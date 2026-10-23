@@ -71,6 +71,7 @@
                     document.getElementById('vault-screen')?.classList.add('vault-first-run');
                 } else {
                     document.getElementById('vault-action-btn').onclick = () => this.unlockVault();
+                    const hint=this.restoredHint(); if(hint)this.setVaultLoginStatus(hint,'info');
                 }
 
                 document.getElementById('vault-restore-file').onchange = (e) => this.restoreVaultBackup(e);
@@ -214,7 +215,7 @@
                     try {
                         this.data = await this.vault.decryptData(stored, pwd);
                     } catch (e) {
-                        this.setVaultLoginStatus('Could not unlock the vault. Check the password or restore a verified backup if you suspect the vault file is damaged.');
+                        { const hint=this.restoredHint(); this.setVaultLoginStatus(hint?'That password does not open the restored data. '+hint:'Could not unlock the vault. Check the password or restore a verified backup if you suspect the vault file is damaged.'); }
                         input.select();
                         input.focus();
                         return;
@@ -264,7 +265,10 @@
              * Handles the enter app workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: none. Side effects, if any, are described by the statements below.
              */
+            /** After a restore (until the first unlock): which password opens the restored data. */
+            restoredHint(){ let k=null; try{ k=localStorage.getItem('aifico_restored'); }catch(e){} return k==='code'?'Backup restored with its backup code: unlock with the NEW master password you set while restoring (not the old one).':k==='password'?'Backup restored: unlock with the master password that backup was made with.':''; }
             enterApp() {
+                try{ localStorage.removeItem('aifico_restored'); }catch(e){}
                 document.getElementById('vault-screen').classList.add('hidden');
                 document.getElementById('main-layout').classList.remove('hidden');
                 this.renderAll();

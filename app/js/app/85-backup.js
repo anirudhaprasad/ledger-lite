@@ -494,6 +494,7 @@ ${lines.join('\n')}`;
                     if (JSON.stringify(verifiedCounts) !== JSON.stringify(actualCounts)) throw new Error('Post-restore verification failed: saved record counts do not match the preview.');
                     // The restore is committed only after the saved vault decrypts and validates.
                     alert('RESTORE SUCCESSFUL — the saved vault was decrypted and verified.\n\n' + summary + (recoveryKey ? '\n\nA recovery snapshot of the previous vault was also saved in this browser under aifico_vault_pre_restore_… . Keep a separate downloaded backup as well.' : '') + '\n\nThe app will reload. Unlock with the master password for the restored backup.');
+                    try { localStorage.setItem('aifico_restored', usedRecoveryCode ? 'code' : 'password'); } catch (_) {}
                     location.reload();
                 } catch (err) {
                     // Roll back if the active vault was changed but any verification failed.
