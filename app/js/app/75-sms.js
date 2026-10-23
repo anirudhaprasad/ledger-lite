@@ -309,8 +309,31 @@ Type REMOVE SMS to continue:`);
              * Returns or checks find sms matches.
              * Parameters: item. Side effects, if any, are described by the statements below.
              */
+            /** Core Ledger transactions already standing for an SMS: matched to one, or added from one (Merge). One SMS each. */
+            smsClaimedTx(exceptId){
+                const used=new Set(); const except=exceptId==null?null:String(exceptId);
+                (this.data.smsInbox||[]).forEach(x=>{ if(String(x.id)===except)return; if(x.status==='matched'&&x.matchedTransactionId)used.add(String(x.matchedTransactionId)); if(x.status==='merged'&&x.mergedTransactionId)used.add(String(x.mergedTransactionId)); });
+                (this.data.tx||[]).forEach(t=>{ if(t&&t.smsInboxId!=null&&String(t.smsInboxId)!==except)used.add(String(t.id)); });
+                return used;
+            }
+            /**
+             * Matched SMS that share one transaction (an earlier Confirm match could reuse it), or whose transaction is gone or
+             * excluded, go back to Pending review: each SMS needs its own Core Ledger entry. The best fit keeps the match.
+             */
+            repairSmsMatches(){
+                const inbox=this.data.smsInbox||[]; const norm=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,''); let reset=0;
+                const byTx=new Map();
+                inbox.filter(x=>x.status==='matched').forEach(x=>{ const t=(this.data.tx||[]).find(t=>String(t.id)===String(x.matchedTransactionId));
+                    if(!t||t.excludedFromLedger){ x.status='pending'; x.matchReason='Returned to pending: its matched transaction is no longer in Core Ledger'; delete x.matchedTransactionId; reset++; return; }
+                    const k=String(t.id); if(!byTx.has(k))byTx.set(k,[]); byTx.get(k).push({x,t}); });
+                byTx.forEach(list=>{ if(list.length<2)return;
+                    const fit=({x,t})=>{ const r=norm(x.reference); const exact=r.length>=6&&norm(t.reference||t.transactionId||t.utr)===r; const a=this.smsDateDay(x.date), b=this.smsDateDay(t.date); return (exact?0:1000)+(a!=null&&b!=null?Math.abs(a-b):99); };
+                    list.sort((p,q)=>fit(p)-fit(q)).slice(1).forEach(({x})=>{ x.status='pending'; x.matchReason='Returned to pending: another SMS is matched to the same Core Ledger transaction'; delete x.matchedTransactionId; reset++; }); });
+                return reset;
+            }
             findSmsMatches(item){
-                const txs=(this.data.tx||[]).filter(t=>t&&!this.isSmsTx(t)&&!t.excludedFromLedger);
+                const claimed=this.smsClaimedTx(item.id);
+                const txs=(this.data.tx||[]).filter(t=>t&&!this.isSmsTx(t)&&!t.excludedFromLedger&&!claimed.has(String(t.id)));
                 const norm=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
                 const ref=this.extractReconciliationReference(item),day=this.smsDateDay(item.date),want=Math.round((Number(item.amount)||0)*100);
                 return txs.map(t=>{
@@ -319,6 +342,7 @@ Type REMOVE SMS to continue:`);
                     const txRef=norm(t.reference||t.transactionId||t.utr),td=this.smsDateDay(t.date),dateDiff=day!==null&&td!==null?Math.abs(day-td):99;
                     const hint=norm(item.accountHint),account=norm(t.account);if(hint&&!account.includes(hint))return null;
                     const exactRef=ref.length>=6&&txRef===ref;
+                    if(ref.length>=6&&txRef.length>=6&&!exactRef)return null;   // both have a reference and they differ
                     if(exactRef)return {t,score:1000,reason:'Exact UTR/IMPS/reference + amount + direction',exactRef:true,dateDiff};
                     if(dateDiff<=7)return {t,score:100-dateDiff,reason:`Same amount and direction; date difference ${dateDiff} day(s)${item.accountHint?' + account hint':''}`,exactRef:false,dateDiff};
                     return null;
@@ -334,7 +358,7 @@ Type REMOVE SMS to continue:`);
                 const norm=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
                 const dayOf=v=>{const d=this.smsDateDay(v);return Number.isFinite(d)?d:null;};
                 const ledger=(this.data.tx||[]).filter(t=>t&&!this.isSmsTx(t)&&!t.excludedFromLedger);
-                const usedTx=new Set((this.data.smsInbox||[]).filter(x=>x.status==='matched'&&x.matchedTransactionId).map(x=>String(x.matchedTransactionId)));
+                const usedTx=this.smsClaimedTx();
                 let matched=0,ambiguous=0,unmatched=0,refMatches=0,detailMatches=0;
                 const decisions=[];
                 for(const item of inbox){
@@ -352,6 +376,7 @@ Type REMOVE SMS to continue:`);
                         if(hint && !account.includes(hint))return false;
                         const txRef=norm(t.reference||t.transactionId||t.utr);
                         const exactRef=ref.length>=6 && txRef===ref;
+                        if(ref.length>=6 && txRef.length>=6 && !exactRef)return false;
                         const txDay=dayOf(t.date);
                         const dateClose=smsDay!==null&&txDay!==null&&Math.abs(smsDay-txDay)<=1;
                         // Fallback is intentionally conservative: amount + direction + date window,
@@ -396,6 +421,7 @@ Type REMOVE SMS to continue:`);
              */
             renderSmsReconciliation(){
                 const body=document.getElementById('sms-reconcile-tbody'); if(!body)return;
+                { const reset=this.repairSmsMatches(); if(reset){ this.saveVault(); this.showToast(`${reset} SMS ${reset===1?'was':'were'} matched to a Core Ledger entry that another SMS already stands for, or that is gone. ${reset===1?'It is':'They are'} back in Pending review: merge ${reset===1?'it':'them'} to add ${reset===1?'it':'them'}.`,{ms:9000}); } }
                 const inbox=this.data.smsInbox||(this.data.smsInbox=[]);
                 const counts={pending:0,matched:0,merged:0,ignored:0,duplicate:0,error:0};
                 inbox.forEach(x=>{const st=x.status||'pending';counts[st]=(counts[st]||0)+1;});
@@ -411,6 +437,7 @@ Type REMOVE SMS to continue:`);
                     let actions='';
                     if(status==='pending') actions=`<button class="px-2 py-1 rounded border" onclick="app.mergeSmsInbox('${String(item.id).replace(/'/g,"\\'")}')">Merge to Core Ledger</button> <button class="px-2 py-1 rounded border" onclick="app.ignoreSmsInbox('${String(item.id).replace(/'/g,"\\'")}')">Ignore</button>`;
                     else if(status==='ignored'||status==='duplicate'||status==='error') actions=`<button class="px-2 py-1 rounded border" onclick="app.reopenSmsInbox('${String(item.id).replace(/'/g,"\\'")}')">Return to pending</button>`;
+                    else if(status==='matched'){ const mt=(this.data.tx||[]).find(t=>String(t.id)===String(item.matchedTransactionId)); actions=`<div class="text-slate-600 dark:text-slate-300">Matched to Core Ledger: ${mt?`${this.escapeHtml(mt.date||'')} · ${this.escapeHtml(mt.payee||mt.description||'')} · ${CUR()}${(Number(mt.amount)||0).toLocaleString('en-IN')}`:'(not found)'}</div><button class="px-2 py-1 rounded border mt-1" onclick="app.reopenSmsInbox('${String(item.id).replace(/'/g,"\\'")}')">Undo match</button>`; }
                     else actions=`<span class="text-slate-500">${this.escapeHtml(status)}</span>`;
                     return `<tr class="border-b border-slate-100 dark:border-slate-800 align-top"><td class="p-2 whitespace-nowrap">${this.escapeHtml(item.date||'')}</td><td class="p-2 min-w-56"><div class="font-medium">${this.escapeHtml(item.payee||item.description||'SMS')}</div><div class="text-slate-500 whitespace-normal">${this.escapeHtml(item.description||'')}</div><div class="text-slate-400">${this.escapeHtml(item.sourceFile||'')}</div></td><td class="p-2 whitespace-nowrap">${item.type==='Income'?'+':'−'}${CUR()}${(Number(item.amount)||0).toLocaleString('en-IN')}</td><td class="p-2">${this.escapeHtml(item.reference||'—')}</td><td class="p-2 min-w-64">${status==='pending'?matchHtml:this.escapeHtml(item.matchedTransactionId||item.matchReason||'—')}</td><td class="p-2">${this.escapeHtml(status)}</td><td class="p-2 min-w-40">${actions}</td></tr>`;
                 }).join('');
@@ -434,7 +461,8 @@ Type REMOVE SMS to continue:`);
              */
             reopenSmsInbox(inboxId){
                 const item=(this.data.smsInbox||[]).find(x=>String(x.id)===String(inboxId));
-                if(!item||!['ignored','duplicate','error'].includes(item.status))return;
+                if(!item||!['ignored','duplicate','error','matched'].includes(item.status))return;
+                delete item.matchedTransactionId;
                 item.status='pending'; item.reviewedAt=null; item.matchReason='Returned to pending by user';
                 this.saveVault(); this.renderSmsReconciliation();
             }
@@ -442,7 +470,7 @@ Type REMOVE SMS to continue:`);
              * Handles the confirm sms match workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: inboxId,txId. Side effects, if any, are described by the statements below.
              */
-            async confirmSmsMatch(inboxId,txId){const item=(this.data.smsInbox||[]).find(x=>String(x.id)===String(inboxId));const tx=(this.data.tx||[]).find(x=>String(x.id)===String(txId)&&!this.isSmsTx(x));if(!item||!tx)return alert('The SMS or bank transaction could not be found. Refresh and review again.');if(!await this.uiConfirm(`Mark this SMS as already present in Core Ledger?\n\nSMS: ${item.date} ${CUR()}${item.amount} ${item.payee}\nBank transaction: ${tx.date} ${CUR()}${tx.amount} ${tx.payee||tx.description||''}\n\nNo new transaction will be created.`))return;item.status='matched';item.matchedTransactionId=String(tx.id);item.matchReason='Human confirmed';item.reviewedAt=new Date().toISOString();this.saveVault();this.renderSmsReconciliation();}
+            async confirmSmsMatch(inboxId,txId){const item=(this.data.smsInbox||[]).find(x=>String(x.id)===String(inboxId));const tx=(this.data.tx||[]).find(x=>String(x.id)===String(txId)&&!this.isSmsTx(x));if(!item||!tx)return alert('The SMS or bank transaction could not be found. Refresh and review again.');if(this.smsClaimedTx(item.id).has(String(tx.id)))return alert('That Core Ledger transaction already stands for another SMS. Use Merge to Core Ledger to add this SMS as its own entry.');if(!await this.uiConfirm(`Mark this SMS as already present in Core Ledger?\n\nSMS: ${item.date} ${CUR()}${item.amount} ${item.payee}\nBank transaction: ${tx.date} ${CUR()}${tx.amount} ${tx.payee||tx.description||''}\n\nNo new transaction will be created.`))return;item.status='matched';item.matchedTransactionId=String(tx.id);item.matchReason='Human confirmed';item.reviewedAt=new Date().toISOString();this.saveVault();this.renderSmsReconciliation();}
             /**
              * Handles the merge sms inbox workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: inboxId. Side effects, if any, are described by the statements below.
