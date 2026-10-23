@@ -391,3 +391,12 @@ body.form-open #page-title-bar { display: none !important; }
 /* Forms inside the page: no floating + over them, and scrolling to a form button stops above the bottom menu */
 body.form-open.nav-bottom #app-main-header button[onclick="app.openTransactionModal()"] { display: none !important; }
 #modal-container.embedded #modal-box :is(button, input, select, textarea) { scroll-margin-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); scroll-margin-top: 76px; }
+
+/* Hide amounts (eye in the top bar): the button, and charts blurred while hidden */
+.hdr-mask { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; border: 1px solid #e2e8f0; background: #fff; color: #475569; cursor: pointer; flex: none; }
+.hdr-mask:hover { color: #059669; border-color: #a7f3d0; }
+.hdr-mask.on { color: #b45309; background: #fffbeb; border-color: #fcd34d; }
+.dark .hdr-mask { background: #1e293b; border-color: #334155; color: #cbd5e1; }
+.dark .hdr-mask.on { color: #fbbf24; background: rgba(251,191,36,.12); border-color: #92400e; }
+body.money-masked #main-layout canvas { filter: blur(7px); }
+@media (max-width: 767px) { .hdr-mask { width: 38px; height: 38px; } }

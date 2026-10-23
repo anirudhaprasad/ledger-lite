@@ -223,11 +223,11 @@ ${lines.join('\n')}`;
                     return alert('Backup was not created because the current vault could not be verified. No file was downloaded.\n\n' + (err && err.message ? err.message : 'Vault verification failed.'));
                 }
                 const parsedEncrypted = JSON.parse(stored);
-                // A separate, high-entropy recovery credential is created ONLY for the
-                // verified backup in the destructive Full Erase flow. Normal backups remain unchanged.
+                // Every backup gets a separate, high-entropy backup code and a second encrypted copy that only the code opens.
+                // Restoring with the code never needs the old master password; you set a new one after it opens.
                 let recoveryCode = null;
                 let recoveryEncryptedVault = null;
-                if (forFullErase) {
+                {
                     const random = window.crypto.getRandomValues(new Uint8Array(24));
                     const recoveryHex = Array.from(random, b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
                     recoveryCode = recoveryHex.match(/.{1,6}/g).join('-');
@@ -237,7 +237,7 @@ ${lines.join('\n')}`;
                         const recoveryCheck = this.validateBackupData(await this.vault.decryptData(JSON.stringify(recoveryEncryptedVault), recoveryHex));
                         if (JSON.stringify(this.getBackupRecordCounts(recoveryCheck)) !== JSON.stringify(this.getBackupRecordCounts(data))) throw new Error('Recovery payload record-count verification failed.');
                     } catch (err) {
-                        return alert('Full Erase stopped: the recovery-code copy could not be verified. No backup was downloaded and no data was reset.\n\n' + (err?.message || err));
+                        return alert((forFullErase ? 'Full Erase stopped' : 'Backup stopped') + ': the backup-code copy could not be verified. No backup was downloaded and no data was reset.\n\n' + (err?.message || err));
                     }
                 }
                 const backup = {
@@ -248,7 +248,7 @@ ${lines.join('\n')}`;
                     encryption: 'AES-GCM-256 / PBKDF2-SHA-256',
                     recordCounts: this.getBackupRecordCounts(data),
                     encryptedVault: parsedEncrypted,
-                    ...(forFullErase ? { recovery: { scheme: 'AES-GCM-256 / PBKDF2-SHA-256; separate random recovery credential', encryptedVault: recoveryEncryptedVault } } : {})
+                    recovery: { scheme: 'AES-GCM-256 / PBKDF2-SHA-256; separate random backup code', encryptedVault: recoveryEncryptedVault }
                 };
                 const json = JSON.stringify(backup);
                 // Round-trip the generated file structure and encrypted payload before offering the download.
@@ -266,32 +266,25 @@ ${lines.join('\n')}`;
                 // File name: aificoledger-YYMMDD-HHmm (see fileStamp)
                 const stamp = this.fileStamp();
                 a.href = url;
-                a.download = forFullErase
-                    ? `${stamp}-full-backup-encrypted.json`
-                    : `${stamp}-full-backup-encrypted.json`;
+                a.download = `${stamp}-full-backup-encrypted.json`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
                 setTimeout(() => URL.revokeObjectURL(url), 1500);
                 const c = backup.recordCounts;
-                if (forFullErase) {
-                    // Generate a separate downloadable recovery-code file, never include the
-                    // plaintext code in the encrypted backup, and verify recovery payload before downloads.
-                    const codeText = `aifico ledger — Full Erase Recovery Code\n\nBackup file: ${stamp}-full-backup-encrypted.json\nCreated: ${backup.createdAt}\n\nRecovery code:\n${recoveryCode}\n\nKeep this file separate from the encrypted backup. Anyone with both files can access your financial data. Do not upload either file to a public location.\n`;
-                    const codeBlob = new Blob([codeText], { type: 'text/plain;charset=utf-8' });
-                    const codeUrl = URL.createObjectURL(codeBlob);
-                    const codeAnchor = document.createElement('a');
-                    codeAnchor.href = codeUrl;
-                    codeAnchor.download = `${stamp}-full-backup-code.txt`;
-                    document.body.appendChild(codeAnchor);
-                    codeAnchor.click();
-                    codeAnchor.remove();
-                    setTimeout(() => URL.revokeObjectURL(codeUrl), 1500);
-                    alert(`FULL ERASE BACKUP VERIFIED\n\nTwo files should download:\n1. ${stamp}-full-backup-encrypted.json\n2. ${stamp}-full-backup-code.txt\n\nRecovery code — save it separately from the backup file:\n\n${recoveryCode}\n\nThis code can decrypt the recovery copy inside THIS Full Erase backup if you forget the master password. It is not stored in plain text in the encrypted backup or in the app. Anyone with both files can access your financial data. Copy it exactly and store it securely. The app will ask you to confirm that you saved both files before erase can continue.`);
-                    try { await navigator.clipboard?.writeText(recoveryCode); } catch (_) {}
-                } else {
-                    alert(`VERIFIED FULL VAULT BACKUP PREPARED\n\nCore Ledger transactions (all records): ${c.transactions}\n  Active: ${c.ledgerActive} | Excluded but retained: ${c.ledgerExcluded}\nAccounts & Wallets: ${c.accounts}\nCategories / subcategories: ${c.categories} / ${c.subcategories}\nBudgets: ${c.budgets}\nYearly scheduled items: ${c.yearlyScheduledItems}\nRecurring schedule entries: ${c.recurringSchedules}\nGoals: ${c.goals}\nShared expense splits: ${c.sharedSplits}\nSplit members: ${c.splitMembers}\nSalary schedule: ${c.salarySchedule ? 'included' : 'not present'}\nBank/import profiles: ${c.bankProfiles}\nImport history: ${c.importHistory}\n\nThe encrypted payload includes the complete vault object, not just these counted sections. Keep this file and remember the master password. No recovery code was generated for this normal backup.`);
-                }
+                // The backup code goes in its own file (never inside the encrypted backup)
+                const codeText = `aifico ledger — Backup Code\n\nBackup file: ${stamp}-full-backup-encrypted.json\nCreated: ${backup.createdAt}\n\nBackup code:\n${recoveryCode}\n\nTo restore: Restore backup → choose the backup file above → enter this code → set a new master password. The old master password is not needed.\n\nKeep this file separate from the backup file: anyone with both can open your financial data. Do not upload either file to public storage.\n`;
+                const codeBlob = new Blob([codeText], { type: 'text/plain;charset=utf-8' });
+                const codeUrl = URL.createObjectURL(codeBlob);
+                const codeAnchor = document.createElement('a');
+                codeAnchor.href = codeUrl;
+                codeAnchor.download = `${stamp}-full-backup-code.txt`;
+                document.body.appendChild(codeAnchor);
+                codeAnchor.click();
+                codeAnchor.remove();
+                setTimeout(() => URL.revokeObjectURL(codeUrl), 1500);
+                alert(`${forFullErase ? 'FULL ERASE BACKUP VERIFIED' : 'BACKUP VERIFIED'}\n\nTwo files are saved:\n1. ${stamp}-full-backup-encrypted.json (your data, encrypted)\n2. ${stamp}-full-backup-code.txt (its backup code)\n\nBackup code — keep it apart from the backup file:\n\n${recoveryCode}\n\nTo restore this backup you only need the code; you then set a new master password.\n\nIncluded: ${c.transactions} Core Ledger transactions (${c.ledgerActive} active, ${c.ledgerExcluded} excluded), ${c.accounts} accounts, ${c.categories} categories, ${c.budgets} budgets, ${c.goals} goals, ${c.sharedSplits} shared splits.`);
+                try { await navigator.clipboard?.writeText(recoveryCode); } catch (_) {}
                 return true;
             }
 
@@ -393,42 +386,38 @@ ${lines.join('\n')}`;
                     } else {
                         throw new Error('This is not a supported aifico full encrypted database backup. Settings-only JSON files cannot restore the full vault.');
                     }
-                    let pwd = await this.uiInput('Verify backup password','Enter the master password used when this backup was created. For a Full Erase backup, you can use the recovery code if you have forgotten the password. The current vault will not be replaced unless the backup decrypts and validates successfully.','',{inputType:'password',okLabel:'Verify'});
-                    if (pwd === null) return;
+                    let pwd;
                     let restoredData;
                     let usedRecoveryCode = false;
-                    try {
-                        restoredData = this.validateBackupData(await this.vault.decryptData(encryptedPayload, pwd));
-                    } catch (passwordErr) {
-                        if (!backupMeta?.recovery?.encryptedVault) throw passwordErr;
-                        const recoveryCode = await this.uiInput('Use Full Erase recovery code','The master password did not unlock this backup. Enter the recovery code created during Full Erase. This option is available only if the selected backup contains a recovery copy.','',{inputType:'text',okLabel:'Recover'});
+                    if (backupMeta?.recovery?.encryptedVault) {
+                        // Backup code: the old master password is not asked for
+                        const recoveryCode = await this.uiInput('Enter the backup code', 'Enter the backup code saved with this backup (the …-full-backup-code.txt file). The old master password is not needed: after the backup opens you set a new master password. Your current data is not replaced unless the backup opens and checks out.', '', {inputType:'text', okLabel:'Open backup'});
                         if (recoveryCode === null) return;
                         const normalizedRecoveryCode = recoveryCode.trim().toUpperCase().replace(/\s+/g, '').replace(/[^A-F0-9]/g, '');
-                        if (normalizedRecoveryCode.length !== 48) throw new Error('Recovery code format is invalid: expected 48 hexadecimal characters (the displayed code has eight groups). Check the matching -full-backup-code.txt file.');
-                        // Older Full Erase backups may use the displayed hyphenated code; newer backups use canonical hex.
-                        // Try both formats to remain compatible with backups already generated by v1.2610.36M.
+                        if (normalizedRecoveryCode.length !== 48) throw new Error('That backup code is not complete: it has 8 groups of 6 letters/numbers (48 in all). Copy it from the matching …-full-backup-code.txt file. Your current data has not been changed.');
+                        // Older backups were encrypted with the hyphenated code as shown; newer ones with the plain hex. Try both.
                         const recoveryCandidates = [normalizedRecoveryCode, normalizedRecoveryCode.match(/.{1,6}/g).join('-')];
                         let recoveryFailure = null;
                         for (const candidate of recoveryCandidates) {
-                            try {
-                                restoredData = this.validateBackupData(await this.vault.decryptData(JSON.stringify(backupMeta.recovery.encryptedVault), candidate));
-                                recoveryFailure = null;
-                                break;
-                            } catch (candidateErr) { recoveryFailure = candidateErr; }
+                            try { restoredData = this.validateBackupData(await this.vault.decryptData(JSON.stringify(backupMeta.recovery.encryptedVault), candidate)); recoveryFailure = null; break; }
+                            catch (candidateErr) { recoveryFailure = candidateErr; }
                         }
-                        if (!restoredData || recoveryFailure) {
-                            throw new Error('Recovery code could not decrypt the recovery copy. Verify that this is the matching Full Erase backup and that all 48 code characters are present. The current vault has not been replaced.');
-                        }
+                        if (!restoredData || recoveryFailure) throw new Error('This backup code does not open this backup. Check that the code and the backup file are from the same backup (same date and time in their names). Your current data has not been changed.');
                         usedRecoveryCode = true;
-                        const newPassword = await this.uiInput('Set a new master password', 'The recovery code decrypted the backup, but the original master password is not available. Create a new master password for the restored vault. Use at least 8 characters and save it securely.', '', {inputType:'password', okLabel:'Set password'});
+                        const newPassword = await this.uiInput('Set a new master password', 'The backup opened. Choose a new master password for the restored data (at least 8 characters). Write it down somewhere safe.', '', {inputType:'password', okLabel:'Continue'});
                         if (newPassword === null) return;
-                        if (String(newPassword).length < 8) throw new Error('New master password must be at least 8 characters. The current vault has not been changed.');
-                        const confirmPassword = await this.uiInput('Confirm new master password', 'Enter the new master password again to avoid a lockout.', '', {inputType:'password', okLabel:'Confirm'});
+                        if (String(newPassword).length < 8) throw new Error('The new master password must be at least 8 characters. Your current data has not been changed.');
+                        const confirmPassword = await this.uiInput('Confirm the new master password', 'Enter the new master password again.', '', {inputType:'password', okLabel:'Confirm'});
                         if (confirmPassword === null) return;
-                        if (newPassword !== confirmPassword) throw new Error('The new master passwords do not match. The current vault has not been changed.');
+                        if (newPassword !== confirmPassword) throw new Error('The two passwords do not match. Your current data has not been changed.');
                         pwd = newPassword;
-                        // Recovery code unlocks the backup data; re-encrypt it under the newly chosen password.
+                        // The code opened the data; save it encrypted with the new master password
                         encryptedPayload = await this.vault.encryptData(restoredData, pwd);
+                    } else {
+                        // Backups made before backup codes: their master password opens them
+                        pwd = await this.uiInput('Enter the backup\'s password', 'This backup has no backup code. Enter the master password that was in use when it was made. Your current data is not replaced unless the backup opens and checks out.', '', {inputType:'password', okLabel:'Open backup'});
+                        if (pwd === null) return;
+                        restoredData = this.validateBackupData(await this.vault.decryptData(encryptedPayload, pwd));
                     }
                     const actualCounts = this.getBackupRecordCounts(restoredData);
                     if (backupMeta) {
@@ -441,7 +430,7 @@ ${lines.join('\n')}`;
                             throw new Error('Backup integrity check failed: record-count metadata is incomplete, unexpected, or does not match the decrypted data. The current vault has not been changed.');
                         }
                     }
-                    const summary = `Backup file: ${file.name}\nFormat: ${backupMeta ? 'Full backup v2' : 'Legacy encrypted backup'}${usedRecoveryCode ? ' · Recovery code used' : ''}${backupMeta && backupMeta.createdAt ? '\nCreated: ' + backupMeta.createdAt : ''}\n\nCore Ledger transactions (all records): ${actualCounts.transactions}\n  Active in Ledger: ${actualCounts.ledgerActive}\n  Excluded from Ledger but retained: ${actualCounts.ledgerExcluded}\nAccounts & Wallets: ${actualCounts.accounts}\nCategories / subcategories: ${actualCounts.categories} / ${actualCounts.subcategories}\nBudgets: ${actualCounts.budgets}\nYearly scheduled items: ${actualCounts.yearlyScheduledItems}\nRecurring schedule entries: ${actualCounts.recurringSchedules}\nGoals: ${actualCounts.goals}\nShared expense splits: ${actualCounts.sharedSplits}\nSplit members: ${actualCounts.splitMembers}\nSalary schedule: ${actualCounts.salarySchedule ? 'included' : 'not present'}\nBank/import profiles: ${actualCounts.bankProfiles}\nImport history: ${actualCounts.importHistory}\nSettings fields: ${actualCounts.settings}`;
+                    const summary = `Backup file: ${file.name}\nFormat: ${backupMeta ? 'Full backup v2' : 'Legacy encrypted backup'}${usedRecoveryCode ? ' · Opened with the backup code: unlock with your NEW master password' : ''}${backupMeta && backupMeta.createdAt ? '\nCreated: ' + backupMeta.createdAt : ''}\n\nCore Ledger transactions (all records): ${actualCounts.transactions}\n  Active in Ledger: ${actualCounts.ledgerActive}\n  Excluded from Ledger but retained: ${actualCounts.ledgerExcluded}\nAccounts & Wallets: ${actualCounts.accounts}\nCategories / subcategories: ${actualCounts.categories} / ${actualCounts.subcategories}\nBudgets: ${actualCounts.budgets}\nYearly scheduled items: ${actualCounts.yearlyScheduledItems}\nRecurring schedule entries: ${actualCounts.recurringSchedules}\nGoals: ${actualCounts.goals}\nShared expense splits: ${actualCounts.sharedSplits}\nSplit members: ${actualCounts.splitMembers}\nSalary schedule: ${actualCounts.salarySchedule ? 'included' : 'not present'}\nBank/import profiles: ${actualCounts.bankProfiles}\nImport history: ${actualCounts.importHistory}\nSettings fields: ${actualCounts.settings}`;
                     // Compare the verified backup with the currently saved vault before any replacement.
                     let currentCounts = null;
                     let comparisonText = 'CURRENT VAULT COMPARISON: unavailable (current vault could not be decrypted for comparison). Do not proceed unless you have verified a separate current backup.';

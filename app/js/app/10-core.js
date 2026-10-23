@@ -172,7 +172,7 @@
             // ---------- Password help (login "?") and the default-password reminder ----------
             passwordHelpHtml(){ return `<h4>First time on this device</h4><ol><li>The screen says <b>Create a master password</b>.</li><li>Type your own password (at least 5 characters). Avoid simple passwords such as a run of numbers.</li><li>Tap <b>Create Vault</b>. Your data is encrypted on this device with that password.</li></ol>
 <h4>Still using the old default password?</h4><p>Vaults created by earlier versions may still use it, and the app shows a reminder after every unlock. Change it immediately: <b>Backup &amp; Settings → Security → Change password</b>. Until you do, anyone who knows the default can open your data.</p>
-<h4>Forgot your password?</h4><p>There is no "forgot password" — the data never leaves your device. You can recover only with a <b>Full Erase backup plus its recovery code</b>. Otherwise use <b>New vault</b> (this deletes the data on this device; a normal backup can be restored with its original password).</p>
+<h4>Forgot your password?</h4><p>There is no "forgot password" — the data never leaves your device. You can get your data back from a <b>backup plus its backup code</b>: on the lock screen tap <b>Restore backup</b>, choose the backup file and enter the code from its code file (the one whose name ends in “backup-code.txt”); the old password is not needed, and you then set a new one. Every backup saves this code file. Without a backup and its code, the only way on is <b>New vault</b>, which deletes the data on this device.</p>
 <h4>Good habits</h4><ul><li>Write your password down somewhere safe.</li><li>Back up regularly: Backup &amp; Settings → Back up now.</li><li>New phone: back up on the old one, then <b>Restore backup</b> on the new one with the same password.</li></ul>`; }
             openPasswordHelp(){
                 document.getElementById('pw-help-overlay')?.remove();
@@ -270,6 +270,7 @@
                 this.renderAll();
                 this.startAutoLock();
                 this.watchPageScroll();
+                this.applyMoneyMask();
             }
 
             // ---------- Auto-lock: lock the vault after a few minutes without use (default 5; Backup & Settings → Security) ----------
@@ -280,6 +281,31 @@
             checkAutoLock(){ if(!this.currentPassword)return false; const mins=this.autoLockMinutes(); if(!mins)return false; if(Date.now()-(this._lastActivity||Date.now())<mins*60000)return false; this.lockVault({reason:'auto',minutes:mins}); return true; }
             /** Name prefix for every file the app saves (backups, exports): aificoledger-YYMMDD-HHmm, local time, sorts by date. */
             fileStamp(d=new Date()){ const p=v=>String(v).padStart(2,'0'); return `aificoledger-${p(d.getFullYear()%100)}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`; }
+            /** Hide / show amounts (the eye in the top bar). The choice is remembered on this device. */
+            moneyMasked(){ try{ return localStorage.getItem('aifico_mask_money')==='1'; }catch(e){ return false; } }
+            toggleMoneyMask(){ const on=!this.moneyMasked(); try{ localStorage.setItem('aifico_mask_money',on?'1':'0'); }catch(e){} this.applyMoneyMask(); this.showToast(on?'Amounts hidden. Tap the eye to show them.':'Amounts shown.',{ms:2500}); }
+            /** Hides each amount shown on screen (text like ₹1,024.00, or digits after a separate ₹), not the fields you type in. */
+            applyMoneyMask(){
+                const on=this.moneyMasked(); document.body.classList.toggle('money-masked',on);
+                const btn=document.getElementById('mask-toggle');
+                if(btn){ const eye='<path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/>', off='<path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="m2 2 20 20"/>';
+                    btn.innerHTML=`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${on?off:eye}</svg>`;
+                    const label=on?'Show amounts':'Hide amounts'; btn.setAttribute('aria-label',label); btn.title=label; btn.setAttribute('aria-pressed',String(on)); btn.classList.toggle('on',on); }
+                const sym=String(typeof CUR==='function'?CUR():'₹').trim(); const esc=sym.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+                const withSym=new RegExp(esc+'\\s?[\\d,]+(?:\\.\\d+)?(?:\\s?(?:K|L|Cr|M|k))?','g'); const digitsOnly=/^\s*[\d,]+(?:\.\d+)?(?:\s?(?:K|L|Cr|M|k))?\s*$/;
+                const skip=n=>{ const p=n.parentElement; return !p||p.closest('input,textarea,select,script,style,#vault-screen,[contenteditable=""],[contenteditable="true"]'); };
+                const afterSymbol=n=>{ const prev=n.previousSibling; return prev&&prev.nodeType===1&&(prev.hasAttribute('data-cur')||prev.textContent.trim()===sym); };
+                const mask=n=>{ if(n.__amtOrig!==undefined||skip(n))return; const t=n.nodeValue; let m=null;
+                    if(withSym.test(t)){ withSym.lastIndex=0; m=t.replace(withSym,sym+'••••'); } else if(digitsOnly.test(t)&&afterSymbol(n)) m=t.replace(/[\d,]+(?:\.\d+)?(?:\s?(?:K|L|Cr|M|k))?/,'••••');
+                    withSym.lastIndex=0; if(m!==null&&m!==t){ n.__amtOrig=t; n.__amtMasked=m; n.nodeValue=m; } };
+                const walk=(root,fn)=>{ if(!root)return; if(root.nodeType===3){ fn(root); return; } const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT); let n; while((n=w.nextNode()))fn(n); };
+                this._maskObs?.disconnect();
+                if(on){
+                    walk(document.body,mask);
+                    this._maskObs=new MutationObserver(list=>{ for(const r of list){ if(r.type==='characterData'){ const n=r.target; if(n.__amtOrig!==undefined&&n.nodeValue!==n.__amtMasked){ delete n.__amtOrig; } mask(n); } else r.addedNodes.forEach(a=>walk(a,mask)); } });
+                    this._maskObs.observe(document.body,{childList:true,subtree:true,characterData:true});
+                } else walk(document.body,n=>{ if(n.__amtOrig!==undefined){ if(n.nodeValue===n.__amtMasked)n.nodeValue=n.__amtOrig; delete n.__amtOrig; delete n.__amtMasked; } });
+            }
             /** Phones scroll the whole page: mark it scrolled (with a gap between on and off, so the pinned bar folding never flickers). */
             watchPageScroll(){
                 if(this._pageScrollWatch)return; this._pageScrollWatch=true; let on=false, queued=false;
@@ -360,7 +386,7 @@
                     await this.uiDialog('Reset stopped','A verified backup was not created. Your current vault has not been changed.',{type:'notice',danger:true});
                     return;
                 }
-                const downloadConfirmed = await this.uiDialog('Confirm backup download','Did you download the verified Full Erase backup and securely save the recovery code shown by the app? You need BOTH the backup file and the recovery code to recover the data if you forget the master password. Cancel if either is missing; your vault will remain unchanged.',{type:'confirm',okLabel:'Yes, backup saved',cancelLabel:'Cancel'});
+                const downloadConfirmed = await this.uiDialog('Confirm backup download','Did you save the verified Full Erase backup and its backup code (the …-full-backup-code.txt file)? You need BOTH to get the data back; the old master password is not needed. Cancel if either is missing; your vault will remain unchanged.',{type:'confirm',okLabel:'Yes, backup saved',cancelLabel:'Cancel'});
                 if (!downloadConfirmed) return;
                 const typed = await this.uiDialog('Step 2 · Confirm permanent reset','This removes the active vault from this browser and starts a new user setup. It does not delete the downloaded backup file. Type RESET to continue.',{type:'input',okLabel:'Continue',cancelLabel:'Cancel',danger:true});
                 if (typed !== 'RESET') {
