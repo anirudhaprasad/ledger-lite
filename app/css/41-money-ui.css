@@ -400,3 +400,57 @@ body.form-open.nav-bottom #app-main-header button[onclick="app.openTransactionMo
 .dark .hdr-mask.on { color: #fbbf24; background: rgba(251,191,36,.12); border-color: #92400e; }
 body.money-masked #main-layout canvas { filter: blur(7px); }
 @media (max-width: 767px) { .hdr-mask { width: 38px; height: 38px; } }
+/* Version on the lock screen */
+.vault-version { margin-top: 2px; font-size: 12px; color: #475569; font-variant-numeric: tabular-nums; }
+.dark .vault-version { color: #94a3b8; }
+
+/* Accessibility (WCAG AA): text contrast at least 4.5:1, and on phones tap targets at least 24x24 */
+html:not(.dark) .text-slate-400, html:not(.dark) .dk-s, html:not(.dark) .dash-note, html:not(.dark) .ss-sub, html:not(.dark) .lx-sub, html:not(.dark) .acct-sub, html:not(.dark) .af-note, html:not(.dark) .ptb-meta { color: #5b6878 !important; }
+html:not(.dark) .text-slate-500, html:not(.dark) thead th, html:not(.dark) .vault-version { color: #4a5668 !important; }
+html:not(.dark) .text-emerald-600, html:not(.dark) .text-emerald-700, html:not(.dark) .dk-in, html:not(.dark) .lx-in { color: #046c4e !important; }
+html:not(.dark) .text-emerald-800, html:not(.dark) #kpi-income { color: #046c4e !important; }
+html:not(.dark) .text-amber-700, html:not(.dark) .text-amber-800 { color: #92400e !important; }
+html:not(.dark) .text-blue-600 { color: #1d4ed8 !important; }
+.bg-emerald-600, #vault-action-btn { background-color: #047857 !important; } .bg-emerald-600:hover, #vault-action-btn:hover { background-color: #065f46 !important; }
+.af-form[data-type="Income"] { --af-btn: #047857; }
+.s-primary { background-color: #047857 !important; border-color: #047857 !important; color: #fff !important; }
+#bottom-nav button span, #bottom-nav a span { font-size: 10.5px !important; }
+html:not(.dark) #bottom-nav button:not(.on) span { color: #4a5668 !important; }
+.dark .text-slate-500, .dark .lx-sub, .dark .acct-sub, .dark .dk-s, .dark .dash-note, .dark thead th { color: #a3b0c2 !important; }
+@media (max-width: 767px) {
+  #main-layout button, #modal-box button, #main-layout a[href], #main-layout select { min-width: 24px; min-height: 24px; }
+  #main-layout input[type=checkbox], #modal-box input[type=checkbox], #main-layout input[type=radio], #modal-box input[type=radio] { min-width: 24px; min-height: 24px; }
+  .lx-row { grid-template-columns: 24px minmax(78px, 30%) minmax(0, 1fr) auto 28px; }
+  .lx-sel input { width: 24px !important; height: 24px !important; }
+  #main-layout button.text-xs, #modal-box button.text-xs { padding-top: 4px; padding-bottom: 4px; }
+}
+@media (max-width: 359px) { .lx-row { grid-template-columns: 24px minmax(60px, 26%) minmax(0, 1fr) auto 24px; } }
+.st-pct { color: var(--t, #fff) !important; text-shadow: none !important; }
+/* Accessibility, round 2: remaining text below 4.5:1 */
+html:not(.dark) #app-main-header #ptb-meta, html:not(.dark) .ptb-meta, html:not(.dark) .set-desc, html:not(.dark) #sms-entry-count { color: #4a5668 !important; }
+html:not(.dark) .lv-tabs button.on { color: #046c4e !important; }
+html:not(.dark) .lx-cat small, html:not(.dark) .st-center small, html:not(.dark) .st-row small, html:not(.dark) .st-mode button { color: #4a5668 !important; }
+html:not(.dark) .text-rose-600, html:not(.dark) .text-rose-500 { color: #be123c !important; }
+html:not(.dark) .text-amber-600, html:not(.dark) .text-amber-500 { color: #92400e !important; }
+html:not(.dark) #acct-kpis .kpi-tile > div:nth-child(2) { filter: brightness(.82); }
+.hdr-action, #header-page-action button { background-color: #047857 !important; border-color: #047857 !important; color: #fff !important; }
+.dark .text-slate-400, .dark .text-slate-500, .dark .text-slate-600, .dark #ptb-meta, .dark .ptb-meta, .dark .dk-l, .dark .ld-my, .dark dt, .dark #ledger-totals span, .dark .st-kind button span, .dark #currency-preview, .dark #sms-reconcile-tbody td { color: #b4c0d0 !important; }
+.dark .lx-out, .dark .ld-out, .dark .text-rose-600, .dark .text-rose-700, .dark #stats-total-expense, .dark .dk-out, .dark .s-danger-outline { color: #fda4af !important; }
+.dark .text-emerald-600, .dark .text-emerald-700, .dark .lx-in, .dark .dk-in, .dark #acct-kpis .kpi-tile > div { color: #6ee7b7 !important; }
+.dark .text-blue-600 { color: #93c5fd !important; }
+.dark .bg-blue-600, .dark .bg-blue-500 { background-color: #1d4ed8 !important; color: #fff !important; }
+.dark #panel-guide li, .dark #panel-guide p { color: #d5dde8 !important; }
+.dark #accounts-grid span.rounded-full { background: rgba(16,185,129,.18) !important; color: #6ee7b7 !important; }
+.dark #acct-kpis .kpi-tile > div:nth-child(2) { filter: none; }
+/* Accessibility, round 3 */
+html:not(.dark) .lx-amt small { color: #5b6878 !important; }
+html:not(.dark) .ld-in { color: #046c4e !important; }
+html:not(.dark) #acct-kpis .kpi-tile:nth-child(1) > div:nth-child(2) { color: #046c4e !important; filter: none; }
+html:not(.dark) #acct-kpis .kpi-tile:nth-child(2) > div:nth-child(2) { color: #be123c !important; filter: none; }
+html:not(.dark) #acct-kpis .kpi-tile:nth-child(3) > div:nth-child(2) { color: #92400e !important; filter: none; }
+.dark .bg-emerald-600, .dark #vault-action-btn { background-color: #047857 !important; color: #fff !important; }
+.dark .st-center span, .dark small { color: #b4c0d0 !important; }
+.dark .set-danger .set-title { color: #fda4af !important; }
+html.dark #main-layout button.bg-emerald-600, html.dark #modal-box button.bg-emerald-600 { background: #047857 !important; color: #fff !important; }
+.dark .set-note { color: #b4c0d0 !important; }
+.dark #sms-entry-count, .dark .set-desc { color: #b4c0d0 !important; }

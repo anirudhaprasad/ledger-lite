@@ -283,8 +283,7 @@ ${lines.join('\n')}`;
                 codeAnchor.click();
                 codeAnchor.remove();
                 setTimeout(() => URL.revokeObjectURL(codeUrl), 1500);
-                alert(`${forFullErase ? 'FULL ERASE BACKUP VERIFIED' : 'BACKUP VERIFIED'}\n\nTwo files are saved:\n1. ${stamp}-full-backup-encrypted.json (your data, encrypted)\n2. ${stamp}-full-backup-code.txt (its backup code)\n\nBackup code — keep it apart from the backup file:\n\n${recoveryCode}\n\nTo restore this backup you only need the code; you then set a new master password.\n\nIncluded: ${c.transactions} Core Ledger transactions (${c.ledgerActive} active, ${c.ledgerExcluded} excluded), ${c.accounts} accounts, ${c.categories} categories, ${c.budgets} budgets, ${c.goals} goals, ${c.sharedSplits} shared splits.`);
-                try { await navigator.clipboard?.writeText(recoveryCode); } catch (_) {}
+                alert(`${forFullErase ? 'FULL ERASE BACKUP VERIFIED' : 'BACKUP VERIFIED'}\n\nTwo files are saved:\n1. ${stamp}-full-backup-encrypted.json (your data, encrypted)\n2. ${stamp}-full-backup-code.txt (its backup code)\n\nBackup code — keep it apart from the backup file:\n\n${recoveryCode}\n\nTo restore this backup you only need the code; you then set a new master password. (The code is not copied to the clipboard, where clipboard history or sync could keep it.)\n\nIncluded: ${c.transactions} Core Ledger transactions (${c.ledgerActive} active, ${c.ledgerExcluded} excluded), ${c.accounts} accounts, ${c.categories} categories, ${c.budgets} budgets, ${c.goals} goals, ${c.sharedSplits} shared splits.`);
                 return true;
             }
 

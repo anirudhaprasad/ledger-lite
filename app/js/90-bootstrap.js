@@ -70,6 +70,17 @@
             new MutationObserver(sync).observe(mc,{attributes:true,attributeFilter:['class']});
             const ml=document.getElementById('main-layout'); if(ml)new MutationObserver(sync).observe(ml,{attributes:true,attributeFilter:['class']});
         })();
+        // Accessibility: every button and field has a name screen readers can say (icon-only buttons get one from what they do)
+        (function installAccessibleNames(){
+            const byAction=[['toggleTheme','Switch light or dark theme'],['openTransactionModal','Add transaction'],['openAccountModal','Add account'],['openBudgetModal','Add budget'],['openGoalModal','Add goal'],['ssEventForm','New shared event'],['openProjectForm','New project'],['addCategory','Add category'],['closeModal','Close'],['toggleNavigation','Open menu']];
+            const byIcon={'plus':'Add','x':'Close','chevron-left':'Previous','chevron-right':'Next','menu':'Open menu','search':'Search','filter':'Filters','settings-2':'Settings','pencil':'Edit','trash-2':'Delete','download':'Download','upload':'Upload','copy':'Copy','sun':'Switch light or dark theme','moon':'Switch light or dark theme','calendar':'Choose date','info':'More information'};
+            const fields={'sms-raw-input':'Bank SMS text to import','import-bank-profile':'Bank statement format','import-target-account':'Import into account','bank-statement-paste':'Bank statement text','ledger-filter-type':'Transaction type','ledger-filter-year':'Year','ledger-filter-month':'Month','ledger-excluded-filter':'Show which transactions','ledger-sort-date':'Sort order','ledger-date-from':'From date','ledger-date-to':'To date'};
+            const named=el=>(el.getAttribute('aria-label')||el.getAttribute('aria-labelledby')||el.getAttribute('title')||el.innerText||'').trim();
+            const run=root=>{ (root.querySelectorAll?root:document).querySelectorAll('button, a[href], [role="button"]').forEach(el=>{ if(named(el))return; const on=el.getAttribute('onclick')||''; const hit=byAction.find(([k])=>on.includes(k)); const icon=[...el.querySelectorAll('svg')].map(s=>[...s.classList].find(c=>c.startsWith('lucide-')&&c!=='lucide')).find(Boolean)?.slice(7)||el.querySelector('[data-lucide]')?.dataset.lucide; const label=hit?hit[1]:byIcon[icon]; if(label)el.setAttribute('aria-label',label); });
+                Object.entries(fields).forEach(([id,label])=>{ const el=document.getElementById(id); if(el&&!el.getAttribute('aria-label'))el.setAttribute('aria-label',label); }); };
+            let queued=false; const later=()=>{ if(queued)return; queued=true; setTimeout(()=>{ queued=false; run(document); },60); };
+            run(document); new MutationObserver(later).observe(document.body,{childList:true,subtree:true});
+        })();
         (function installAificoFocusContainment(){
             const selector = 'button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
             document.addEventListener('keydown', function(e){

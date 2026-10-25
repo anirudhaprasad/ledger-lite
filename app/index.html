@@ -11,6 +11,7 @@
     <script src="js/02-edition.js"></script>
     <script src="js/04-version.js"></script>
     <script src="js/05-currency.js"></script>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
     <title>aifico ledger</title>
     <!-- Bundled libraries (no network needed): Chart.js 4.5.1, Lucide 1.59.0 -->
     <script src="vendor/chart.umd.min.js"></script>
@@ -107,6 +108,7 @@
                     <span class="brand-logo brand-logo-lg" role="img" aria-label="aifico"></span>
                     <h1 class="text-xl font-bold tracking-tight" data-edition-title>aifico ledger</h1><button type="button" id="vault-help-btn" class="vault-help-btn" onclick="app.openPasswordHelp()" aria-label="Help with your password">?</button>
                     <p id="vault-subtitle" class="text-sm text-slate-500 dark:text-slate-400">Unlock your vault</p>
+                    <p class="vault-version" data-app-version-short></p>
                 </div>
 
                 <div id="vault-form-container" class="space-y-4">
@@ -115,7 +117,7 @@
                         <input type="password" id="vault-password" autocomplete="current-password" autocapitalize="none" spellcheck="false" aria-describedby="vault-login-status" aria-label="Master password" class="w-full px-4 py-3 pr-14 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
                         <button type="button" id="vault-password-toggle" aria-label="Show password" aria-pressed="false" class="absolute inset-y-0 right-0 px-4 text-sm font-semibold text-slate-500 hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-500 rounded-r-xl">Show</button>
                     </div>
-                    <p id="vault-default-hint" class="vault-default-hint" hidden>At least 5 characters. Write it down: it can't be recovered.</p>
+                    <p id="vault-default-hint" class="vault-default-hint" hidden>At least 8 characters. Write it down: it can't be recovered.</p>
                     <p id="vault-login-status" role="status" aria-live="polite" class="hidden text-sm rounded-lg px-3 py-2"></p>
                     <button id="vault-action-btn" type="button" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-wait text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/20 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">Unlock Vault</button>
                     
@@ -633,7 +635,7 @@
                             <h3 class="set-title">Security</h3>
                             <p class="set-desc">Your master password unlocks and encrypts the vault. It can't be recovered if you forget it.</p>
                             <div class="set-actions">
-                                <button type="button" onclick="app.openPasswordChangeModal()" class="s-btn s-secondary s-wide"><i data-lucide="key-round"></i><span>Change password</span></button><label class="ip-field auto-lock-field"><span>Lock automatically after</span><select id="auto-lock-select" onchange="app.setAutoLockMinutes(this.value)"><option value="1">1 minute without use</option><option value="2">2 minutes without use</option><option value="5">5 minutes without use</option><option value="10">10 minutes without use</option><option value="15">15 minutes without use</option><option value="30">30 minutes without use</option><option value="0">Never</option></select></label><p id="security-default-note" class="set-default-warn" hidden>⚠ You are using the default password 12345 — change it now.</p>
+                                <button type="button" onclick="app.openPasswordChangeModal()" class="s-btn s-secondary s-wide"><i data-lucide="key-round"></i><span>Change password</span></button><label class="set-check android-only" hidden><input type="checkbox" id="allow-screenshots" onchange="app.setScreenshotsAllowed(this.checked)"> <span>Allow screenshots and the recent-apps preview (off keeps your figures off them)</span></label><label class="ip-field auto-lock-field"><span>Lock automatically after</span><select id="auto-lock-select" onchange="app.setAutoLockMinutes(this.value)"><option value="1">1 minute without use</option><option value="2">2 minutes without use</option><option value="5">5 minutes without use</option><option value="10">10 minutes without use</option><option value="15">15 minutes without use</option><option value="30">30 minutes without use</option><option value="0">Never</option></select></label><p id="security-default-note" class="set-default-warn" hidden>⚠ You are using the default password 12345 — change it now.</p>
                             </div>
                         </section>
 
@@ -665,7 +667,7 @@
                             <p class="text-sm text-slate-500 dark:text-slate-400">Version <span data-app-version></span> · Use this guide as a quick reference while working in the app.</p>
                             <div class="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-4 text-sm text-amber-900 dark:text-amber-200"><strong>Safety first:</strong> Before destructive actions, download and verify a full encrypted vault backup. Use dummy data to test unfamiliar workflows. Keep backup files private because they may contain sensitive financial information.</div>
                         </section>
-                    <section class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 guide-password" id="guide-password"><h3 class="font-bold text-lg">Your master password</h3><h4>First time on this device</h4><ol><li>The screen says <b>Create a master password</b>.</li><li>Type your own password (at least 5 characters). Avoid simple passwords such as a run of numbers.</li><li>Tap <b>Create Vault</b>. Your data is encrypted on this device with that password.</li></ol>
+                    <section class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 guide-password" id="guide-password"><h3 class="font-bold text-lg">Your master password</h3><h4>First time on this device</h4><ol><li>The screen says <b>Create a master password</b>.</li><li>Type your own password (at least 8 characters). Avoid simple passwords such as a run of numbers.</li><li>Tap <b>Create Vault</b>. Your data is encrypted on this device with that password.</li></ol>
 <h4>Still using the old default password?</h4><p>Vaults created by earlier versions may still use it, and the app shows a reminder after every unlock. Change it immediately: <b>Backup &amp; Settings → Security → Change password</b>. Until you do, anyone who knows the default can open your data.</p>
 <h4>Forgot your password?</h4><p>There is no "forgot password" — the data never leaves your device. You can get your data back from a <b>backup plus its backup code</b>: on the lock screen tap <b>Restore backup</b>, choose the backup file and enter the code from its code file (the one whose name ends in “backup-code.txt”); the old password is not needed, and you then set a new one. Every backup saves this code file. Without a backup and its code, the only way on is <b>New vault</b>, which deletes the data on this device.</p>
 <h4>Good habits</h4><ul><li>Write your password down somewhere safe.</li><li>Back up regularly: Backup &amp; Settings → Back up now.</li><li>New phone: back up on the old one, then <b>Restore backup</b> on the new one with the same password.</li></ul></section>
