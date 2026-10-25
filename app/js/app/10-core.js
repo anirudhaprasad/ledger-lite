@@ -465,7 +465,7 @@
                 spreadsheet:['aifico ledger spreadsheet sync','Import and export your ledger as an Excel or CSV spreadsheet.'],
                 card:['Credit card statements','Statement cycles, due dates, minimum due, and Settled/Unsettled spends.'],
                 plans:['Loans, FDs & RDs','EMIs, FD and RD maturity, activation and automatic Core Ledger entries.'],
-                accounts:['More than 3 accounts','Lite includes up to 3 accounts. Pro has no limit.']})[key]||['This feature','Available in aifico Pro.']; }
+                accounts:['More than 5 accounts','Lite includes up to 5 accounts. Pro has no limit.']})[key]||['This feature','Available in aifico Pro.']; }
             /**
              * Handles the require pro workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: key. Side effects, if any, are described by the statements below.

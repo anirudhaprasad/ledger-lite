@@ -454,3 +454,8 @@ html:not(.dark) #acct-kpis .kpi-tile:nth-child(3) > div:nth-child(2) { color: #9
 html.dark #main-layout button.bg-emerald-600, html.dark #modal-box button.bg-emerald-600 { background: #047857 !important; color: #fff !important; }
 .dark .set-note { color: #b4c0d0 !important; }
 .dark #sms-entry-count, .dark .set-desc { color: #b4c0d0 !important; }
+/* Shared & Split on phones: all five tabs visible (three per row), no sideways scrolling; still pinned at the top */
+@media (max-width: 767px) {
+  #panel-shared #ss-tabs { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; overflow: visible; flex-wrap: wrap; }
+  #panel-shared #ss-tabs > button { min-width: 0; min-height: 36px; padding: 6px 4px; font-size: 13px; white-space: normal; line-height: 1.2; text-align: center; }
+}
