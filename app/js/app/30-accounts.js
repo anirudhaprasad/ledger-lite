@@ -166,13 +166,8 @@ This only changes the account balance; all Core Ledger transactions remain uncha
                 if(!await this.uiConfirm(confirmMessage))return;
                 const beforeDelete=JSON.parse(JSON.stringify(this.data));
                 const rows=(this.data.tx||[]).filter(t=>unique.includes(String(t.id)));
-                for(const tx of rows){
-                    const amount=Number(tx.amount)||0;
-                    if(tx.balanceEffectRemoved)continue;
-                    const source=this.data.accounts.find(a=>String(a.name)===String(tx.account||''));
-                    if(source){if(tx.type==='Income')source.balance=(Number(source.balance)||0)-amount;else if(['Expense','EMI','Installment','Insurance'].includes(tx.type))source.balance=(Number(source.balance)||0)+amount;else if(tx.type==='Transfer'||tx.type==='Investment')source.balance=(Number(source.balance)||0)+amount;}
-                    if(tx.type==='Transfer'){const dest=this.data.accounts.find(a=>String(a.name)===String(tx.destinationAccount||tx.toAccount||''));if(dest)dest.balance=(Number(dest.balance)||0)-amount;}
-                }
+                // The same balance rule as everywhere else (Income adds; spending subtracts; a transfer moves money between its accounts)
+                rows.forEach(tx=>this.applyTxEffects(tx,-1));
                 this.data.tx=(this.data.tx||[]).filter(t=>!unique.includes(String(t.id)));
                 await this.releaseDuplicatesOf(rows.map(t=>t.id));
                 const saved=await this.saveVault();

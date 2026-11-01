@@ -189,7 +189,15 @@
 
             // ---------- Stats: where the money went (or came from) in a month or a year ----------
             statsState(){ this.stats ||= {mode:'month',kind:'expense',key:this.todayISO().slice(0,7)}; return this.stats; }
-            setStatsMode(mode){ const s=this.statsState(); if(mode===s.mode)return; s.key=mode==='year'?s.key.slice(0,4):(s.key.slice(0,4)===this.todayISO().slice(0,4)?this.todayISO().slice(0,7):`${s.key.slice(0,4)}-12`); s.mode=mode; this.renderStats(); }
+            setStatsMode(mode){ const s=this.statsState(); if(mode===s.mode)return; const k=s.key;
+                // All time stays all time; "March · all years" becomes all time in Year view; otherwise keep the same year
+                if(k==='all'||k.startsWith('*-'))s.key=mode==='year'?'all':(k==='all'?'all':k);
+                else s.key=mode==='year'?k.slice(0,4):(k.slice(0,4)===this.todayISO().slice(0,4)?this.todayISO().slice(0,7):`${k.slice(0,4)}-12`);
+                s.mode=mode; this.renderStats(); }
+            // Stats period keys: "2026-03" a month, "2026" a year, "*-03" that month in every year, "all" all time
+            statsInPeriod(iso,key=this.statsState().key){ iso=String(iso||''); if(key==='all')return !!iso; if(key.startsWith('*-'))return iso.slice(5,7)===key.slice(2); return iso.startsWith(key); }
+            statsPeriodLabel(key=this.statsState().key,long=false){ const M=['January','February','March','April','May','June','July','August','September','October','November','December'];
+                if(key==='all')return 'All time'; if(key.startsWith('*-'))return (long?M:M.map(m=>m.slice(0,3)))[Number(key.slice(2))-1]+' · all years'; if(/^\d{4}$/.test(key))return key; return this.monthLabel(key,long); }
             setStatsKind(kind){ this.statsState().kind=kind; this.renderStats(); }
             setStatsPeriod(key){ const s=this.statsState(); s.key=key==='now'?(s.mode==='year'?this.todayISO().slice(0,4):this.todayISO().slice(0,7)):key; this.renderStats(); }
             /** Tapping the period name: pick any month and year (Month view) or any year (Year view) */
@@ -197,39 +205,41 @@
                 const s=this.statsState(); const box=document.getElementById('modal-box'); const esc=v=>this.escapeHtml(String(v??''));
                 const years=[...new Set([new Date().getFullYear(),...this.countedTx().map(t=>Number(String(this.normalizeLedgerDate(t.date)||'').slice(0,4))).filter(y=>y>1990&&y<3000)])].sort((a,b)=>b-a);
                 const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
-                const curY=Number(s.key.slice(0,4)), curM=s.mode==='year'?new Date().getMonth()+1:Number(s.key.slice(5,7));
+                // Current choice: "all" = All months + All years; "*-03" = March + All years; "2026" in Month view = All months + 2026
+                const k=s.key; const curY=k==='all'||k.startsWith('*-')?'all':k.slice(0,4); const curM=k.startsWith('*-')?k.slice(2):(k==='all'||/^\d{4}$/.test(k)?'all':k.slice(5,7));
                 box.innerHTML=`<div class="more-head"><h3 class="font-bold text-lg">Show ${s.mode==='year'?'year':'month'}</h3><button type="button" onclick="app.closeModal()" aria-label="Close">✕</button></div>
-                <form id="st-pick" class="space-y-3"><div class="st-pick-row">${s.mode==='year'?'':`<label class="mf-compact"><span>Month</span><select id="stp-m">${months.map((m,i)=>`<option value="${i+1}" ${i+1===curM?'selected':''}>${m}</option>`).join('')}</select></label>`}
-                <label class="mf-compact"><span>Year</span><select id="stp-y">${years.map(y=>`<option ${y===curY?'selected':''}>${y}</option>`).join('')}</select></label></div>
+                <form id="st-pick" class="space-y-3"><div class="st-pick-row">${s.mode==='year'?'':`<label class="mf-compact"><span>Month</span><select id="stp-m"><option value="all" ${curM==='all'?'selected':''}>All months</option>${months.map((m,i)=>{ const v=String(i+1).padStart(2,'0'); return `<option value="${v}" ${v===curM?'selected':''}>${m}</option>`; }).join('')}</select></label>`}
+                <label class="mf-compact"><span>Year</span><select id="stp-y"><option value="all" ${curY==='all'?'selected':''}>All years</option>${years.map(y=>`<option ${String(y)===curY?'selected':''}>${y}</option>`).join('')}</select></label></div>
                 <div class="lp-quick"><button type="button" class="s-btn s-secondary" onclick="app.closeModal();app.setStatsPeriod('now')">${s.mode==='year'?'This year':'This month'}</button><button type="submit" class="s-btn s-primary">Show</button></div></form>`;
                 const mc=document.getElementById('modal-container'); mc.classList.add('more-sheet'); mc.classList.remove('hidden');
-                document.getElementById('st-pick').onsubmit=e=>{ e.preventDefault(); const y=document.getElementById('stp-y').value; const m=document.getElementById('stp-m')?.value; this.closeModal(); this.setStatsPeriod(s.mode==='year'?String(y):`${y}-${String(m).padStart(2,'0')}`); };
+                document.getElementById('st-pick').onsubmit=e=>{ e.preventDefault(); const y=document.getElementById('stp-y').value; const m=document.getElementById('stp-m')?.value; this.closeModal();
+                    const key=s.mode==='year'?(y==='all'?'all':String(y)):(y==='all'?(m==='all'?'all':`*-${m}`):(m==='all'?String(y):`${y}-${m}`)); this.setStatsPeriod(key); };
             }
-            shiftStatsPeriod(step){ const s=this.statsState(); if(s.mode==='year'){ s.key=String(Number(s.key)+step); } else { const [y,m]=s.key.split('-').map(Number); s.key=this.todayISO(new Date(y,m-1+step,1)).slice(0,7); } this.renderStats(); }
+            shiftStatsPeriod(step){ const s=this.statsState(); if(s.key==='all')return; if(s.key.startsWith('*-')){ const m=((Number(s.key.slice(2))-1+step)%12+12)%12+1; s.key='*-'+String(m).padStart(2,'0'); return this.renderStats(); } if(s.mode==='year'||/^\d{4}$/.test(s.key)){ s.key=String(Number(s.key)+step); } else { const [y,m]=s.key.split('-').map(Number); s.key=this.todayISO(new Date(y,m-1+step,1)).slice(0,7); } this.renderStats(); }
             /** Category totals for the chosen period: [{category, amount, share, count}], largest first. Excluded entries are not counted. */
             statsRows(){
                 const s=this.statsState(); const types=s.kind==='income'?['Income']:['Expense','EMI','Installment']; const by=new Map(); let total=0;
-                this.countedTx().forEach(t=>{ if(!types.includes(t.type))return; const iso=this.normalizeLedgerDate(t.date); if(!iso.startsWith(s.key))return; const a=Math.max(0,Number(t.amount)||0); const c=t.category||'Uncategorized'; const o=by.get(c)||{category:c,amount:0,count:0}; o.amount+=a; o.count++; by.set(c,o); total+=a; });
+                this.countedTx().forEach(t=>{ if(!types.includes(t.type))return; const iso=this.normalizeLedgerDate(t.date); if(!this.statsInPeriod(iso,s.key))return; const a=Math.max(0,Number(t.amount)||0); const c=t.category||'Uncategorized'; const o=by.get(c)||{category:c,amount:0,count:0}; o.amount+=a; o.count++; by.set(c,o); total+=a; });
                 return {total,rows:[...by.values()].sort((a,b)=>b.amount-a.amount).map(o=>({...o,share:total?o.amount/total*100:0}))};
             }
             renderStats(){
                 const panel=document.getElementById('panel-stats'); if(!panel||!this.data)return; const s=this.statsState();
-                const label=document.getElementById('stats-period-label'); if(label)label.textContent=s.mode==='year'?s.key:this.monthLabel(s.key);
+                const label=document.getElementById('stats-period-label'); if(label)label.textContent=this.statsPeriodLabel(s.key); panel.querySelectorAll('.st-head .lp-nav').forEach(b=>b.hidden=s.key==='all');
                 panel.querySelectorAll('.st-mode [data-mode]').forEach(b=>{ const on=b.dataset.mode===s.mode; b.classList.toggle('on',on); b.setAttribute('aria-selected',String(on)); });
                 panel.querySelectorAll('.st-kind [data-kind]').forEach(b=>{ const on=b.dataset.kind===s.kind; b.classList.toggle('on',on); b.setAttribute('aria-selected',String(on)); });
-                const sumOf=kind=>{ const types=kind==='income'?['Income']:['Expense','EMI','Installment']; return this.countedTx().filter(t=>types.includes(t.type)&&this.normalizeLedgerDate(t.date).startsWith(s.key)).reduce((n,t)=>n+Math.max(0,Number(t.amount)||0),0); };
+                const sumOf=kind=>{ const types=kind==='income'?['Income']:['Expense','EMI','Installment']; return this.countedTx().filter(t=>types.includes(t.type)&&this.statsInPeriod(this.normalizeLedgerDate(t.date),s.key)).reduce((n,t)=>n+Math.max(0,Number(t.amount)||0),0); };
                 const setText=(id,v)=>{ const el=document.getElementById(id); if(el)el.textContent=v; };
                 setText('stats-total-expense',this.fmtMoney(sumOf('expense'))); setText('stats-total-income',this.fmtMoney(sumOf('income')));
-                const {total,rows}=this.statsRows(); const period=s.mode==='year'?s.key:this.monthLabel(s.key,true);
+                const {total,rows}=this.statsRows(); const period=this.statsPeriodLabel(s.key,true);
                 const center=document.getElementById('stats-center'); if(center)center.innerHTML=rows.length?`<span>${s.kind==='income'?'Income':'Spent'}</span><b>${this.fmtMoney0(total)}</b><small>${rows.length} categor${rows.length===1?'y':'ies'}</small>`:'';
                 const list=document.getElementById('stats-list'); const esc=v=>this.escapeHtml(String(v??'')); const attrJs=v=>JSON.stringify(v).replace(/&/g,'&amp;').replace(/'/g,'&#39;');
-                if(list)list.innerHTML=rows.length?rows.map(r=>`<button type="button" class="st-row" onclick='app.openLedgerCategory(${attrJs(r.category)},${attrJs(s.key)})' title="Show these entries in Core Ledger"><span class="st-pct" style="--c:${this.categoryColor(r.category)};--t:${this.readableOn(this.categoryColor(r.category))}">${r.share>=10?Math.round(r.share):r.share.toFixed(1)}%</span><span class="st-cat"><b>${esc(r.category)}</b><small>${r.count} entr${r.count===1?'y':'ies'}</small></span><span class="st-amt">${this.fmtMoney(r.amount)}</span></button>`).join(''):`<p class="lx-none">No ${s.kind==='income'?'income':'expenses'} in ${esc(period)}.</p>`;
+                if(list)list.innerHTML=rows.length?rows.map(r=>`<button type="button" class="st-row" onclick='app.openLedgerCategory(${attrJs(r.category)},${attrJs(s.key.startsWith("*-")?"all":s.key)})' title="Show these entries in Core Ledger"><span class="st-pct" style="--c:${this.categoryColor(r.category)};--t:${this.readableOn(this.categoryColor(r.category))}">${r.share>=10?Math.round(r.share):r.share.toFixed(1)}%</span><span class="st-cat"><b>${esc(r.category)}</b><small>${r.count} entr${r.count===1?'y':'ies'}</small></span><span class="st-amt">${this.fmtMoney(r.amount)}</span></button>`).join(''):`<p class="lx-none">No ${s.kind==='income'?'income':'expenses'} in ${esc(period)}.</p>`;
                 const canvas=document.getElementById('chart-stats'); if(!canvas||typeof Chart==='undefined')return;
                 this.charts ||= {}; if(this.charts.stats)this.charts.stats.destroy();
                 const dark=document.documentElement.classList.contains('dark');
                 this.charts.stats=new Chart(canvas.getContext('2d'),{type:'doughnut',data:{labels:rows.length?rows.map(r=>r.category):['None'],datasets:[{data:rows.length?rows.map(r=>r.amount):[1],backgroundColor:rows.length?rows.map(r=>this.categoryColor(r.category)):[dark?'#334155':'#e2e8f0'],borderColor:dark?'#0f172a':'#fff',borderWidth:2}]},
                     options:{responsive:true,maintainAspectRatio:false,cutout:'62%',animation:{duration:250},plugins:{legend:{display:false},tooltip:{enabled:!!rows.length,callbacks:{label:c=>` ${c.label}: ${this.fmtMoney(c.raw)} (${rows[c.dataIndex]?.share.toFixed(1)}%)`}}},
-                    onClick:(e,els)=>{ if(!els.length||!rows.length)return; const r=rows[els[0].index]; if(r)this.openLedgerCategory(r.category,s.key); }}});
+                    onClick:(e,els)=>{ if(!els.length||!rows.length)return; const r=rows[els[0].index]; if(r)this.openLedgerCategory(r.category,s.key.startsWith('*-')?'all':s.key); }}});
             }
 
         }

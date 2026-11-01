@@ -558,3 +558,30 @@ html.dark .sms-myfields .mf-compact select,html.dark .sms-myfields .mf-compact i
 .dark .rm-merge { background: #022c22; border-color: #065f46; } .dark .bb-row { border-color: #334155; } .dark .bb-row small { color: #94a3b8; }
 .sms-year-row td { color: #1e293b !important; background: #e2e8f0 !important; }
 .dark .sms-year-row td { color: #f1f5f9 !important; background: #1e293b !important; }
+
+/* ── SMS review on phones: compact cards ──
+   Row 1: payee + message | amount · Row 2: date | status chip · then the reference (if any), the suggested match
+   (only when there is one), and the actions. The message shows 3 lines (tap for all); the source name and empty
+   cells are hidden; the six counts become one compact strip. */
+@media (max-width: 767px) {
+  #sms-reconcile-tbody > tr:not(.sms-year-row) { row-gap: 4px !important; padding: 10px 2px !important; }
+  #sms-reconcile-tbody > tr > td.sms-status { grid-column: 2 !important; grid-row: 2 !important; text-align: right; }
+  #sms-reconcile-tbody > tr > td:nth-child(1) { font-size: 12.5px; }
+  #sms-reconcile-tbody > tr > td.sms-ref { grid-column: 1 / -1 !important; grid-row: 3 !important; text-align: left !important; font-size: 12px; }
+  #sms-reconcile-tbody > tr > td.sms-match { grid-row: 4 !important; }
+  #sms-reconcile-tbody > tr > td.sms-empty { display: none !important; }
+  #sms-reconcile-tbody .sms-src { display: none; }
+  #sms-reconcile-tbody .sms-msg { font-size: 12.5px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+  #sms-reconcile-tbody .sms-msg.open { -webkit-line-clamp: unset; display: block; }
+  #sms-reconcile-tbody > tr > td:nth-child(7) > button { flex: 1 1 auto; }
+  #sms-reconcile-tbody > tr > td:nth-child(7) { display: flex; flex-wrap: wrap; gap: 6px; }
+  #sms-reconcile-summary { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 6px !important; }
+  #sms-reconcile-summary > div { padding: 6px 8px !important; border-radius: 10px !important; }
+  #sms-reconcile-summary > div > div:first-child { font-size: 11px !important; line-height: 1.2; }
+  #sms-reconcile-summary > div > div:last-child { font-size: 17px !important; line-height: 1.3; }
+}
+.sms-chip { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #f1f5f9; color: #334155; text-transform: capitalize; }
+.sms-chip.sms-pending { background: #fef3c7; color: #78350f; } .sms-chip.sms-merged, .sms-chip.sms-matched { background: #d1fae5; color: #065f46; } .sms-chip.sms-ignored { background: #e2e8f0; color: #334155; }
+.dark .sms-chip { background: #1e293b; color: #e2e8f0; } .dark .sms-chip.sms-pending { background: #451a03; color: #fde68a; } .dark .sms-chip.sms-merged, .dark .sms-chip.sms-matched { background: #022c22; color: #a7f3d0; }
+.sms-ref-l { color: #64748b; }
+.dark .sms-ref-l { color: #a3b0c2; }

@@ -291,7 +291,7 @@
                 if(!tx||!!tx.excludedFromLedger===exclude)return false;
                 if(exclude){tx.excludedFromLedger=true;return true;}
                 tx.excludedFromLedger=false;
-                if(tx.balanceEffectRemoved){this.applyBalanceEffect(tx,1);delete tx.balanceEffectRemoved;}
+                if(tx.balanceEffectRemoved){delete tx.balanceEffectRemoved;this.applyTxEffects(tx,1);}   // the shared rule: a parked transfer moves both accounts
                 if(tx.duplicateOf){tx.duplicateOverride=true;delete tx.duplicateOf;delete tx.duplicateReason;delete tx.duplicateMarkedAt;}
                 return true;
             }
@@ -444,12 +444,13 @@
                 <p class="text-sm text-slate-500">Only fields you change will be applied to every selected transaction. Leave a field unchanged to preserve its current value.</p>
                 <form onsubmit="app.applyBulkEdit(event)" class="space-y-3">
                 <label class="block text-xs font-semibold">Date<input id="bulk-date" type="date" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"></label>
-                <label class="block text-xs font-semibold">Type<select id="bulk-edit-type" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800">${opts(['Expense','Income','Transfer','EMI','Installment'])}</select></label>
+                <label class="block text-xs font-semibold">Type<select id="bulk-edit-type" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800">${opts(['Expense','Income','Transfer','EMI','Installment','Investment'])}</select></label>
                 <label class="block text-xs font-semibold">Amount<input id="bulk-amount" type="number" min="0" step="0.01" placeholder="Leave unchanged" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"><button type="button" onclick="app.openAmountCalculator('bulk-amount')" class="mt-1 text-xs text-emerald-600 hover:underline">🧮 Calculator</button></label>
                 <label class="block text-xs font-semibold">Payee / Name<input id="bulk-payee" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800" placeholder="Leave unchanged"></label>
                 <label class="block text-xs font-semibold">Category<select id="bulk-category" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800">${opts([...new Set([...(this.data.categories||[]),...this.data.tx.map(t=>t.category).filter(Boolean)])])}</select></label>
                 <label class="block text-xs font-semibold">Subcategory<input id="bulk-subcategory" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800" placeholder="Leave unchanged"></label>
                 <label class="block text-xs font-semibold">Account<select id="bulk-account" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800">${opts(this.data.accounts.map(a=>a.name))}</select></label>
+                <label class="block text-xs font-semibold">Invested in / To (investments and transfers)<select id="bulk-destination" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800">${opts(this.data.accounts.map(a=>a.name))}</select></label>
                 <label class="block text-xs font-semibold">Note<input id="bulk-note" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800" placeholder="Leave unchanged"></label>
                 <label class="block text-xs font-semibold">Description / Narration<textarea id="bulk-description" rows="3" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800" placeholder="Leave unchanged"></textarea></label>
                 <div class="flex justify-end gap-2 pt-3"><button type="button" onclick="app.closeModal()" class="px-4 py-2 border rounded-lg">Cancel</button><button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg">Apply to selected</button></div></form>`;
@@ -464,13 +465,13 @@
                 const ids=this.selectedTransactionIds?Array.from(this.selectedTransactionIds):[];
                 if(!ids.length)return alert('No transactions selected.');
                 const val=id=>document.getElementById(id)?.value??'';
-                const changes={date:val('bulk-date'),type:val('bulk-edit-type'),amount:val('bulk-amount'),payee:val('bulk-payee'),category:val('bulk-category'),subcategory:val('bulk-subcategory'),account:val('bulk-account'),notes:val('bulk-note'),description:val('bulk-description')};
+                const changes={date:val('bulk-date'),type:val('bulk-edit-type'),amount:val('bulk-amount'),payee:val('bulk-payee'),category:val('bulk-category'),subcategory:val('bulk-subcategory'),account:val('bulk-account'),destinationAccount:val('bulk-destination'),notes:val('bulk-note'),description:val('bulk-description')};
                 if(changes.amount!==''&&(!Number.isFinite(Number(changes.amount))||Number(changes.amount)<0))return alert('Enter a valid non-negative amount.');
                 if(!Object.values(changes).some(v=>v!==''))return alert('Make at least one change before applying.');
-                if(!await this.uiConfirm(`Apply the selected field changes to ${ids.length} transaction(s)? Account balances will not be automatically recalculated; reconcile them after editing.`))return;
+                if(!await this.uiConfirm(`Apply the selected field changes to ${ids.length} transaction(s)? Account balances follow the changes.`))return;
                 let count=0;
-                this.data.tx.forEach(t=>{if(!ids.includes(String(t.id)))return;for(const [k,v] of Object.entries(changes)){if(v==='')continue;if(k==='amount')t[k]=Number(v);else if(k==='subcategory')t.subcategory=v;else if(k==='note')t.note=v;else t[k]=v;}this.ensureCategoryAndSubcategory(t.category,t.subcategory);count++;});
-                this.saveVault();this.renderAll();this.renderLedger();this.closeModal();alert(`Updated ${count} transaction(s). Please review account balances.`);
+                this.data.tx.forEach(t=>{if(!ids.includes(String(t.id)))return;this.applyTxEffects({...t},-1);for(const [k,v] of Object.entries(changes)){if(v==='')continue;if(k==='destinationAccount'){ if(['Investment','Transfer'].includes(changes.type||t.type)){ t.destinationAccount=v; delete t.toAccount; delete t.transferDirection; } continue; }if(k==='amount')t[k]=Number(v);else if(k==='subcategory')t.subcategory=v;else if(k==='note')t.note=v;else t[k]=v;}if(t.type!=='Transfer'){delete t.transferDirection;}else if(!(t.destinationAccount||t.toAccount)&&!t.transferDirection)t.transferDirection='out';if((t.destinationAccount||t.toAccount)===t.account){delete t.destinationAccount;delete t.toAccount;t.transferDirection='out';}this.applyTxEffects(t,1);this.ensureCategoryAndSubcategory(t.category,t.subcategory);count++;});
+                this.saveVault();this.renderAll();this.renderLedger();this.closeModal();this.showToast(`Updated ${count} transaction(s); account balances updated.`);
             }
             /**
              * Handles the bulk change type from menu workflow. See the implementation below for its inputs, state changes, and side effects.
@@ -486,7 +487,7 @@
              * Handles the bulk change type workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: none. Side effects, if any, are described by the statements below.
              */
-            async bulkChangeType(){const ids=this.selectedTransactionIds?Array.from(this.selectedTransactionIds):[];const type=document.getElementById('bulk-type')?.value;if(!ids.length)return alert('Select at least one transaction first.');if(!type)return alert('Choose the new transaction type.');if(!await this.uiConfirm(`Change ${ids.length} selected transaction(s) to ${type}? Account balances are not automatically recalculated for bulk type changes. Review account balances afterwards.`))return;this.data.tx.forEach(t=>{if(ids.includes(String(t.id)))t.type=type;});this.saveVault();this.renderAll();this.renderLedger();alert(`${ids.length} transaction(s) updated to ${type}.`);}
+            async bulkChangeType(){const ids=this.selectedTransactionIds?Array.from(this.selectedTransactionIds):[];const type=document.getElementById('bulk-type')?.value;if(!ids.length)return alert('Select at least one transaction first.');if(!type)return alert('Choose the new transaction type.');if(!await this.uiConfirm(`Change ${ids.length} selected transaction(s) to ${type}? Account balances follow the change.`))return;this.data.tx.forEach(t=>{if(!ids.includes(String(t.id)))return;this.applyTxEffects({...t},-1);t.type=type;if(type!=='Transfer')delete t.transferDirection;else if(!(t.destinationAccount||t.toAccount)&&!t.transferDirection)t.transferDirection='out';this.applyTxEffects(t,1);});this.saveVault();this.renderAll();this.renderLedger();alert(`${ids.length} transaction(s) updated to ${type}.`);}
 
             /**
              * Handles the normalize ledger date workflow. See the implementation below for its inputs, state changes, and side effects.
@@ -555,7 +556,7 @@
                 const date=this.normalizeLedgerDate(val('modal-tx-date')); if(!date)return alert('Please enter a valid date.');
                 if(this.isLockedDate(date))return this.lockedAlert(date);
                 const account=val('modal-tx-account'); if(!account)return alert('Select an account.');
-                const destinationAccount=transfer?val('modal-tx-destination'):'';
+                const destinationAccount=(transfer||type==='Investment')?(val('modal-tx-destination')===account&&!transfer?'':val('modal-tx-destination')):'';
                 if(transfer&&(!destinationAccount||destinationAccount===account))return alert('Choose a destination account that is different from the source account.');
                 const category=transfer?'Transfer':(val('modal-tx-category')||'Uncategorized'), subcategory=transfer?'':val('modal-tx-subcategory').trim(), note=val('modal-tx-note').trim();
                 const tx={id:'sms_merge_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),uid:this.newUid(),date,type,amount,account,category,...(subcategory?{subcategory}:{}),payee:val('modal-tx-payee').trim(),notes:note,...(note?{note}:{}),...(destinationAccount?{destinationAccount}:{}),
@@ -579,7 +580,7 @@
                 const date=this.normalizeLedgerDate(val('modal-tx-date')); if(!date)return alert('Please enter a valid date.');
                 if(this.isLockedDate(date))return this.lockedAlert(date);
                 const account=val('modal-tx-account'); if(!account)return alert('Select an account.');
-                const destinationAccount=transfer?val('modal-tx-destination'):'';
+                const destinationAccount=(transfer||type==='Investment')?(val('modal-tx-destination')===account&&!transfer?'':val('modal-tx-destination')):'';
                 // A one-sided imported transfer (money in or out, other account not recorded) may stay one-sided
                 const oneSided=transfer&&!destinationAccount&&!!t.transferDirection;
                 if(transfer&&!oneSided&&(!destinationAccount||destinationAccount===account))return alert('Choose a destination account that is different from the source account.');
@@ -634,7 +635,7 @@
                 // An account that is not in your list (e.g. "SMS (Unreconciled)" on older imports) is still shown, so it can be changed
                 const extraAcct=sel=>sel&&!accounts.some(a=>String(a.name)===String(sel))?`<option value="${esc(sel)}" selected>${esc(sel)} (not in your accounts)</option>`:'';
                 const acctOpts=sel=>extraAcct(sel)+accounts.map(a=>`<option value="${esc(a.name)}" ${String(a.name)===String(sel)?'selected':''}>${esc(a.name)}</option>`).join('');
-                const type=['Expense','Income','Transfer','EMI','Installment'].includes(p.type)?p.type:'Expense';
+                const type=['Expense','Income','Transfer','EMI','Installment','Investment'].includes(p.type)?p.type:'Expense';
                 const box = document.getElementById('modal-box');
                 box.innerHTML = `
                     <div class="flex justify-between items-center pb-2">
@@ -646,15 +647,15 @@
                             <button type="button" role="tab" data-t="Income">Income</button>
                             <button type="button" role="tab" data-t="Expense">Expense</button>
                             <button type="button" role="tab" data-t="Transfer">Transfer</button>
-                            <select id="af-more-type" aria-label="Other types"><option value="">More</option><option value="EMI">EMI</option><option value="Installment">Installment</option></select>
+                            <select id="af-more-type" aria-label="Other types"><option value="">More</option><option value="EMI">EMI</option><option value="Installment">Installment</option><option value="Investment">Investment</option></select>
                         </div>
-                        <select id="modal-tx-type" hidden aria-hidden="true" tabindex="-1">${['Expense','Income','Transfer','EMI','Installment'].map(x=>`<option value="${x}" ${x===type?'selected':''}>${x}</option>`).join('')}</select>
+                        <select id="modal-tx-type" hidden aria-hidden="true" tabindex="-1">${['Expense','Income','Transfer','EMI','Installment','Investment'].map(x=>`<option value="${x}" ${x===type?'selected':''}>${x}</option>`).join('')}</select>
                         <label class="af-row"><span>Date</span><input type="date" id="modal-tx-date" required value="${review&&p.date?esc(p.date):this.todayISO()}"></label>${review&&p.smsDate?`<p class="af-note">Original SMS date: ${esc(this.smsDateText(p.smsDate))} (kept separately)</p>`:''}
                         <label class="af-row af-amount"><span>Amount${CURL()}</span><input type="number" step="0.01" min="0.01" id="modal-tx-amount" data-money="0" required inputmode="decimal" placeholder="0.00" value="${p.amount?esc(p.amount):''}"><button type="button" class="af-calc" onclick="app.openAmountCalculator('modal-tx-amount')" aria-label="Calculator">🧮</button></label>
                         <label class="af-row" data-show="cat"><span>Category</span><span class="af-cat"><i class="cat-dot" id="af-cat-dot"></i><select id="modal-tx-category">${cats.map(c=>`<option value="${esc(c)}" ${c===p.category?'selected':''}>${esc(c)}</option>`).join('')}</select></span></label>
                         <label class="af-row" data-show="cat"><span>Subcategory</span><span class="af-sub"><select id="af-sub-pick" aria-label="Subcategory"></select><input id="modal-tx-subcategory" autocomplete="off" placeholder="Type a subcategory" value="${esc(p.subcategory||'')}"></span></label>
                         <label class="af-row"><span id="af-account-label">Account</span><select id="modal-tx-account">${acctOpts(def)}</select></label>
-                        <label class="af-row" id="modal-tx-destination-wrap" data-show="to"><span>To</span><select id="modal-tx-destination">${oneSided?`<option value="" selected>Not recorded (${edit.transferDirection==='in'?'money in':'money out'})</option>`:extraAcct(p.destinationAccount)}${accounts.map(a=>`<option value="${esc(a.name)}" ${String(a.name)===String(p.destinationAccount||'')?'selected':''}>${esc(a.name)} (${esc(a.type||'Account')})</option>`).join('')}</select></label>
+                        <label class="af-row" id="modal-tx-destination-wrap" data-show="to"><span id="af-dest-label">To</span><select id="modal-tx-destination">${oneSided?`<option value="" selected>Not recorded (${edit.transferDirection==='in'?'money in':'money out'})</option>`:extraAcct(p.destinationAccount)}${accounts.map(a=>`<option value="${esc(a.name)}" ${String(a.name)===String(p.destinationAccount||'')?'selected':''}>${esc(a.name)} (${esc(a.type||'Account')})</option>`).join('')}</select></label>
                         <label class="af-row"><span>Payee</span><input type="text" id="modal-tx-payee" required placeholder="Shop or person" value="${esc(p.payee||'')}"></label>
                         <label class="af-row"><span>Note</span><input type="text" id="modal-tx-note" placeholder="Optional" value="${esc(p.note||'')}"></label>${review?`<label class="af-desc"><span>Description</span><textarea id="modal-tx-description" rows="5" placeholder="Optional">${esc(p.description||'')}</textarea></label>`:''}
                         ${this.myFieldsInputs(edit?.custom||p.custom||smsItem?.custom||this.payeeFieldsFor(p.payee),'af-mf')}
@@ -680,8 +681,14 @@
                 const sync=()=>{
                     const t=typeSel.value; form.dataset.type=t; const transfer=t==='Transfer', expenseLike=['Expense','EMI','Installment'].includes(t);
                     form.querySelectorAll('.af-types [data-t]').forEach(b=>{ const on=b.dataset.t===t; b.classList.toggle('on',on); b.setAttribute('aria-selected',String(on)); });
-                    const more=$('af-more-type'); more.classList.toggle('on',['EMI','Installment'].includes(t)); more.value=['EMI','Installment'].includes(t)?t:'';
-                    form.querySelectorAll('[data-show="cat"]').forEach(r=>{ r.hidden=transfer; }); $('modal-tx-destination-wrap').hidden=!transfer; $('af-account-label').textContent=transfer?'From':'Account';
+                    const more=$('af-more-type'); more.classList.toggle('on',['EMI','Installment','Investment'].includes(t)); more.value=['EMI','Installment','Investment'].includes(t)?t:'';
+                    const invest=t==='Investment';
+                    // 'Not tracked' is a choice for investments only (a transfer always needs its other account)
+                    { const nt=dst.querySelector('option[data-nt]'); if(invest&&!nt){ const o=document.createElement('option'); o.value=''; o.dataset.nt='1'; o.textContent='Not tracked'; dst.prepend(o); if(!p.destinationAccount&&!dstTouched)dst.value=''; } else if(!invest&&nt){ const wasSel=dst.value===''; nt.remove(); if(wasSel&&!oneSided){ const other=[...dst.options].find(o=>o.value&&o.value!==src.value); if(other)dst.value=other.value; } } }
+                    form.querySelectorAll('[data-show="cat"]').forEach(r=>{ r.hidden=transfer; }); $('modal-tx-destination-wrap').hidden=!(transfer||invest); $('af-account-label').textContent=transfer?'From':invest?'Paid from':'Account'; $('af-dest-label').textContent=invest?'Invested in':'To';
+                    // A transfer needs a real destination; an investment defaults to your only investment account (else 'Not tracked')
+                    if(transfer&&!oneSided&&!dst.value){ const other=[...dst.options].find(o=>o.value&&o.value!==src.value); if(other)dst.value=other.value; }
+                    if(invest&&!dstTouched&&!dst.value){ const inv=accounts.filter(a=>/invest|demat|mutual|stock|nps|ppf/i.test(String(a.type)+' '+String(a.name))); if(inv.length===1&&inv[0].name!==src.value)dst.value=inv[0].name; }
                     if(transfer&&dst.value&&dst.value===src.value){ const other=[...dst.options].find(o=>o.value!==src.value); if(other)dst.value=other.value; }
                     $('af-inst-row').hidden=!expenseLike; if(!expenseLike)$('af-inst').value='';
                     const inst=Number($('af-inst').value)||0; const rep=$('af-repeat').value;
@@ -697,12 +704,12 @@
                     $('af-save').textContent=edit?'Save changes':smsItem?'Save to Core Ledger':inst>1?'Save installments':rep?'Save and repeat':'Save';
                 };
                 // Until the person picks a category, follow the type: the category they use most for income, or for spending.
-                let catTouched=!!p.category;
+                let catTouched=!!p.category; let dstTouched=!!p.destinationAccount;
                 const pickCat=()=>{ if(catTouched||typeSel.value==='Transfer')return; const c=this.lastCategoryFor(typeSel.value)||(typeSel.value==='Income'?cats.find(x=>/salary|income/i.test(x))||'':''); if(c&&[...catSel.options].some(o=>o.value===c)){ catSel.value=c; subsFor(); } };
                 form.querySelectorAll('.af-types [data-t]').forEach(b=>b.addEventListener('click',()=>{ typeSel.value=b.dataset.t; pickCat(); sync(); }));
                 $('af-more-type').addEventListener('change',e=>{ if(e.target.value){ typeSel.value=e.target.value; } pickCat(); sync(); });
                 catSel.addEventListener('change',()=>{ catTouched=true; $('modal-tx-subcategory').value=''; subsFor(); });
-                $('af-sub-pick').addEventListener('change',e=>{ const v=e.target.value, txt=$('modal-tx-subcategory'); if(v==='__type'){ txt.value=''; txt.hidden=false; txt.focus(); } else { txt.value=v; txt.hidden=true; } }); [src,dst,$('af-repeat'),$('af-ends'),$('af-inst')].forEach(el=>el.addEventListener('change',sync));
+                $('af-sub-pick').addEventListener('change',e=>{ const v=e.target.value, txt=$('modal-tx-subcategory'); if(v==='__type'){ txt.value=''; txt.hidden=false; txt.focus(); } else { txt.value=v; txt.hidden=true; } }); [src,dst,$('af-repeat'),$('af-ends'),$('af-inst')].forEach(el=>el.addEventListener('change',sync)); dst.addEventListener('change',()=>{ dstTouched=true; });
                 [$('modal-tx-amount'),$('modal-tx-date'),$('af-ends-count'),$('af-ends-date')].forEach(el=>el.addEventListener('input',sync));
                 subsFor(); pickCat(); sync();
                 // My fields: a known payee fills the fields that are still empty with what was used for them last time
@@ -730,7 +737,7 @@
                 const date = val('modal-tx-date');
                 if (!Number.isFinite(amount) || amount <= 0) return alert('Enter an amount greater than zero.');
                 if (!account || !date) return alert('Select an account and date.');
-                const destinationAccount = transfer ? val('modal-tx-destination') : '';
+                const destinationAccount = (transfer||type==='Investment') ? (val('modal-tx-destination')===account&&!transfer?'':val('modal-tx-destination')) : '';
                 if (transfer && (!destinationAccount || destinationAccount === account)) return alert('Choose a destination account that is different from the source account.');
                 if (this.isLockedDate(date)) return this.lockedAlert(date);
                 const inst=Number(val('af-inst'))||0, repeat=val('af-repeat');

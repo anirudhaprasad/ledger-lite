@@ -513,6 +513,8 @@
             txEffects(t){
                 const a=Math.abs(Number(t&&t.amount)||0); if(!t||!a)return [];
                 if(t.type==='Income')return [{account:t.account,delta:a}];
+                // An investment (SIP, mutual fund, stocks…) leaves the paying account and, when an 'Invested in' account is set, adds to it
+                if(t.type==='Investment'){ const dest=t.destinationAccount||t.toAccount; return dest&&dest!==t.account?[{account:t.account,delta:-a},{account:dest,delta:a}]:[{account:t.account,delta:-a}]; }
                 if(t.type==='Transfer'){ if(t.transferDirection==='in')return [{account:t.account,delta:a}]; if(t.transferDirection==='out')return [{account:t.account,delta:-a}]; const dest=t.destinationAccount||t.toAccount; return dest&&dest!==t.account?[{account:t.account,delta:-a},{account:dest,delta:a}]:[{account:t.account,delta:-a}]; }
                 return [{account:t.account,delta:-a}];
             }
@@ -697,7 +699,7 @@
                     configuration:()=>plural((D.categories||[]).length,'category').replace('categorys','categories'),
                     sms:()=>plural((D.smsInbox||[]).filter(x=>(x.status||'pending')==='pending').length,'SMS')+' to review',
                     settings:()=>'', guide:()=>'', importer:()=>'', dashboard:()=>month,
-                    stats:()=>{ const s=this.statsState?.(); if(!s)return ''; return (s.mode==='year'?s.key:this.monthLabel(s.key,true))+' · '+(s.kind==='income'?'Income':'Expenses'); }};
+                    stats:()=>{ const s=this.statsState?.(); if(!s)return ''; return (this.statsPeriodLabel?this.statsPeriodLabel(s.key,true):s.key)+' · '+(s.kind==='income'?'Income':'Expenses'); }};
                 if(meta){ try{ meta.textContent=(metaFor[tab]||(()=>''))(); }catch(e){ meta.textContent=''; } }
                 // The dashboard's monthly figures are in its own tiles, so the title bar shows only the month.
                 if(tab==='dashboard'&&meta)meta.textContent=new Date().toLocaleDateString('en-IN',{month:'long',year:'numeric'});
