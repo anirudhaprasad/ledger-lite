@@ -418,7 +418,8 @@ html:not(.dark) .text-blue-600 { color: #1d4ed8 !important; }
 html:not(.dark) #bottom-nav button:not(.on) span { color: #4a5668 !important; }
 .dark .text-slate-500, .dark .lx-sub, .dark .acct-sub, .dark .dk-s, .dark .dash-note, .dark thead th { color: #a3b0c2 !important; }
 @media (max-width: 767px) {
-  #main-layout button, #modal-box button, #main-layout a[href], #main-layout select { min-width: 24px; min-height: 24px; }
+  /* :where() keeps this floor at the lowest priority, so it only lifts tiny controls and never shrinks the 44px .s-btn */
+  :where(#main-layout, #modal-box) :where(button, a[href], select) { min-width: 24px; min-height: 24px; }
   #main-layout input[type=checkbox], #modal-box input[type=checkbox], #main-layout input[type=radio], #modal-box input[type=radio] { min-width: 24px; min-height: 24px; }
   .lx-row { grid-template-columns: 24px minmax(78px, 30%) minmax(0, 1fr) auto 28px; }
   .lx-sel input { width: 24px !important; height: 24px !important; }
@@ -458,4 +459,23 @@ html.dark #main-layout button.bg-emerald-600, html.dark #modal-box button.bg-eme
 @media (max-width: 767px) {
   #panel-shared #ss-tabs { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; overflow: visible; flex-wrap: wrap; }
   #panel-shared #ss-tabs > button { min-width: 0; min-height: 36px; padding: 6px 4px; font-size: 13px; white-space: normal; line-height: 1.2; text-align: center; }
+}
+
+/* My fields on SMS review rows: small labelled boxes, two or three per line, never overlapping */
+.sms-myfields{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px 8px;margin-top:6px;max-width:520px}
+.sms-myfields .mf-compact,#sms-myfields-bulk .mf-compact{display:flex;flex-direction:column;gap:2px;min-width:0;margin:0}
+.sms-myfields .mf-compact>span,#sms-myfields-bulk .mf-compact>span{font-size:11px;font-weight:600;color:#475569}
+.sms-myfields .mf-compact select,.sms-myfields .mf-compact input,#sms-myfields-bulk .mf-compact select,#sms-myfields-bulk .mf-compact input{min-width:140px;width:100%;min-height:32px;padding:4px 8px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;font-size:13px;box-shadow:none;appearance:auto}
+html.dark .sms-myfields .mf-compact>span,html.dark #sms-myfields-bulk .mf-compact>span{color:#cbd5e1}
+html.dark .sms-myfields .mf-compact select,html.dark .sms-myfields .mf-compact input,html.dark #sms-myfields-bulk .mf-compact select,html.dark #sms-myfields-bulk .mf-compact input{background:#0f172a;color:#f1f5f9;border-color:#475569}
+
+/* ── One button size scale on phones (wider screens keep their own sizes) ──
+   Main buttons (Save, Cancel, Back up, Restore, Add…): 44px. Row buttons (Merge, Ignore, Confirm, Mark paid, Review,
+   Edit, Delete): 36px. Text links styled as buttons (View All, Edit/Delete in cards): link look, 36px tap area. */
+@media (max-width: 767px) {
+  .s-btn, #main-layout button.rounded-xl.py-2, #modal-box button.rounded-xl.py-2, #modal-box form button.rounded-xl, #modal-box form button.rounded-lg.py-2 { min-height: 44px; }
+  .ip-actions .s-btn, .cs-acc-btns .s-btn, .gp-card .s-btn, .recon-pair-btns .s-btn { min-height: 40px; }
+  .ss-btn, #panel-shared table.ss-pay .ss-btn { min-height: 36px !important; }
+  #sms-reconcile-tbody button, #main-layout button.px-2.py-1, #modal-box button.px-2.py-1, #main-layout button.px-3.py-1, #main-layout button.px-3.py-1\.5 { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; padding-left: 12px; padding-right: 12px; }
+  #main-layout button.hover\:underline, #main-layout td button.text-xs, #vault-screen button.hover\:underline { min-height: 36px; display: inline-flex; align-items: center; padding: 0 6px; }
 }

@@ -101,4 +101,58 @@
                 this.data.settings.subcategoriesRepaired=1;
                 return true;
             }
+
+            // ── My fields: the person's own fields on transactions (Person, Purpose, Reimbursable…) ──
+            // Defined in data.customFields [{id,name,type:'text'|'list'|'yesno'|'number'|'date',options:[]}]; values live in
+            // tx.custom / smsItem.custom as {fieldId: value}; data.payeeFields remembers the last values per payee.
+            myFields(){ return Array.isArray(this.data.customFields)?this.data.customFields.filter(f=>f&&f.id&&f.name):[]; }
+            myFieldTypes(){ return {text:'Text',list:'List of choices',yesno:'Yes / No',number:'Number',date:'Date'}; }
+            renderMyFields(){
+                const box=document.getElementById('my-fields-list'); if(!box)return; const esc=v=>this.escapeHtml(String(v??'')); const fields=this.myFields(); const types=this.myFieldTypes();
+                box.innerHTML=fields.length?fields.map(f=>`<div class="flex items-center justify-between gap-2 p-2 rounded-xl border border-slate-200 dark:border-slate-700"><span><b>${esc(f.name)}</b> <span class="text-xs text-slate-500">${esc(types[f.type]||f.type)}${f.type==='list'?': '+esc((f.options||[]).join(', ')):''}</span></span><span class="flex gap-1"><button type="button" class="s-btn s-secondary" onclick="app.editMyField('${esc(f.id)}')">Edit</button><button type="button" class="s-btn s-secondary" onclick="app.deleteMyField('${esc(f.id)}')">Delete</button></span></div>`).join(''):'<p class="set-note">No fields yet.</p>';
+            }
+            editMyField(id){
+                const f=id?this.myFields().find(x=>x.id===id):null; if(!f&&this.myFields().length>=10)return alert('You can have up to 10 fields.');
+                const esc=v=>this.escapeHtml(String(v??'')); const types=this.myFieldTypes(); const box=document.getElementById('modal-box');
+                box.innerHTML=`<div class="flex justify-between items-center pb-2"><h3 class="font-bold">${f?'Edit field':'Add field'}</h3><button type="button" onclick="app.closeModal()" aria-label="Close">✕</button></div>
+                <form id="mf-form" class="space-y-3"><label class="block text-sm">Name<input id="mf-name" required maxlength="30" placeholder="e.g. Person" value="${esc(f?.name||'')}" class="mt-1 w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></label>
+                <label class="block text-sm">Type<select id="mf-type" class="mt-1 w-full px-3 py-2 rounded-xl border dark:bg-slate-800">${Object.entries(types).map(([k,v])=>`<option value="${k}" ${k===(f?.type||'text')?'selected':''}>${v}</option>`).join('')}</select></label>
+                <label class="block text-sm" id="mf-options-row">Choices, separated by commas<input id="mf-options" maxlength="300" placeholder="e.g. Me, Wife, Kids" value="${esc((f?.options||[]).join(', '))}" class="mt-1 w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></label>
+                <div class="flex justify-end gap-2"><button type="button" onclick="app.closeModal()" class="px-4 py-2 border rounded-xl">Cancel</button><button class="px-4 py-2 bg-emerald-600 text-white rounded-xl">Save</button></div></form>`;
+                document.getElementById('modal-container').classList.remove('hidden');
+                const sync=()=>{ document.getElementById('mf-options-row').hidden=document.getElementById('mf-type').value!=='list'; }; document.getElementById('mf-type').addEventListener('change',sync); sync();
+                document.getElementById('mf-form').onsubmit=e=>{ e.preventDefault();
+                    const name=document.getElementById('mf-name').value.trim(), type=document.getElementById('mf-type').value;
+                    const options=[...new Set(document.getElementById('mf-options').value.split(',').map(s=>s.trim()).filter(Boolean))].slice(0,30);
+                    if(!name)return alert('Enter a name.'); if(this.myFields().some(x=>x!==f&&x.name.toLowerCase()===name.toLowerCase()))return alert('A field with this name already exists.');
+                    if(type==='list'&&!options.length)return alert('Enter at least one choice.');
+                    if(f)Object.assign(f,{name,type,options:type==='list'?options:[]}); else (this.data.customFields||=[]).push({id:'cf_'+Date.now().toString(36),name,type,options:type==='list'?options:[]});
+                    this.saveVault(); this.closeModal(); this.renderAll(); };
+            }
+            async deleteMyField(id){
+                const f=this.myFields().find(x=>x.id===id); if(!f)return; const used=(this.data.tx||[]).filter(t=>t?.custom&&t.custom[id]!=null&&t.custom[id]!=='').length;
+                if(!await this.uiConfirm(`Delete the field "${f.name}"?${used?` Its values on ${used} transaction${used===1?'':'s'} are removed too.`:''}`,{okLabel:'Delete'}))return;
+                this.data.customFields=this.myFields().filter(x=>x.id!==id);
+                [...(this.data.tx||[]),...(this.data.smsInbox||[])].forEach(t=>{ if(t?.custom){ delete t.custom[id]; if(!Object.keys(t.custom).length)delete t.custom; } });
+                Object.values(this.data.payeeFields||{}).forEach(v=>delete v[id]);
+                this.saveVault(); this.renderAll();
+            }
+            /** Shown value: Yes/No for yes-no fields, the date as written, otherwise the text */
+            myFieldText(f,v){ if(v==null||v==='')return ''; if(f.type==='yesno')return v===true||v==='yes'?'Yes':'No'; return String(v); }
+            /** "Person: Wife · Reimbursable: Yes" for details and search */
+            myFieldsSummary(custom){ if(!custom)return []; return this.myFields().map(f=>[f.name,this.myFieldText(f,custom[f.id])]).filter(([,v])=>v); }
+            /** Inputs for every field; prefix keeps ids apart (form vs SMS row); onchange is optional inline code. */
+            myFieldsInputs(values,prefix,onchange='',compact=false){
+                const esc=v=>this.escapeHtml(String(v??'')); const v=values||{};
+                return this.myFields().map(f=>{ const id=`${prefix}-${f.id}`, val=v[f.id]??'', on=onchange?` onchange="${onchange.replace('%ID%',esc(f.id))}"`:'';
+                    const ctl=f.type==='list'?`<select id="${id}" data-field="${esc(f.id)}"${on}><option value="">—</option>${(f.options||[]).map(o=>`<option ${o===val?'selected':''}>${esc(o)}</option>`).join('')}</select>`
+                        :f.type==='yesno'?`<select id="${id}" data-field="${esc(f.id)}"${on}><option value="">—</option><option value="yes" ${val==='yes'?'selected':''}>Yes</option><option value="no" ${val==='no'?'selected':''}>No</option></select>`
+                        :`<input id="${id}" data-field="${esc(f.id)}" type="${f.type==='number'?'number':f.type==='date'?'date':'text'}" ${f.type==='number'?'step="any"':'maxlength="80"'} value="${esc(val)}"${on}>`;
+                    return `<label class="${compact?'mf-compact':'af-row mf-row'}"><span>${esc(f.name)}</span>${ctl}</label>`; }).join('');
+            }
+            /** Values from inputs made by myFieldsInputs (empty ones left out); null when there are none */
+            readMyFields(prefix){ const out={}; this.myFields().forEach(f=>{ const el=document.getElementById(`${prefix}-${f.id}`); const v=el?String(el.value).trim():''; if(v)out[f.id]=v; }); return Object.keys(out).length?out:null; }
+            /** Remember the values for this payee, so the next entry or SMS from them starts with the same values */
+            rememberPayeeFields(payee,custom){ const k=String(payee||'').trim().toLowerCase(); if(!k||!custom)return; (this.data.payeeFields||={})[k]={...custom}; }
+            payeeFieldsFor(payee){ const k=String(payee||'').trim().toLowerCase(); const v=k&&this.data.payeeFields?.[k]; if(!v)return null; const ids=new Set(this.myFields().map(f=>f.id)); const out={}; Object.entries(v).forEach(([id,x])=>{ if(ids.has(id))out[id]=x; }); return Object.keys(out).length?out:null; }
         }

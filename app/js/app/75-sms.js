@@ -163,10 +163,11 @@ Type REMOVE SMS to continue:`);
                     if (!nodes.length) throw new Error('No <sms> or <mms> message records were found. Please select an SMS Backup & Restore XML file.');
                     const messages = nodes.map(n => ({
                         body: n.getAttribute('body') || n.getAttribute('text') || n.getElementsByTagName('body')[0]?.textContent || '',
-                        date: n.getAttribute('date') || n.getAttribute('date_sent') || '',
-                        type: n.getAttribute('type') || '',
-                        address: n.getAttribute('address') || ''
-                    })).filter(m => m.body.trim());
+                        // Some backup apps write each field as a child element (<address>…</address>) instead of an attribute
+                        date: n.getAttribute('date') || n.getAttribute('date_sent') || n.getElementsByTagName('date')[0]?.textContent || '',
+                        type: n.getAttribute('type') || n.getElementsByTagName('type')[0]?.textContent || '',
+                        address: n.getAttribute('address') || n.getElementsByTagName('address')[0]?.textContent || ''
+                    })).filter(m => m.body.trim() && String(m.type) !== '2');   // type 2 = messages you sent
                     if (!messages.length) throw new Error('Message records were found, but none contained readable message text.');
                     this.importSmsMessages(messages, file.name);
                     if (status) { status.textContent = `Read ${messages.length} message(s) from ${file.name}.`; status.classList.remove('hidden'); status.classList.add('text-emerald-600'); }
@@ -193,6 +194,64 @@ Type REMOVE SMS to continue:`);
                 // "Info: NEFT-RENT OCT-RAMESH K": the bank's own description
                 const info=text.match(/\binfo\s*:\s*(?:(?:neft|imps|rtgs|upi|ach|nach)[\s\/-]*)?([A-Za-z][^.;]{1,40})/i); if(info)return info[1].replace(/[-_\/]+/g,' ').replace(/\s+/g,' ').trim().slice(0,30);
                 return '';
+            }
+            /**
+             * Account and card digits an SMS names, in order: "a/c ending XX861", "Acct XX861", "A/C XX123456", "Ac XX1234",
+             * "a/c no. XX1234", "Credit Card 4321", "credit card ending 21". A transfer SMS names two (debited first).
+             * Returns [{digits, card}].
+             */
+            smsAccountRefs(line){
+                const re=/\b(?:(credit\s+card|debit\s+card|card)|a\/c|acct?|acc|account|ac)\b\.?\s*(?:no\.?\s*)?(?:ending\s*(?:with\s*)?)?(?:XX+|X+|\*+)?\s?(\d{2,6})\b/gi;
+                const out=[]; let m; while((m=re.exec(String(line||'')))){ if(!out.some(r=>r.digits===m[2]))out.push({digits:m[2],card:!!m[1]}); } return out;
+            }
+            /** The bank behind an SMS sender or a bank name: "VA-ICICIT-S" and "ICICI Bank" both give ICICI. */
+            smsBankKey(text){
+                const s=String(text||'').toUpperCase().replace(/^[A-Z]{2}-/,'').replace(/-[A-Z]$/,'');
+                const banks=[['HDFC',/HDFC/],['ICICI',/ICICI/],['SBI',/\bSBI|SBYONO|CBSSBI|SBIINB|SBICRD|SBIPSG|STATE BANK/],['AXIS',/AXIS/],['KOTAK',/KOTAK|KMBL/],['IDFC',/IDFC/],['IPPB',/IPB|IPPB|INDIA POST/],['PNB',/PNB|PUNJAB NATIONAL/],['BOB',/\bBOB|BARODA/],['CANARA',/CANBNK|CANARA/],['UNION',/UNIONB|UNION BANK/],['YES',/YESBNK|YES BANK/],['INDUSIND',/INDUS/],['FEDERAL',/FEDBNK|FEDERAL/],['AU',/AUBANK|\bAU SMALL/],['RBL',/RBL/],['BOI',/BOIIND|BANK OF INDIA/],['IOB',/IOBCHN|INDIAN OVERSEAS/],['INDIAN',/INDBNK|INDIAN BANK/],['AMEX',/AMEX|AMERICAN EXPRESS/],['SCB',/SCBANK|STANDARD CHARTERED/],['HSBC',/HSBC/],['PAYTM',/PAYTM|PYTM/],['AIRTEL',/AIRBNK|AIRTEL PAYMENTS/],['JUPITER',/JUPITR/],['ONECARD',/ONECRD|ONECARD/]];
+                return (banks.find(([,re])=>re.test(s))||[])[0]||'';
+            }
+            /** The digits saved on an account (Last digits field, the full number, and digits in its name for older vaults). */
+            accountDigits(a){ return [...String(a?.lastDigits||'').split(/[^0-9]+/),String(a?.accountNumber||'').replace(/\D/g,'').slice(-6),...(String(a?.name||'').match(/\d{3,6}/g)||[])].filter(d=>d&&d.length>=2); }
+            /** "861" in an SMS fits a saved "0861", and a saved "1234" fits "561234": the shorter must end the longer. */
+            smsDigitsFit(a,b){ a=String(a);b=String(b); const [s,l]=a.length<=b.length?[a,b]:[b,a]; return s.length>=2&&l.endsWith(s); }
+            /**
+             * Which account an SMS belongs to: last digits first (cards prefer credit card accounts), the sending bank to break ties,
+             * then a sender learned from earlier merges. Returns {account, to, how} (to: the other own account in a transfer) or null.
+             */
+            smsResolveAccount(item){
+                const accounts=(this.data.accounts||[]).filter(a=>a&&a.name);
+                const refs=Array.isArray(item.accountRefs)?item.accountRefs:(item.accountHint?[{digits:String(item.accountHint),card:false}]:[]);
+                const sender=String(item.sender||'').toUpperCase().replace(/^[A-Z]{2}-/,'').replace(/-[A-Z]$/,''), bank=this.smsBankKey(item.sender);
+                const ofBank=a=>bank&&(this.smsBankKey(a.bankName)===bank||this.smsBankKey(a.name)===bank);
+                const learned=a=>sender&&(a.smsSenders||[]).includes(sender);
+                const pick=ref=>{ let list=accounts.filter(a=>this.accountDigits(a).some(d=>this.smsDigitsFit(d,ref.digits)));
+                    if(list.length>1){ const typed=list.filter(a=>this.isCardType?.(a.type)===ref.card); if(typed.length)list=typed; }
+                    if(list.length>1){ const b=list.filter(a=>ofBank(a)||learned(a)); if(b.length)list=b; }
+                    // Still tied ("XX861" fits 0861 and 120861): the saved number closest in length to the SMS wins, if only one is
+                    if(list.length>1){ const gap=a=>Math.min(...this.accountDigits(a).filter(d=>this.smsDigitsFit(d,ref.digits)).map(d=>Math.abs(d.length-ref.digits.length))); const best=Math.min(...list.map(gap)); const near=list.filter(a=>gap(a)===best); if(near.length===1)list=near; }
+                    return list.length===1?list[0]:null; };
+                const first=refs.length?pick(refs[0]):null;
+                if(first){ const second=refs.slice(1).map(pick).find(a=>a&&a!==first); return {account:first,to:second||null,how:`Matched by ${refs[0].card?'card':'A/c'} ••${refs[0].digits}`}; }
+                const bySender=accounts.filter(learned); if(bySender.length===1)return {account:bySender[0],to:null,how:`Matched by sender ${sender}`};
+                const byBank=accounts.filter(a=>ofBank(a)&&!this.isCardType?.(a.type)); if(!refs.length&&byBank.length===1)return {account:byBank[0],to:null,how:`Only ${byBank[0].bankName||bank} account`};
+                return null;
+            }
+            /** My fields on one SMS record (saved straight away; carried into the merge form) */
+            setSmsField(inboxId,fieldId,value){ const item=(this.data.smsInbox||[]).find(x=>String(x.id)===String(inboxId)); if(!item)return; const v=String(value??'').trim();
+                if(v)(item.custom||={})[fieldId]=v; else if(item.custom){ delete item.custom[fieldId]; if(!Object.keys(item.custom).length)delete item.custom; } this.saveVault(); }
+            /** The bulk bar above the SMS list: one field, one value, every pending SMS currently shown */
+            bulkSetSmsField(){ const fieldId=document.getElementById('sms-bulk-field')?.value, v=String(document.getElementById(`sms-bulk-${fieldId}`)?.value??'').trim(); if(!fieldId)return;
+                const filter=document.getElementById('sms-reconcile-filter')?.value||'all'; if(filter!=='all'&&filter!=='pending')return;
+                const list=(this.data.smsInbox||[]).filter(x=>(x.status||'pending')==='pending'); list.forEach(x=>this.setSmsField(x.id,fieldId,v));
+                const f=this.myFields().find(x=>x.id===fieldId); this.renderSmsReconciliation(); this.showToast(v?`${f?.name}: ${this.myFieldText(f,v)} set on ${list.length} SMS.`:`${f?.name} cleared on ${list.length} SMS.`); }
+            /** After a merge: remember the sender for that account, and its digits when the account has none yet and no other account has them. */
+            smsLearnAccount(item,accountName){
+                const a=(this.data.accounts||[]).find(x=>x.name===accountName); if(!a)return '';
+                const sender=String(item.sender||'').toUpperCase().replace(/^[A-Z]{2}-/,'').replace(/-[A-Z]$/,''); let note='';
+                if(sender&&/^[A-Z0-9]{3,9}$/.test(sender)){ a.smsSenders=[...new Set([...(a.smsSenders||[]),sender])].slice(-8); }
+                const ref=(item.accountRefs||[])[0]||(item.accountHint?{digits:String(item.accountHint)}:null);
+                if(ref&&!String(a.lastDigits||'').trim()&&!(this.data.accounts||[]).some(x=>x!==a&&this.accountDigits(x).some(d=>this.smsDigitsFit(d,ref.digits)))){ a.lastDigits=ref.digits; note=` Saved ••${ref.digits} on ${a.name} for next time.`; }
+                return note;
             }
             /**
              * Handles the classify sms transaction workflow. See the implementation below for its inputs, state changes, and side effects.
@@ -261,7 +320,9 @@ Type REMOVE SMS to continue:`);
                     // Promotional SMS mention amounts and words like "cashback" but no money moved: skip them.
                     const movedMoney=/\b(a\/c|acct|account|card|upi|vpa|neft|imps|rtgs|ref(?:erence)?|txn|avl\.?\s*bal|available balance|debited|credited|withdrawn|spent)\b/i.test(line);
                     const promotional=/\b(t\s*&\s*c|offer|hurry|click|download|apply now|recharge now|shop now|use code|coupon|on your next|win)\b/i.test(line)&&!/\b(debited|credited|withdrawn|spent)\b/i.test(line);
-                    if(!movedMoney||promotional){ignored++;continue;}
+                    // OTPs, reminders and scheduled payments mention an amount, but no money has moved yet
+                    const notYet=/\b(OTP|one time password|will be executed|is due|due on|due date|ignore if already paid|maintain sufficient balance|scheduled transaction)\b/i.test(line)&&!/\b(debited|credited|withdrawn|spent)\b/i.test(line);
+                    if(!movedMoney||promotional||notYet){ignored++;continue;}
                     // "Acct XX1234 debited ...; Spotify credited": the first direction word is the account holder's side.
                     const creditAt=line.search(/\b(credited|received|deposited|salary|refund|cashback)\b/i), debitAt=line.search(/\b(debited|debit|auto[ -]?debit|autodebit|spent|withdrawn|paid|purchase|sent|payment of|transferred|nach|ecs debit|mandate debit|standing instruction)\b/i);
                     const baseType=creditAt>=0&&(debitAt<0||creditAt<debitAt)?'Income':(debitAt>=0?'Expense':null);
@@ -275,11 +336,13 @@ Type REMOVE SMS to continue:`);
                         const validDmy=dmy&&+dmy[1]>=1&&+dmy[1]<=31&&+dmy[2]>=1&&+dmy[2]<=12;
                         if(numeric)date=`${numeric[1]}-${numeric[2]}-${numeric[3]}`;else if(d){const months={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};let y=Number(d[3]);if(y<100)y+=2000;date=`${y}-${String(months[d[2].toLowerCase()]||1).padStart(2,'0')}-${d[1].padStart(2,'0')}`;}else if(validDmy){let y=Number(dmy[3]);if(y<100)y+=2000;date=`${y}-${dmy[2].padStart(2,'0')}-${dmy[1].padStart(2,'0')}`;}else date=this.todayISO();}
                     const payee=this.smsPayee(line,typeMatch)||(typeMatch==='Income'?'Bank Credit':'Bank Payment');
-                    const accountMatch=line.match(/(?:A\/C|account|ac)\s*(?:no\.?\s*)?(?:ending\s*)?(?:XX|\*+)?(\d{3,6})/i);
-                    const mapped=this.classifySmsTransaction(line,typeMatch,payee);const reference=(line.match(/\b(?:UTR|RRN|Ref(?:erence)?|Txn(?:\s*ID)?)\s*[:#-]?\s*([A-Z0-9-]{6,})/i)||[])[1]||'';
+                    const accountRefs=this.smsAccountRefs(line);
+                    let mapped=this.classifySmsTransaction(line,typeMatch,payee);
+                    // "a/c XX123 debited … and a/c XX456 credited" between two of your own accounts is a transfer
+                    if(mapped.type!=='Transfer'&&typeMatch!=='Income'&&accountRefs.length>1){ const r=this.smsResolveAccount({accountRefs,sender:msg.address}); if(r?.to)mapped={type:'Transfer',category:'Transfer',subcategory:'Own Account Transfer'}; }const reference=(line.match(/\b(?:UTR|RRN|Ref(?:erence)?|Txn(?:\s*ID)?)\s*[:#-]?\s*([A-Z0-9-]{6,})/i)||[])[1]||'';
                     const messageKey=`${date}|${amount.toFixed(2)}|${mapped.type}|${reference||line.replace(/\s+/g,' ').toLowerCase()}`;
                     if(existing.has(messageKey)){ignored++;continue;} existing.add(messageKey);
-                    inbox.unshift({id:'sms_inbox_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8),messageKey,date,type:mapped.type,amount,accountHint:accountMatch?accountMatch[1]:'',account:'SMS (Unreconciled)',category:mapped.category,subcategory:mapped.subcategory,payee,notes:`${payee}${mapped.subcategory?' — '+mapped.subcategory:''}`.slice(0,160),description:line,reference,originalSmsDate:msg.date||'',sender:msg.address||'',sourceFile:sourceName,status:'pending',importedAt:new Date().toISOString()});added++;
+                    inbox.unshift({id:'sms_inbox_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8),messageKey,date,type:mapped.type,amount,accountHint:accountRefs[0]?.digits||'',accountRefs,...(this.payeeFieldsFor(payee)?{custom:this.payeeFieldsFor(payee)}:{}),account:'SMS (Unreconciled)',category:mapped.category,subcategory:mapped.subcategory,payee,notes:`${payee}${mapped.subcategory?' — '+mapped.subcategory:''}`.slice(0,160),description:line,reference,originalSmsDate:msg.date||'',sender:msg.address||'',sourceFile:sourceName,status:'pending',importedAt:new Date().toISOString()});added++;
                 }
                 if(!added){ if(!opts.quiet)alert(`No new SMS records were staged. ${ignored} message(s) were unsupported or already present in the SMS Ledger.`); return {added,ignored}; }
                 this.saveVault();this.renderAll();this.renderSmsReconciliation();
@@ -336,15 +399,17 @@ Type REMOVE SMS to continue:`);
                 const txs=(this.data.tx||[]).filter(t=>t&&!this.isSmsTx(t)&&!t.excludedFromLedger&&!claimed.has(String(t.id)));
                 const norm=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
                 const ref=this.extractReconciliationReference(item),day=this.smsDateDay(item.date),want=Math.round((Number(item.amount)||0)*100);
+                const own=this.smsResolveAccount(item);
                 return txs.map(t=>{
                     if(Math.round((Number(t.amount)||0)*100)!==want)return null;
                     const sameType=(item.type==='Income')===(t.type==='Income');if(!sameType)return null;
                     const txRef=norm(t.reference||t.transactionId||t.utr),td=this.smsDateDay(t.date),dateDiff=day!==null&&td!==null?Math.abs(day-td):99;
-                    const hint=norm(item.accountHint),account=norm(t.account);if(hint&&!account.includes(hint))return null;
+                    // The SMS account (from its digits or sender) ranks entries in that account first; another account counts against
+                    const sameAccount=own?(t.account===own.account.name||t.destinationAccount===own.account.name):null;
                     const exactRef=ref.length>=6&&txRef===ref;
                     if(ref.length>=6&&txRef.length>=6&&!exactRef)return null;   // both have a reference and they differ
                     if(exactRef)return {t,score:1000,reason:'Exact UTR/IMPS/reference + amount + direction',exactRef:true,dateDiff};
-                    if(dateDiff<=7)return {t,score:100-dateDiff,reason:`Same amount and direction; date difference ${dateDiff} day(s)${item.accountHint?' + account hint':''}`,exactRef:false,dateDiff};
+                    if(dateDiff<=7)return {t,score:100-dateDiff+(sameAccount===true?20:sameAccount===false?-30:0),reason:`Same amount and direction; date difference ${dateDiff} day(s)${sameAccount===true?` + same account (${own.how})`:sameAccount===false?` · different account from the SMS (${own.account.name})`:''}`,exactRef:false,dateDiff,sameAccount};
                     return null;
                 }).filter(Boolean).sort((a,b)=>b.score-a.score).slice(0,5);
             }
@@ -361,6 +426,7 @@ Type REMOVE SMS to continue:`);
                 const usedTx=this.smsClaimedTx();
                 let matched=0,ambiguous=0,unmatched=0,refMatches=0,detailMatches=0;
                 const decisions=[];
+                const owns=new Map(), ownOf=item=>{ if(!owns.has(item.id))owns.set(item.id,this.smsResolveAccount(item)); return owns.get(item.id); };
                 for(const item of inbox){
                     const ref=norm(item.reference);
                     const amount=Math.round((Number(item.amount)||0)*100);
@@ -371,9 +437,10 @@ Type REMOVE SMS to continue:`);
                         if(!amount||txAmount!==amount)return false;
                         const sameDirection=(item.type==='Income')===(t.type==='Income');
                         if(!sameDirection)return false;
-                        const hint=norm(item.accountHint);
-                        const account=norm(t.account);
-                        if(hint && !account.includes(hint))return false;
+                        // Automatic matching stays strict: the entry must be in the account the SMS names (digits or sender)
+                        const own=ownOf(item);
+                        if(own){ if(t.account!==own.account.name&&t.destinationAccount!==own.account.name)return false; }
+                        else { const hint=norm(item.accountHint); if(hint&&!norm(t.account).includes(hint))return false; }
                         const txRef=norm(t.reference||t.transactionId||t.utr);
                         const exactRef=ref.length>=6 && txRef===ref;
                         if(ref.length>=6 && txRef.length>=6 && !exactRef)return false;
@@ -428,6 +495,12 @@ Type REMOVE SMS to continue:`);
                 const summary=document.getElementById('sms-reconcile-summary');
                 if(summary) summary.innerHTML=[['Pending review',counts.pending||0],['Matched to bank',counts.matched||0],['Merged to ledger',counts.merged||0],['Ignored',counts.ignored||0],['Duplicates',counts.duplicate||0],['Errors',counts.error||0]].map(([label,n])=>`<div class="p-3 rounded-xl border border-slate-200 dark:border-slate-700"><div class="text-xs text-slate-500">${label}</div><div class="text-xl font-bold">${n}</div></div>`).join('');
                 const filter=document.getElementById('sms-reconcile-filter')?.value||'all';
+                // My fields: set one field on every pending SMS shown, in one go
+                const bulk=document.getElementById('sms-myfields-bulk'); const fields=this.myFields();
+                if(bulk){ const shownPending=inbox.filter(x=>(x.status||'pending')==='pending'&&(filter==='all'||filter==='pending')).length; bulk.hidden=!fields.length||!shownPending;
+                    if(!bulk.hidden){ const keep=document.getElementById('sms-bulk-field')?.value; bulk.innerHTML=`<label class="flex flex-col gap-1">Set field<select id="sms-bulk-field" class="px-2 py-1 rounded border dark:bg-slate-900">${fields.map(f=>`<option value="${this.escapeHtml(f.id)}" ${f.id===keep?'selected':''}>${this.escapeHtml(f.name)}</option>`).join('')}</select></label><span id="sms-bulk-value-wrap"></span><button type="button" class="px-3 py-1.5 rounded border" onclick="app.bulkSetSmsField()">Apply to ${shownPending} pending SMS</button>`;
+                        const paint=()=>{ const f=fields.find(x=>x.id===document.getElementById('sms-bulk-field').value)||fields[0]; document.getElementById('sms-bulk-value-wrap').innerHTML=this.myFieldsInputs({},'sms-bulk','',true).split('</label>').find(s=>s.includes(`id="sms-bulk-${f.id}"`))+'</label>'; };
+                        document.getElementById('sms-bulk-field').onchange=paint; paint(); } }
                 const visible=inbox.filter(x=>filter==='all'||(x.status||'pending')===filter);
                 if(!visible.length){body.innerHTML=`<tr><td colspan="7" class="p-6 text-center text-slate-500">${inbox.length?'No SMS records for this status filter.':'No SMS records staged yet. Paste SMS text or upload an SMS backup above.'}</td></tr>`;return;}
                 body.innerHTML=visible.map(item=>{
@@ -439,7 +512,7 @@ Type REMOVE SMS to continue:`);
                     else if(status==='ignored'||status==='duplicate'||status==='error') actions=`<button class="px-2 py-1 rounded border" onclick="app.reopenSmsInbox('${String(item.id).replace(/'/g,"\\'")}')">Return to pending</button>`;
                     else if(status==='matched'){ const mt=(this.data.tx||[]).find(t=>String(t.id)===String(item.matchedTransactionId)); actions=`<div class="text-slate-600 dark:text-slate-300">Matched to Core Ledger: ${mt?`${this.escapeHtml(mt.date||'')} · ${this.escapeHtml(mt.payee||mt.description||'')} · ${CUR()}${(Number(mt.amount)||0).toLocaleString('en-IN')}`:'(not found)'}</div><button class="px-2 py-1 rounded border mt-1" onclick="app.reopenSmsInbox('${String(item.id).replace(/'/g,"\\'")}')">Undo match</button>`; }
                     else actions=`<span class="text-slate-500">${this.escapeHtml(status)}</span>`;
-                    return `<tr class="border-b border-slate-100 dark:border-slate-800 align-top"><td class="p-2 whitespace-nowrap">${this.escapeHtml(item.date||'')}</td><td class="p-2 min-w-56"><div class="font-medium">${this.escapeHtml(item.payee||item.description||'SMS')}</div><div class="text-slate-500 whitespace-normal">${this.escapeHtml(item.description||'')}</div><div class="text-slate-400">${this.escapeHtml(item.sourceFile||'')}</div></td><td class="p-2 whitespace-nowrap">${item.type==='Income'?'+':'−'}${CUR()}${(Number(item.amount)||0).toLocaleString('en-IN')}</td><td class="p-2">${this.escapeHtml(item.reference||'—')}</td><td class="p-2 min-w-64">${status==='pending'?matchHtml:this.escapeHtml(item.matchedTransactionId||item.matchReason||'—')}</td><td class="p-2">${this.escapeHtml(status)}</td><td class="p-2 min-w-40">${actions}</td></tr>`;
+                    return `<tr class="border-b border-slate-100 dark:border-slate-800 align-top"><td class="p-2 whitespace-nowrap">${this.escapeHtml(item.date||'')}</td><td class="p-2 min-w-56"><div class="font-medium">${this.escapeHtml(item.payee||item.description||'SMS')}</div><div class="text-slate-500 whitespace-normal">${this.escapeHtml(item.description||'')}</div>${(()=>{ const o=status==='pending'?this.smsResolveAccount(item):null; const r=(item.accountRefs||[])[0]; return o?`<div class="text-xs text-emerald-700 dark:text-emerald-300">${this.escapeHtml(o.account.name)}${o.to?' → '+this.escapeHtml(o.to.name):''} · ${this.escapeHtml(o.how)}</div>`:(status==='pending'&&r?`<div class="text-xs text-amber-700 dark:text-amber-300">${r.card?'Card':'A/c'} ••${this.escapeHtml(r.digits)} isn't on any account yet: add it in Accounts → Edit → Last digits</div>`:''); })()}${status==='pending'&&this.myFields().length?`<div class="sms-myfields">${this.myFieldsInputs(item.custom,'sms-mf-'+this.escapeHtml(String(item.id).replace(/[^\w-]/g,'')),`app.setSmsField('${this.escapeHtml(String(item.id).replace(/'/g,"\\'"))}','%ID%',this.value)`,true)}</div>`:(item.custom?`<div class="text-xs text-slate-500">${this.myFieldsSummary(item.custom).map(([n,v])=>this.escapeHtml(n+': '+v)).join(' · ')}</div>`:'')}<div class="text-slate-400">${this.escapeHtml(item.sourceFile||'')}</div></td><td class="p-2 whitespace-nowrap">${item.type==='Income'?'+':'−'}${CUR()}${(Number(item.amount)||0).toLocaleString('en-IN')}</td><td class="p-2">${this.escapeHtml(item.reference||'—')}</td><td class="p-2 min-w-64">${status==='pending'?matchHtml:this.escapeHtml(item.matchedTransactionId||item.matchReason||'—')}</td><td class="p-2">${this.escapeHtml(status)}</td><td class="p-2 min-w-40">${actions}</td></tr>`;
                 }).join('');
             }
             /**
@@ -476,7 +549,7 @@ Type REMOVE SMS to continue:`);
              * Parameters: inboxId. Side effects, if any, are described by the statements below.
              */
             /** Merge: open the SMS as a transaction to review and edit. Saving parks it in Core Ledger as Excluded (see saveSmsReview). */
-            async mergeSmsInbox(inboxId){const item=(this.data.smsInbox||[]).find(x=>String(x.id)===String(inboxId));if(!item||item.status!=='pending')return;if(this.findSmsMatches(item).length&&!await this.uiConfirm('A possible bank match exists for this SMS. Review it as a new Core Ledger entry anyway?'))return;const accounts=this.data.accounts||[];if(!accounts.length)return alert('Create an account in Accounts & Wallets first.');const hint=item.accountHint;const account=(hint&&accounts.find(a=>String(a.name||'').includes(hint)))||this.getGlobalDefaultAccount()||accounts[0];this.openTransactionModal({smsInboxId:item.id,type:item.type,date:item.date,amount:item.amount,payee:item.payee||'',category:item.category,subcategory:item.subcategory,account:account.name,note:item.notes||'',description:item.description||'',smsDate:item.originalSmsDate||item.date||''});}
+            async mergeSmsInbox(inboxId){const item=(this.data.smsInbox||[]).find(x=>String(x.id)===String(inboxId));if(!item||item.status!=='pending')return;if(this.findSmsMatches(item).length&&!await this.uiConfirm('A possible bank match exists for this SMS. Review it as a new Core Ledger entry anyway?'))return;const accounts=this.data.accounts||[];if(!accounts.length)return alert('Create an account in Accounts & Wallets first.');const own=this.smsResolveAccount(item);const account=own?.account||this.getGlobalDefaultAccount()||accounts[0];this.openTransactionModal({smsInboxId:item.id,type:item.type,date:item.date,amount:item.amount,payee:item.payee||'',category:item.category,subcategory:item.subcategory,account:account.name,...(item.type==='Transfer'&&own?.to?{destinationAccount:own.to.name}:{}),note:item.notes||'',description:item.description||'',smsDate:item.originalSmsDate||item.date||''});}
             /**
              * Handles the ignore sms inbox workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: inboxId. Side effects, if any, are described by the statements below.

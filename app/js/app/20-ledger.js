@@ -228,7 +228,7 @@
                 const esc=v=>this.escapeHtml(String(v??'')); const jid=esc(String(t.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'"));
                 const iso=this.normalizeLedgerDate(t.date); const when=iso?new Date(iso+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'}):esc(t.date);
                 const kind=t.type==='Income'?'lx-in':t.type==='Transfer'?'lx-tr':'lx-out';
-                const rows=[['Date',when],['Type',esc(t.type)],['Account',t.type==='Transfer'&&t.destinationAccount?`${esc(t.account)} → ${esc(t.destinationAccount)}`:esc(t.account)],['Category',`<i class="cat-dot" style="--c:${this.categoryColor(t.category)}"></i>${esc(t.category||'Uncategorized')}${t.subcategory?' / '+esc(t.subcategory):''}`],...(t.notes||t.note?[['Note',esc(t.notes||t.note)]]:[]),...(t.description&&t.description!==t.payee?[['Description',esc(t.description)]]:[])];
+                const rows=[['Date',when],['Type',esc(t.type)],['Account',t.type==='Transfer'&&t.destinationAccount?`${esc(t.account)} → ${esc(t.destinationAccount)}`:esc(t.account)],['Category',`<i class="cat-dot" style="--c:${this.categoryColor(t.category)}"></i>${esc(t.category||'Uncategorized')}${t.subcategory?' / '+esc(t.subcategory):''}`],...(t.notes||t.note?[['Note',esc(t.notes||t.note)]]:[]),...(t.description&&t.description!==t.payee?[['Description',esc(t.description)]]:[]),...this.myFieldsSummary(t.custom).map(([n,v])=>[esc(n),esc(v)])];
                 document.getElementById('modal-box').innerHTML=`<div class="more-head"><h3 class="font-bold text-lg min-w-0 truncate">${esc(t.payee||t.description||'Transaction')}</h3><button type="button" onclick="app.closeModal()" aria-label="Close">✕</button></div>
                 <div class="txa-amt ${kind}">${this.fmtMoney(t.amount)}${t.excludedFromLedger?` <span class="lx-badge">${t.duplicateOf?'Duplicate':'Excluded'}</span>`:''}</div>
                 <dl class="txa-info">${rows.map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
@@ -240,7 +240,7 @@
                 for(const t of (this.data?.tx||[])){ if(!t||t.excludedFromLedger||!kinds.includes(t.type)||!t.category)continue; n.set(t.category,(n.get(t.category)||0)+1); if(++seen>=200)break; }
                 let best='',max=0; n.forEach((v,k)=>{ if(v>max){ max=v; best=k; } }); return best; }
             /** Copy: the Add form filled in from this entry, dated today. */
-            copyTransaction(id){ const t=this.data.tx.find(x=>String(x.id)===String(id)); if(!t)return; this.openTransactionModal({type:t.type,amount:t.amount,payee:t.payee||t.description||'',category:t.category,subcategory:t.subcategory,account:t.account,destinationAccount:t.destinationAccount,note:t.notes||t.note||''}); }
+            copyTransaction(id){ const t=this.data.tx.find(x=>String(x.id)===String(id)); if(!t)return; this.openTransactionModal({type:t.type,amount:t.amount,payee:t.payee||t.description||'',category:t.category,subcategory:t.subcategory,account:t.account,destinationAccount:t.destinationAccount,note:t.notes||t.note||'',custom:t.custom}); }
             /**
              * Returns or checks  filtered ledger.
              * Parameters: opts.period overrides the month shown ('all' or 'YYYY-MM'); without it the Daily view's month and day apply.
@@ -263,7 +263,7 @@
                     if(excludedMode==='active' && isExcluded && !(opts.withParked && t.parkedFromSms)) return false;
                     if(excludedMode==='excluded' && !isExcluded) return false;
                     if(excludedMode==='duplicates' && !t.duplicateOf) return false;
-                    const haystack = [t.payee,t.notes,t.note,t.description,t.category,t.subcategory,t.account,t.date].map(v=>String(v||'').toLowerCase()).join(' ');
+                    const haystack = [t.payee,t.notes,t.note,t.description,t.category,t.subcategory,t.account,t.date,...this.myFieldsSummary(t.custom).map(([n,v])=>n+': '+v)].map(v=>String(v||'').toLowerCase()).join(' ');
                     const matchSearch = haystack.includes(search);
                     const matchType = typeFilter ? t.type === typeFilter : true;
                     const iso=this.normalizeLedgerDate(t.date);
@@ -558,10 +558,12 @@
                     // Parked: shown in Core Ledger as Excluded; including it (eye icon) applies the amount to the account
                     excludedFromLedger:true,balanceEffectRemoved:true,parkedFromSms:true};
                 if(!transfer)this.ensureCategoryAndSubcategory(category,subcategory);
+                const custom=this.readMyFields('af-mf'); if(custom){ tx.custom=custom; this.rememberPayeeFields(tx.payee,custom); }
                 this.data.tx.unshift(tx);
                 item.status='merged'; item.mergedTransactionId=tx.id; item.mergedAt=new Date().toISOString(); item.mergedAccount=account;
+                const learned=this.smsLearnAccount?.(item,account)||'';
                 this.saveVault(); this.closeModal(); this.renderAll(); try{ this.renderSmsReconciliation(); }catch(e){}
-                this.showToast(`Added "${tx.payee||'SMS entry'}" to Core Ledger as Excluded. Include it when it's right.`,{action:{label:'Include now',run:()=>this.toggleLedgerExclusion(tx.id)}});
+                this.showToast(`Added "${tx.payee||'SMS entry'}" to Core Ledger as Excluded. Include it when it's right.${learned}`,{action:{label:'Include now',run:()=>this.toggleLedgerExclusion(tx.id)}});
             }
 
             saveEditedTransaction(event,id) {
@@ -584,6 +586,7 @@
                 if(!oneSided)delete t.transferDirection;
                 const note=val('modal-tx-note').trim(); t.notes=note; if(note)t.note=note; else delete t.note;
                 if(document.getElementById('modal-tx-description'))t.description=val('modal-tx-description');
+                const custom=this.readMyFields('af-mf'); if(custom){ t.custom=custom; this.rememberPayeeFields(t.payee,custom); } else delete t.custom;
                 this.applyTxEffects(t,1);
                 if(!transfer)this.ensureCategoryAndSubcategory(category,subcategory);
                 const flagged=this.autoFlagSmsDuplicates();
@@ -595,7 +598,7 @@
              * Handles the ledger spreadsheet headers workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: none. Side effects, if any, are described by the statements below.
              */
-            ledgerSpreadsheetHeaders() { return ['Date','Account','Category','Subcategory','Note','INR','Income/Expense','Description','Amount','Currency','Account','UUID']; }
+            ledgerSpreadsheetHeaders() { return ['Date','Account','Category','Subcategory','Note','INR','Income/Expense','Description','Amount','Currency','Account','UUID',...this.myFields().map(f=>f.name)]; }
             /**
              * Handles the ledger spreadsheet rows workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: none. Side effects, if any, are described by the statements below.
@@ -605,7 +608,7 @@
                     this.formatLedgerDate(t.date), t.account || '', t.category || '', t.subcategory || '',
                     t.notes || t.note || '', t.inrValue ?? t.amount ?? '',
                     t.type || 'Expense', t.description || t.notes || '', t.amount ?? '', t.currency || 'INR',
-                    t.accountLedgerValue ?? '', t.uid || ''
+                    t.accountLedgerValue ?? '', t.uid || '', ...this.myFields().map(f=>this.myFieldText(f,t.custom?.[f.id]))
                 ]);
             }
             /**
@@ -649,6 +652,7 @@
                         <label class="af-row" id="modal-tx-destination-wrap" data-show="to"><span>To</span><select id="modal-tx-destination">${oneSided?`<option value="" selected>Not recorded (${edit.transferDirection==='in'?'money in':'money out'})</option>`:extraAcct(p.destinationAccount)}${accounts.map(a=>`<option value="${esc(a.name)}" ${String(a.name)===String(p.destinationAccount||'')?'selected':''}>${esc(a.name)} (${esc(a.type||'Account')})</option>`).join('')}</select></label>
                         <label class="af-row"><span>Payee</span><input type="text" id="modal-tx-payee" required placeholder="Shop or person" value="${esc(p.payee||'')}"></label>
                         <label class="af-row"><span>Note</span><input type="text" id="modal-tx-note" placeholder="Optional" value="${esc(p.note||'')}"></label>${review?`<label class="af-desc"><span>Description</span><textarea id="modal-tx-description" rows="5" placeholder="Optional">${esc(p.description||'')}</textarea></label>`:''}
+                        ${this.myFieldsInputs(edit?.custom||p.custom||smsItem?.custom||this.payeeFieldsFor(p.payee),'af-mf')}
                         ${smsItem?`<p class="af-hint af-park">Saved to Core Ledger as <b>Excluded</b>: it doesn't count in totals or change balances until you include it (the eye icon on its row).</p>`:''}<div class="af-section"${review?' hidden':''}>
                             <label class="af-row"><span>Repeat</span><select id="af-repeat"><option value="">Never</option><option value="daily">Every day</option><option value="weekly">Every week</option><option value="monthly">Every month</option><option value="quarterly">Every 3 months</option><option value="yearly">Every year</option></select></label>
                             <div class="af-row" id="af-ends-row" hidden><span>Ends</span><span class="af-ends"><select id="af-ends" aria-label="Repeat ends"><option value="never">Never</option><option value="date">On date</option><option value="count">After</option></select><input type="date" id="af-ends-date" aria-label="Last date" hidden><input type="number" id="af-ends-count" data-money="0" min="1" max="600" step="1" value="12" aria-label="Number of times" hidden><em id="af-ends-unit" hidden>times</em></span></div>
@@ -692,6 +696,8 @@
                 catSel.addEventListener('change',()=>{ catTouched=true; subsFor(); }); [src,dst,$('af-repeat'),$('af-ends'),$('af-inst')].forEach(el=>el.addEventListener('change',sync));
                 [$('modal-tx-amount'),$('modal-tx-date'),$('af-ends-count'),$('af-ends-date')].forEach(el=>el.addEventListener('input',sync));
                 subsFor(); pickCat(); sync();
+                // My fields: a known payee fills the fields that are still empty with what was used for them last time
+                if(!edit)$('modal-tx-payee').addEventListener('change',e=>{ const mem=this.payeeFieldsFor(e.target.value); if(!mem)return; Object.entries(mem).forEach(([id,v])=>{ const el=$(`af-mf-${id}`); if(el&&!el.value)el.value=v; }); });
                 window.lucide?.createIcons?.();
                 setTimeout(()=>{ if(window.matchMedia('(pointer: fine)').matches)$('modal-tx-amount')?.focus(); },50);
             }
@@ -742,6 +748,7 @@
                 }
                 const newTx = { id: 'tx_' + Date.now(), uid: this.newUid(), date, type, amount, account, category, ...(subcategory?{subcategory}:{}), payee, notes: note, ...(note?{note}:{}), ...(destinationAccount ? { destinationAccount } : {}) };
                 if(!transfer)this.ensureCategoryAndSubcategory(category,subcategory);
+                const custom=this.readMyFields('af-mf'); if(custom){ newTx.custom=custom; this.rememberPayeeFields(payee,custom); }
                 this.data.tx.unshift(newTx);
                 this.applyTxEffects(newTx, 1);
 

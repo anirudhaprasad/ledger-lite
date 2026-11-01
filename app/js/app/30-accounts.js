@@ -331,7 +331,8 @@ This only changes the account balance; all Core Ledger transactions remain uncha
             accountRowHtml(a,index){
                 const esc=v=>this.escapeHtml(String(v??'')); const [icon,kind]=this.accountIcon(a.type); const n=this.accountLinkedCount(a);
                 const due=this.isCardType(a.type)&&this.cardStatements?this.cardStatements(a).outstanding:0;
-                const sub=[this.accountTypeLabel(a.type), due?`${CUR()}${due.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})} due`:`${n} entr${n===1?'y':'ies'}`].map(esc).join(' · ');
+                const ident=[a.bankName,String(a.lastDigits||'').split(/,\s*/)[0]?'••'+String(a.lastDigits).split(/,\s*/)[0]:''].filter(Boolean).join(' ');
+                const sub=[ident||this.accountTypeLabel(a.type), due?`${CUR()}${due.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})} due`:`${n} entr${n===1?'y':'ies'}`].map(esc).join(' · ');
                 return `<li><button type="button" class="acct-row" onclick="app.openAccountSheet(${index})" aria-label="${esc(a.name)}, ${esc(this.accountTypeLabel(a.type))}, balance ${esc(this.accountMoney(a))}"><span class="acct-ic acct-ic-${kind}" aria-hidden="true"><i data-lucide="${icon}"></i></span><span class="acct-main"><span class="acct-name">${esc(a.name)}</span><span class="acct-sub">${sub}</span></span><span class="acct-bal${Number(a.balance)<0?' neg':''}">${esc(this.accountMoney(a))}</span></button></li>`;
             }
             /** Bottom sheet for one account: balance, entries, card summary, and View entries / Edit / Delete. */
@@ -360,6 +361,11 @@ This only changes the account balance; all Core Ledger transactions remain uncha
                 <label class="block text-sm">Account type<select id="edit-account-type" class="mt-1 w-full px-3 py-2 rounded-xl border dark:bg-slate-800">${types.map(t=>`<option ${t===a.type?'selected':''} value="${t}">${t}</option>`).join('')}</select></label>
                 <label class="block text-sm">Current balance${CURL()}<input id="edit-account-balance" type="number" step="0.01" required value="${Number(a.balance)||0}" class="mt-1 w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></label>
                 <p class="text-xs text-slate-500">This edits the account's stored balance; it does not rewrite historical transactions.</p>
+                <fieldset class="space-y-3 border-t pt-3"><legend class="text-sm font-semibold">For bank SMS <span class="font-normal text-slate-500">(optional)</span></legend>
+                <label class="block text-sm">Bank name<input id="edit-account-bank" maxlength="60" placeholder="e.g. ICICI Bank" value="${this.escapeHtml(a.bankName||'')}" class="mt-1 w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></label>
+                <label class="block text-sm">Last digits of the account or card<input id="edit-account-digits" maxlength="40" inputmode="numeric" placeholder="e.g. 0861 (several: 0861, 4321)" value="${this.escapeHtml(a.lastDigits||'')}" class="mt-1 w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></label>
+                <label class="block text-sm">Full account or card number<input id="edit-account-number" type="password" autocomplete="off" maxlength="24" inputmode="numeric" placeholder="Your reference only; kept hidden" value="${this.escapeHtml(a.accountNumber||'')}" class="mt-1 w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></label>
+                <p class="text-xs text-slate-500">Bank SMS show only the last 3–4 digits ("A/c XX861", "Card ending 4321"). With them, imported SMS go to this account by themselves.${(a.smsSenders||[]).length?` Learned SMS senders: ${this.escapeHtml(a.smsSenders.join(', '))}.`:''}</p></fieldset>
                 <div class="flex justify-end gap-2"><button type="button" onclick="app.closeModal()" class="px-4 py-2 border rounded-lg">Cancel</button><button class="px-4 py-2 bg-emerald-600 text-white rounded-lg">Save changes</button></div></form>`;
                 document.getElementById('modal-container').classList.remove('hidden');
             }
@@ -376,6 +382,11 @@ This only changes the account balance; all Core Ledger transactions remain uncha
                 if(!newName||!Number.isFinite(balance))return alert('Enter a valid account name and balance.');
                 if(this.data.accounts.some(x=>x.id!==a.id&&x.name.toLowerCase()===newName.toLowerCase()))return alert('An account with this name already exists.');
                 if(oldName!==newName){this.data.tx.forEach(t=>{if(t.account===oldName)t.account=newName;if(t.destinationAccount===oldName)t.destinationAccount=newName;});}
+                const digits=document.getElementById('edit-account-digits')?.value.split(/[^0-9]+/).filter(Boolean)||[];
+                if(digits.some(d=>d.length<2||d.length>6))return alert('Last digits: 2 to 6 digits each, separated by commas.');
+                const number=(document.getElementById('edit-account-number')?.value||'').replace(/[\s-]/g,'');
+                if(number&&!/^\d{6,20}$/.test(number))return alert('Full account or card number: 6 to 20 digits.');
+                a.bankName=(document.getElementById('edit-account-bank')?.value||'').trim(); a.lastDigits=digits.join(', '); a.accountNumber=number;
                 a.name=newName;a.type=type;a.balance=balance;
                 this.saveVault();this.renderAll();this.closeModal();
             }
