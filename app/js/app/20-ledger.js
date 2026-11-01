@@ -652,7 +652,7 @@
                         <label class="af-row"><span>Date</span><input type="date" id="modal-tx-date" required value="${review&&p.date?esc(p.date):this.todayISO()}"></label>${review&&p.smsDate?`<p class="af-note">Original SMS date: ${esc(this.smsDateText(p.smsDate))} (kept separately)</p>`:''}
                         <label class="af-row af-amount"><span>Amount${CURL()}</span><input type="number" step="0.01" min="0.01" id="modal-tx-amount" data-money="0" required inputmode="decimal" placeholder="0.00" value="${p.amount?esc(p.amount):''}"><button type="button" class="af-calc" onclick="app.openAmountCalculator('modal-tx-amount')" aria-label="Calculator">🧮</button></label>
                         <label class="af-row" data-show="cat"><span>Category</span><span class="af-cat"><i class="cat-dot" id="af-cat-dot"></i><select id="modal-tx-category">${cats.map(c=>`<option value="${esc(c)}" ${c===p.category?'selected':''}>${esc(c)}</option>`).join('')}</select></span></label>
-                        <label class="af-row" data-show="cat"><span>Subcategory</span><input id="modal-tx-subcategory" list="af-sub-options" placeholder="Optional" value="${esc(p.subcategory||'')}"><datalist id="af-sub-options"></datalist></label>
+                        <label class="af-row" data-show="cat"><span>Subcategory</span><span class="af-sub"><select id="af-sub-pick" aria-label="Subcategory"></select><input id="modal-tx-subcategory" autocomplete="off" placeholder="Type a subcategory" value="${esc(p.subcategory||'')}"></span></label>
                         <label class="af-row"><span id="af-account-label">Account</span><select id="modal-tx-account">${acctOpts(def)}</select></label>
                         <label class="af-row" id="modal-tx-destination-wrap" data-show="to"><span>To</span><select id="modal-tx-destination">${oneSided?`<option value="" selected>Not recorded (${edit.transferDirection==='in'?'money in':'money out'})</option>`:extraAcct(p.destinationAccount)}${accounts.map(a=>`<option value="${esc(a.name)}" ${String(a.name)===String(p.destinationAccount||'')?'selected':''}>${esc(a.name)} (${esc(a.type||'Account')})</option>`).join('')}</select></label>
                         <label class="af-row"><span>Payee</span><input type="text" id="modal-tx-payee" required placeholder="Shop or person" value="${esc(p.payee||'')}"></label>
@@ -673,7 +673,10 @@
                 document.getElementById('modal-container').classList.remove('hidden');
                 const $=id=>document.getElementById(id); const form=$('af-form');
                 const typeSel=$('modal-tx-type'), src=$('modal-tx-account'), dst=$('modal-tx-destination'), catSel=$('modal-tx-category');
-                const subsFor=()=>{ const subs=this.categorySubcategoryMap()[catSel.value]; $('af-sub-options').innerHTML=(Array.isArray(subs)?subs:[]).map(s=>`<option value="${esc(typeof s==='string'?s:s.name)}">`).join(''); $('af-cat-dot').style.setProperty('--c',this.categoryColor(catSel.value)); };
+                // Subcategory: pick from the category's list; 'Type another…' (or a category with none) shows the text box
+                const subsFor=()=>{ const subs=(this.categorySubcategoryMap()[catSel.value]||[]).map(s=>typeof s==='string'?s:s.name).filter(Boolean); const pick=$('af-sub-pick'), txt=$('modal-tx-subcategory'); const cur=txt.value.trim();
+                    pick.innerHTML=`<option value="">None</option>${subs.map(s=>`<option ${s===cur?'selected':''}>${esc(s)}</option>`).join('')}<option value="__type">Type another…</option>`;
+                    const other=!!cur&&!subs.includes(cur); if(other)pick.value='__type'; pick.hidden=!subs.length; txt.hidden=!!subs.length&&!other; $('af-cat-dot').style.setProperty('--c',this.categoryColor(catSel.value)); };
                 const sync=()=>{
                     const t=typeSel.value; form.dataset.type=t; const transfer=t==='Transfer', expenseLike=['Expense','EMI','Installment'].includes(t);
                     form.querySelectorAll('.af-types [data-t]').forEach(b=>{ const on=b.dataset.t===t; b.classList.toggle('on',on); b.setAttribute('aria-selected',String(on)); });
@@ -698,7 +701,8 @@
                 const pickCat=()=>{ if(catTouched||typeSel.value==='Transfer')return; const c=this.lastCategoryFor(typeSel.value)||(typeSel.value==='Income'?cats.find(x=>/salary|income/i.test(x))||'':''); if(c&&[...catSel.options].some(o=>o.value===c)){ catSel.value=c; subsFor(); } };
                 form.querySelectorAll('.af-types [data-t]').forEach(b=>b.addEventListener('click',()=>{ typeSel.value=b.dataset.t; pickCat(); sync(); }));
                 $('af-more-type').addEventListener('change',e=>{ if(e.target.value){ typeSel.value=e.target.value; } pickCat(); sync(); });
-                catSel.addEventListener('change',()=>{ catTouched=true; subsFor(); }); [src,dst,$('af-repeat'),$('af-ends'),$('af-inst')].forEach(el=>el.addEventListener('change',sync));
+                catSel.addEventListener('change',()=>{ catTouched=true; $('modal-tx-subcategory').value=''; subsFor(); });
+                $('af-sub-pick').addEventListener('change',e=>{ const v=e.target.value, txt=$('modal-tx-subcategory'); if(v==='__type'){ txt.value=''; txt.hidden=false; txt.focus(); } else { txt.value=v; txt.hidden=true; } }); [src,dst,$('af-repeat'),$('af-ends'),$('af-inst')].forEach(el=>el.addEventListener('change',sync));
                 [$('modal-tx-amount'),$('modal-tx-date'),$('af-ends-count'),$('af-ends-date')].forEach(el=>el.addEventListener('input',sync));
                 subsFor(); pickCat(); sync();
                 // My fields: a known payee fills the fields that are still empty with what was used for them last time

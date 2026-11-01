@@ -192,6 +192,19 @@
             setStatsMode(mode){ const s=this.statsState(); if(mode===s.mode)return; s.key=mode==='year'?s.key.slice(0,4):(s.key.slice(0,4)===this.todayISO().slice(0,4)?this.todayISO().slice(0,7):`${s.key.slice(0,4)}-12`); s.mode=mode; this.renderStats(); }
             setStatsKind(kind){ this.statsState().kind=kind; this.renderStats(); }
             setStatsPeriod(key){ const s=this.statsState(); s.key=key==='now'?(s.mode==='year'?this.todayISO().slice(0,4):this.todayISO().slice(0,7)):key; this.renderStats(); }
+            /** Tapping the period name: pick any month and year (Month view) or any year (Year view) */
+            openStatsPeriodPicker(){
+                const s=this.statsState(); const box=document.getElementById('modal-box'); const esc=v=>this.escapeHtml(String(v??''));
+                const years=[...new Set([new Date().getFullYear(),...this.countedTx().map(t=>Number(String(this.normalizeLedgerDate(t.date)||'').slice(0,4))).filter(y=>y>1990&&y<3000)])].sort((a,b)=>b-a);
+                const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+                const curY=Number(s.key.slice(0,4)), curM=s.mode==='year'?new Date().getMonth()+1:Number(s.key.slice(5,7));
+                box.innerHTML=`<div class="more-head"><h3 class="font-bold text-lg">Show ${s.mode==='year'?'year':'month'}</h3><button type="button" onclick="app.closeModal()" aria-label="Close">✕</button></div>
+                <form id="st-pick" class="space-y-3"><div class="st-pick-row">${s.mode==='year'?'':`<label class="mf-compact"><span>Month</span><select id="stp-m">${months.map((m,i)=>`<option value="${i+1}" ${i+1===curM?'selected':''}>${m}</option>`).join('')}</select></label>`}
+                <label class="mf-compact"><span>Year</span><select id="stp-y">${years.map(y=>`<option ${y===curY?'selected':''}>${y}</option>`).join('')}</select></label></div>
+                <div class="lp-quick"><button type="button" class="s-btn s-secondary" onclick="app.closeModal();app.setStatsPeriod('now')">${s.mode==='year'?'This year':'This month'}</button><button type="submit" class="s-btn s-primary">Show</button></div></form>`;
+                const mc=document.getElementById('modal-container'); mc.classList.add('more-sheet'); mc.classList.remove('hidden');
+                document.getElementById('st-pick').onsubmit=e=>{ e.preventDefault(); const y=document.getElementById('stp-y').value; const m=document.getElementById('stp-m')?.value; this.closeModal(); this.setStatsPeriod(s.mode==='year'?String(y):`${y}-${String(m).padStart(2,'0')}`); };
+            }
             shiftStatsPeriod(step){ const s=this.statsState(); if(s.mode==='year'){ s.key=String(Number(s.key)+step); } else { const [y,m]=s.key.split('-').map(Number); s.key=this.todayISO(new Date(y,m-1+step,1)).slice(0,7); } this.renderStats(); }
             /** Category totals for the chosen period: [{category, amount, share, count}], largest first. Excluded entries are not counted. */
             statsRows(){

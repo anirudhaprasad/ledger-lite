@@ -497,3 +497,64 @@ html.dark .sms-myfields .mf-compact select,html.dark .sms-myfields .mf-compact i
 .dark .sk-reason { color: #fcd34d; }
 .dark .sr-row .mf-compact, .dark #sms-teach-form .mf-compact, .dark #sms-pc-form .mf-compact { color: #cbd5e1; }
 .dark .sr-row .mf-compact select, .dark #sms-teach-form .mf-compact select, .dark #sms-teach-form .mf-compact input, .dark #sms-pc-form .mf-compact select, .dark #sms-pc-form .mf-compact input, .dark .sr-list ~ form .mf-compact input { background: #0f172a; color: #f1f5f9; border-color: #475569; }
+.sms-phone-older { display: flex; align-items: flex-end; gap: 8px; margin-top: 8px; }
+.sms-phone-older .mf-compact { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 12px; font-weight: 600; }
+.sms-phone-older select { min-height: 40px; padding: 4px 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #0f172a; font-size: 14px; }
+.dark .sms-phone-older select { background: #0f172a; color: #f1f5f9; border-color: #475569; }
+/* Projects → Add step: suggested step names as chips (instead of a pop-up list) */
+.pj-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 4px; }
+.pj-chips[hidden] { display: none; }
+.pj-chip { min-height: 32px; padding: 4px 12px; border-radius: 999px; border: 1px solid #a7f3d0; background: #ecfdf5; color: #065f46; font-size: 13px; }
+.dark .pj-chip { border-color: #065f46; background: #022c22; color: #a7f3d0; }
+/* Stats → choose month / year */
+.st-pick-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.st-pick-row .mf-compact { display: flex; flex-direction: column; gap: 2px; font-size: 12px; font-weight: 600; color: #475569; }
+.st-pick-row select { min-height: 44px; padding: 4px 10px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #0f172a; font-size: 15px; }
+.dark .st-pick-row .mf-compact { color: #cbd5e1; } .dark .st-pick-row select { background: #0f172a; color: #f1f5f9; border-color: #475569; }
+
+/* ── Phones: use the screen better ──
+   Pages wrap their content in one big card, and put cards inside it; on a phone each layer's padding adds up
+   (content started up to 80px from the edge). The outer card loses most of its padding, inner cards use 12px,
+   gaps between blocks shrink, and a header row left with nothing visible (title already in the top bar) goes. */
+@media (max-width: 767px) {
+  .tab-panel.space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 10px !important; }
+  .tab-panel > :is(.p-6, .p-5, .p-4).rounded-2xl, .tab-panel > section:is(.p-6, .p-5).rounded-2xl { padding: 10px !important; }
+  .tab-panel > * :is(.p-6, .p-5) { padding: 12px !important; }
+  .tab-panel > * .p-4:not(button) { padding: 10px !important; }
+  .tab-panel > * > .space-y-6 > * + *, .tab-panel > * .space-y-6 > * + * { margin-top: 12px !important; }
+  .tab-panel > * .space-y-4 > * + * { margin-top: 10px !important; }
+  .tab-panel > * :is(.gap-6) { gap: 12px !important; }
+  .tab-panel > * :is(.gap-4) { gap: 10px !important; }
+  .tab-panel > * :is(.mb-6, .mt-6) { margin-block: 12px; }
+  .tab-panel > * :is(.pb-4, .pb-3).border-b { padding-bottom: 8px !important; }
+  .tab-panel > * > :is(.border-b, .flex.items-center.justify-between):first-child:not(:has(> :not(.dup-title):not(.moved-to-header):not(.hidden):not([hidden]))) { display: none !important; }
+  .tab-panel > * > :is(.border-b, .flex.items-center.justify-between):first-child:not(:has(> :not(.dup-title):not(.moved-to-header):not(.hidden):not([hidden]))) + * { margin-top: 0 !important; }
+  .tab-panel h3.text-lg, .tab-panel h2.text-xl { margin-bottom: 4px; }
+  /* pinned headers sit edge to edge on the card: their side margins follow the card's new 10px padding */
+  #panel-stats .st-head { margin: -10px -10px 0 !important; padding-left: 10px !important; padding-right: 10px !important; }
+  #ss-tabs { margin-left: -10px !important; margin-right: -10px !important; padding-left: 10px !important; padding-right: 10px !important; }
+  #panel-goals .grid { padding: 0 !important; margin-top: 10px !important; }
+}
+/* SMS list: one heading per year, newest year first */
+.sms-year-row td { background: #f1f5f9; color: #334155; font-weight: 700; font-size: 13px; padding: 6px 10px; }
+.dark .sms-year-row td { background: #1e293b; color: #e2e8f0; }
+@media (max-width: 767px) { #sms-reconcile-tbody tr.sms-year-row { display: block; border: 0 !important; margin: 4px 0; } #sms-reconcile-tbody tr.sms-year-row td { display: block; border-radius: 8px; } #sms-reconcile-tbody tr.sms-year-row td::before { content: none !important; } }
+/* Transaction form: subcategory dropdown with an optional text box */
+.af-sub { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.af-sub select, .af-sub input { width: 100%; }
+.af-sub [hidden] { display: none !important; }
+/* A hidden button stays hidden even when a size rule gives buttons display:inline-flex */
+#main-layout button[hidden], #modal-box button[hidden], #vault-screen button[hidden] { display: none !important; }
+/* Restore: choose how, and which sections to bring back */
+.rm-choices { display: flex; flex-direction: column; gap: 10px; }
+.rm-choice { text-align: left; padding: 12px 14px; border-radius: 12px; border: 1px solid #cbd5e1; background: #fff; display: flex; flex-direction: column; gap: 4px; }
+.rm-choice b { font-size: 15px; color: #0f172a; } .rm-choice span { font-size: 13px; color: #475569; }
+.rm-merge { border-color: #6ee7b7; background: #ecfdf5; }
+.bb-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 10px; }
+.bb-row input { margin-top: 3px; width: 20px; height: 20px; flex-shrink: 0; }
+.bb-row span { display: flex; flex-direction: column; } .bb-row small { color: #64748b; font-size: 12px; }
+.bb-none { opacity: .55; }
+.dark .rm-choice { background: #0f172a; border-color: #475569; } .dark .rm-choice b { color: #f1f5f9; } .dark .rm-choice span { color: #cbd5e1; }
+.dark .rm-merge { background: #022c22; border-color: #065f46; } .dark .bb-row { border-color: #334155; } .dark .bb-row small { color: #94a3b8; }
+.sms-year-row td { color: #1e293b !important; background: #e2e8f0 !important; }
+.dark .sms-year-row td { color: #f1f5f9 !important; background: #1e293b !important; }

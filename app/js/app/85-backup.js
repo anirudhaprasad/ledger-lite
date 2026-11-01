@@ -196,6 +196,144 @@ ${lines.join('\n')}`;
              * Checks a backup payload and required collections before restore.
              * Parameters: data. Side effects, if any, are described by the statements below.
              */
+            // ── Selective restore ("Bring back missing items") and partial backups ─────────────────────────────────────────
+            // A restore can add only what this device is missing, section by section, without changing or deleting anything
+            // that is here now (today's version always wins). Items are matched by their id (transactions also by uid,
+            // accounts and categories by name, project steps by id inside their project).
+            restoreSections(){ return [
+                ['projects','Projects and their steps'],['tx','Core Ledger transactions'],['accounts','Accounts & wallets'],['categories','Categories & subcategories'],
+                ['budgets','Budgets'],['goals','Goals'],['yearly','Schedules'],['smsInbox','SMS review records'],['shared','Shared & split'],['extras','My fields, SMS rules, project templates']]; }
+            /** What a backup has that this device is missing: {key: {count, detail}} */
+            restorePlan(cur,inc){
+                const idSet=(list,...keys)=>new Set((list||[]).flatMap(x=>keys.map(k=>x&&x[k]).filter(v=>v!=null&&v!=='').map(String)));
+                const missing=(list,have,...keys)=>(list||[]).filter(x=>x&&!keys.some(k=>x[k]!=null&&x[k]!==''&&have.has(String(x[k]))));
+                const plan={};
+                // Projects: whole projects missing here, and steps missing inside projects that are here
+                const curP=new Map((cur.projects||[]).map(p=>[String(p.id),p])); let newProjects=0,newSteps=0; const stepTx=new Set();
+                (inc.projects||[]).forEach(p=>{ const here=curP.get(String(p.id)); if(!here){ newProjects++; (p.steps||[]).forEach(s=>s.txId&&stepTx.add(String(s.txId))); return; }
+                    const have=new Set((here.steps||[]).map(s=>String(s.id))); (p.steps||[]).forEach(s=>{ if(!have.has(String(s.id))){ newSteps++; if(s.txId)stepTx.add(String(s.txId)); } }); });
+                plan.projects={count:newProjects+newSteps,detail:[newProjects&&`${newProjects} project${newProjects===1?'':'s'}`,newSteps&&`${newSteps} step${newSteps===1?'':'s'}`].filter(Boolean).join(', '),stepTx};
+                const tx=missing(inc.tx,idSet(cur.tx,'id','uid'),'id','uid'); plan.tx={count:tx.length,detail:`${tx.length} entr${tx.length===1?'y':'ies'}`};
+                const acc=missing(inc.accounts,new Set([...idSet(cur.accounts,'id'),...(cur.accounts||[]).map(a=>'name:'+String(a.name).toLowerCase())]),'id').filter(a=>!(cur.accounts||[]).some(c=>String(c.name).toLowerCase()===String(a.name).toLowerCase()));
+                plan.accounts={count:acc.length,detail:acc.map(a=>a.name).slice(0,4).join(', ')};
+                const cats=(inc.categories||[]).filter(c=>!(cur.categories||[]).includes(c)); let subs=0; Object.entries(inc.subcategories||{}).forEach(([c,l])=>{ const h=new Set(((cur.subcategories||{})[c]||[]).map(s=>typeof s==='string'?s:s.name)); (l||[]).forEach(s=>{ if(!h.has(typeof s==='string'?s:s.name))subs++; }); });
+                plan.categories={count:cats.length+subs,detail:[cats.length&&`${cats.length} categor${cats.length===1?'y':'ies'}`,subs&&`${subs} subcategor${subs===1?'y':'ies'}`].filter(Boolean).join(', ')};
+                const bud=Object.keys(inc.budgets||{}).filter(k=>!Object.prototype.hasOwnProperty.call(cur.budgets||{},k)); plan.budgets={count:bud.length,detail:bud.slice(0,4).join(', ')};
+                const goals=missing(inc.goals,idSet(cur.goals,'id'),'id'); plan.goals={count:goals.length,detail:goals.map(g=>g.title).slice(0,3).join(', ')};
+                const yr=missing(inc.yearly,idSet(cur.yearly,'id'),'id'); plan.yearly={count:yr.length,detail:yr.map(g=>g.title).slice(0,3).join(', ')};
+                const sms=missing(inc.smsInbox,idSet(cur.smsInbox,'id','messageKey'),'id','messageKey'); plan.smsInbox={count:sms.length,detail:`${sms.length} SMS`};
+                const ss=inc.splitShare||{}, cs=cur.splitShare||{}; let shared=0; ['people','trips','expenses','settlements'].forEach(k=>{ shared+=missing(ss[k],idSet(cs[k],'id'),'id').length; }); plan.shared={count:shared,detail:`${shared} item${shared===1?'':'s'}`};
+                const cf=missing(inc.customFields,idSet(cur.customFields,'id'),'id').length, tpl=Object.keys(inc.projectTemplates||{}).filter(k=>!(cur.projectTemplates||{})[k]).length;
+                const ir=inc.smsRules||{}, cr=cur.smsRules||{}; const rules=Object.keys(ir.senders||{}).filter(k=>!(cr.senders||{})[k]).length+(ir.payeeCats||[]).filter(r=>!(cr.payeeCats||[]).some(x=>String(x.match).toLowerCase()===String(r.match).toLowerCase())).length;
+                const ip=missing(inc.interestPlans,idSet(cur.interestPlans,'id'),'id').length;
+                plan.extras={count:cf+tpl+rules+ip,detail:[cf&&`${cf} field${cf===1?'':'s'}`,rules&&`${rules} SMS rule${rules===1?'':'s'}`,tpl&&`${tpl} template${tpl===1?'':'s'}`,ip&&`${ip} loan/deposit plan${ip===1?'':'s'}`].filter(Boolean).join(', ')};
+                return plan;
+            }
+            /** Adds the chosen sections' missing items to this.data. Account balances: transactions brought back move the
+             * balances of accounts that are already here; accounts brought back keep the balance they had in the backup. */
+            applyRestorePlan(inc,keys){
+                const d=this.data, sel=new Set(keys), added={}; const idSet=(list,...k)=>new Set((list||[]).flatMap(x=>k.map(f=>x&&x[f]).filter(v=>v!=null&&v!=='').map(String)));
+                const take=(arr,have,...k)=>(arr||[]).filter(x=>x&&!k.some(f=>x[f]!=null&&x[f]!==''&&have.has(String(x[f])))).map(x=>JSON.parse(JSON.stringify(x)));
+                const newAccNames=new Set();
+                if(sel.has('accounts')){ const acc=take(inc.accounts,idSet(d.accounts,'id'),'id').filter(a=>!(d.accounts||[]).some(c=>String(c.name).toLowerCase()===String(a.name).toLowerCase())); acc.forEach(a=>newAccNames.add(a.name)); (d.accounts||=[]).push(...acc); added.accounts=acc.length; }
+                if(sel.has('categories')){ const cats=(inc.categories||[]).filter(c=>!(d.categories||[]).includes(c)); (d.categories||=[]).push(...cats); let subs=0;
+                    Object.entries(inc.subcategories||{}).forEach(([c,l])=>{ (l||[]).forEach(s=>{ const n=typeof s==='string'?s:s.name; const h=((d.subcategories||={})[c]||[]).map(x=>typeof x==='string'?x:x.name); if(!h.includes(n)){ (d.subcategories[c]||=[]).push(s); subs++; } }); });
+                    Object.entries(inc.categoryColors||{}).forEach(([c,v])=>{ (d.categoryColors||={})[c]??=v; }); added.categories=cats.length+subs; }
+                // Transactions: the chosen section, plus entries that brought-back project steps were posted as
+                const stepTx=sel.has('projects')?this.restorePlan(d,inc).projects.stepTx:new Set();
+                const haveTx=idSet(d.tx,'id','uid'); const txIn=(inc.tx||[]).filter(t=>t&&!haveTx.has(String(t.id))&&!(t.uid&&haveTx.has(String(t.uid)))&&(sel.has('tx')||stepTx.has(String(t.id)))).map(t=>JSON.parse(JSON.stringify(t)));
+                if(txIn.length){ const keep=new Map((d.accounts||[]).filter(a=>newAccNames.has(a.name)).map(a=>[a.name,a.balance]));
+                    d.tx=[...txIn,...(d.tx||[])]; txIn.forEach(t=>this.applyTxEffects(t,1)); (d.accounts||[]).forEach(a=>{ if(keep.has(a.name))a.balance=keep.get(a.name); }); added.tx=txIn.length; }
+                if(sel.has('projects')){ let n=0; const curP=new Map((d.projects||=[]).map(p=>[String(p.id),p]));
+                    (inc.projects||[]).forEach(p=>{ const here=curP.get(String(p.id)); if(!here){ d.projects.push(JSON.parse(JSON.stringify(p))); n+=1+(p.steps||[]).length; return; }
+                        const have=new Set((here.steps||[]).map(s=>String(s.id))); const miss=(p.steps||[]).filter(s=>!have.has(String(s.id))).map(s=>JSON.parse(JSON.stringify(s)));
+                        if(miss.length){ here.steps=[...(here.steps||[]),...miss].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))); n+=miss.length; } }); added.projects=n; }
+                if(sel.has('budgets')){ let n=0; Object.entries(inc.budgets||{}).forEach(([k,v])=>{ if(!Object.prototype.hasOwnProperty.call(d.budgets||={},k)){ d.budgets[k]=v; n++; } }); added.budgets=n; }
+                if(sel.has('goals')){ const g=take(inc.goals,idSet(d.goals,'id'),'id'); (d.goals||=[]).push(...g); added.goals=g.length; }
+                if(sel.has('yearly')){ const y=take(inc.yearly,idSet(d.yearly,'id'),'id'); (d.yearly||=[]).push(...y); added.yearly=y.length; }
+                if(sel.has('smsInbox')){ const s=take(inc.smsInbox,idSet(d.smsInbox,'id','messageKey'),'id','messageKey'); (d.smsInbox||=[]).push(...s); added.smsInbox=s.length; }
+                if(sel.has('shared')&&inc.splitShare){ let n=0; d.splitShare||={version:inc.splitShare.version||1,people:[],trips:[],expenses:[],settlements:[]}; ['people','trips','expenses','settlements'].forEach(k=>{ const s=take(inc.splitShare[k],idSet(d.splitShare[k],'id'),'id'); (d.splitShare[k]||=[]).push(...s); n+=s.length; }); added.shared=n; }
+                if(sel.has('extras')){ let n=0; const cf=take(inc.customFields,idSet(d.customFields,'id'),'id'); (d.customFields||=[]).push(...cf); n+=cf.length;
+                    Object.entries(inc.projectTemplates||{}).forEach(([k,v])=>{ if(!(d.projectTemplates||={})[k]){ d.projectTemplates[k]=v; n++; } });
+                    Object.entries(inc.payeeFields||{}).forEach(([k,v])=>{ (d.payeeFields||={})[k]??=v; });
+                    const ir=inc.smsRules||{}; const r=this.smsRules?this.smsRules():(d.smsRules||={senders:{},outWords:[],inWords:[],ignoreWords:[],payeeCats:[]});
+                    Object.entries(ir.senders||{}).forEach(([k,v])=>{ if(!r.senders[k]){ r.senders[k]=v; n++; } }); ['outWords','inWords','ignoreWords'].forEach(k=>{ r[k]=[...new Set([...(r[k]||[]),...(ir[k]||[])])]; });
+                    (ir.payeeCats||[]).forEach(x=>{ if(!r.payeeCats.some(y=>String(y.match).toLowerCase()===String(x.match).toLowerCase())){ r.payeeCats.push(x); n++; } });
+                    const ip=take(inc.interestPlans,idSet(d.interestPlans,'id'),'id'); (d.interestPlans||=[]).push(...ip); n+=ip.length; added.extras=n; }
+                return added;
+            }
+            /** Before any restore: the current vault is kept in storage (newest 3), so "Undo last restore" can bring it back */
+            async saveRestoreSnapshot(kind){
+                const stored=await this.storage.getItem('aifico_vault'); if(!stored)return null;
+                const key='aifico_vault_pre_restore_'+new Date().toISOString().replace(/[:.]/g,'-'); await this.storage.setItem(key,stored);
+                if(await this.storage.getItem(key)!==stored)throw new Error('The safety copy could not be verified.');
+                let list=[]; try{ list=JSON.parse(localStorage.getItem('aifico_restore_snapshots')||'[]'); }catch(e){}
+                list.unshift({key,at:new Date().toISOString(),kind}); for(const old of list.slice(3)){ try{ await this.storage.removeItem(old.key); }catch(e){} }
+                try{ localStorage.setItem('aifico_restore_snapshots',JSON.stringify(list.slice(0,3))); }catch(e){} return key; }
+            restoreSnapshots(){ try{ return JSON.parse(localStorage.getItem('aifico_restore_snapshots')||'[]'); }catch(e){ return []; } }
+            /** Settings: put the vault back as it was just before the last restore */
+            async undoLastRestore(){
+                const s=this.restoreSnapshots()[0]; if(!s)return alert('There is no restore to undo on this device.');
+                const when=new Date(s.at).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'numeric',minute:'2-digit'});
+                if(!await this.uiConfirm(`Undo the restore of ${when}?\n\nThe data goes back to exactly how it was just before that restore${s.kind==='merge'?' (the items it brought back are removed)':''}. Anything added since then is lost, so back up first if you need it.\n\nAfter the app reloads, unlock with the master password you used before that restore.`,{okLabel:'Undo restore',danger:true}))return;
+                const stored=await this.storage.getItem(s.key); if(!stored)return alert('The safety copy is no longer on this device.');
+                await this.storage.setItem('aifico_vault',stored); const list=this.restoreSnapshots().slice(1); try{ localStorage.setItem('aifico_restore_snapshots',JSON.stringify(list)); }catch(e){}
+                try{ await this.storage.removeItem(s.key); }catch(e){} location.reload(); }
+            renderUndoRestore(){ const b=document.getElementById('undo-restore-btn'); if(!b)return; const s=this.restoreSnapshots()[0]; b.hidden=!s; if(s)b.querySelector('span').textContent='Undo last restore ('+new Date(s.at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})+')'; }
+            /** Ask how to restore: bring back missing items, or replace everything. Resolves 'merge', 'replace' or null. */
+            chooseRestoreMode(fileName,partial){
+                return new Promise(resolve=>{ const box=document.getElementById('modal-box'); const esc=v=>this.escapeHtml(String(v??''));
+                    box.innerHTML=`<div class="flex justify-between items-center pb-2"><h3 class="font-bold text-lg">How do you want to restore?</h3><button type="button" id="rm-x" aria-label="Close">✕</button></div>
+                    <p class="text-sm text-slate-500 mb-3">${esc(fileName)}</p>
+                    <div class="rm-choices"><button type="button" class="rm-choice rm-merge" id="rm-merge"><b>Bring back missing items</b><span>Choose what to bring back. Nothing you have now is changed or deleted; only items missing on this device are added.</span></button>
+                    ${partial?'<p class="text-xs text-slate-500">This is a partial backup, so it can only bring back items.</p>':`<button type="button" class="rm-choice rm-replace" id="rm-replace"><b>Replace everything</b><span>This device becomes exactly the backup. Anything newer here is replaced. A safety copy is kept so you can undo.</span></button>`}</div>`;
+                    document.getElementById('modal-container').classList.remove('hidden');
+                    const done=v=>{ this.closeModal(); resolve(v); };
+                    document.getElementById('rm-x').onclick=()=>done(null); document.getElementById('rm-merge').onclick=()=>done('merge'); const r=document.getElementById('rm-replace'); if(r)r.onclick=()=>done('replace'); });
+            }
+            /** The section picker with counts, then the merge; resolves true when items were brought back */
+            bringBackFromBackup(inc,fileName){
+                return new Promise(resolve=>{ const plan=this.restorePlan(this.data,inc); const esc=v=>this.escapeHtml(String(v??'')); const rows=this.restoreSections();
+                    const any=rows.some(([k])=>plan[k]?.count>0); const box=document.getElementById('modal-box');
+                    box.innerHTML=`<div class="flex justify-between items-center pb-2"><h3 class="font-bold text-lg">Bring back from the backup</h3><button type="button" id="bb-x" aria-label="Close">✕</button></div>
+                    <p class="text-sm text-slate-500 mb-2">Only items missing on this device are added. Everything you have now stays as it is.</p>
+                    ${any?`<form id="bb-form" class="space-y-2">${rows.map(([k,label])=>{ const c=plan[k]?.count||0; return `<label class="bb-row ${c?'':'bb-none'}"><input type="checkbox" name="${k}" ${c?'checked':'disabled'}><span><b>${esc(label)}</b><small>${c?esc(plan[k].detail||c+' missing'):'Nothing missing'}</small></span></label>`; }).join('')}
+                    <p class="text-xs text-slate-500">A safety copy of this device is kept first, so you can undo this from Backup &amp; Settings.</p>
+                    <div class="flex justify-end gap-2 pt-1"><button type="button" class="s-btn s-secondary" id="bb-cancel">Cancel</button><button class="s-btn s-primary">Bring back</button></div></form>`:'<p class="text-sm">This device already has everything in this backup. Nothing to bring back.</p><div class="flex justify-end pt-2"><button type="button" class="s-btn s-secondary" id="bb-cancel">Close</button></div>'}`;
+                    document.getElementById('modal-container').classList.remove('hidden');
+                    const done=v=>{ this.closeModal(); resolve(v); }; document.getElementById('bb-x').onclick=()=>done(false); document.getElementById('bb-cancel').onclick=()=>done(false);
+                    const f=document.getElementById('bb-form'); if(f)f.onsubmit=async e=>{ e.preventDefault(); const keys=[...f.querySelectorAll('input:checked')].map(i=>i.name); if(!keys.length)return alert('Tick at least one section.');
+                        try{ await this.saveVault(); await this.saveQueue; await this.saveRestoreSnapshot('merge'); }catch(err){ return alert('Stopped: a safety copy of this device could not be saved, so nothing was changed.\n\n'+(err?.message||err)); }
+                        const added=this.applyRestorePlan(inc,keys); await this.saveVault(); this.closeModal(); this.renderAll(); this.renderUndoRestore();
+                        const lines=rows.filter(([k])=>added[k]).map(([k,label])=>`${label}: ${added[k]}`);
+                        alert('BROUGHT BACK\n\n'+(lines.length?lines.join('\n'):'Nothing was missing.')+'\n\nNothing that was already here was changed. To reverse this, use Backup & Settings → Undo last restore.'); resolve(true); }; });
+            }
+            /** Partial backup: only the chosen sections (plus the lists every backup needs, left empty) */
+            backupSubset(data,keys){ const sel=new Set(keys); const out={tx:[],accounts:[],categories:[],budgets:{},_partial:keys};
+                const copy=k=>{ if(data[k]!==undefined)out[k]=JSON.parse(JSON.stringify(data[k])); };
+                if(sel.has('projects')){ copy('projects'); copy('projectTemplates'); const ids=new Set((data.projects||[]).flatMap(p=>(p.steps||[]).map(s=>s.txId).filter(Boolean)).map(String)); if(!sel.has('tx'))out.tx=(data.tx||[]).filter(t=>ids.has(String(t.id))); }
+                if(sel.has('tx'))copy('tx'); if(sel.has('accounts'))copy('accounts'); if(sel.has('categories')){ copy('categories'); copy('subcategories'); copy('categoryColors'); }
+                if(sel.has('budgets'))copy('budgets'); if(sel.has('goals'))copy('goals'); if(sel.has('yearly'))copy('yearly'); if(sel.has('smsInbox'))copy('smsInbox'); if(sel.has('shared'))copy('splitShare');
+                if(sel.has('extras')){ ['customFields','smsRules','projectTemplates','payeeFields','interestPlans'].forEach(copy); }
+                return out; }
+            /** Which restore: "merge" handled here (returns "done"), "replace" continues the full restore, null = cancelled */
+            async restoreModeFor(restoredData,fileName,backupMeta,oldStored){
+                const partial=!!(backupMeta&&backupMeta.partial)||Array.isArray(restoredData._partial);
+                if(!(this.currentPassword&&this.data&&oldStored)){ if(partial)throw new Error('This is a partial backup (only some sections). Open your vault first, then restore it from Backup & Settings to bring its items back. Your data has not been changed.'); return 'replace'; }
+                const m=await this.chooseRestoreMode(fileName,partial); if(!m)return null;
+                if(m==='merge'){ await this.bringBackFromBackup(restoredData,fileName); return 'done'; }
+                return 'replace'; }
+            /** Back up some sections: pick, then the usual encrypted backup + backup code, named …-partial-backup-… */
+            openPartialBackup(){
+                const box=document.getElementById('modal-box'); const rows=this.restoreSections(); const esc=v=>this.escapeHtml(String(v??''));
+                box.innerHTML=`<div class="flex justify-between items-center pb-2"><h3 class="font-bold text-lg">Back up some sections</h3><button type="button" onclick="app.closeModal()" aria-label="Close">✕</button></div>
+                <p class="text-sm text-slate-500 mb-2">A smaller encrypted backup with its own backup code. Restoring it only brings back missing items; it never replaces your other data.</p>
+                <form id="pb-form" class="space-y-2">${rows.map(([k,label])=>`<label class="bb-row"><input type="checkbox" name="${k}" ${k==='projects'?'checked':''}><span><b>${esc(label)}</b></span></label>`).join('')}
+                <div class="flex justify-end gap-2 pt-1"><button type="button" class="s-btn s-secondary" onclick="app.closeModal()">Cancel</button><button class="s-btn s-primary">Back up</button></div></form>`;
+                document.getElementById('modal-container').classList.remove('hidden');
+                document.getElementById('pb-form').onsubmit=e=>{ e.preventDefault(); const keys=[...e.target.querySelectorAll('input:checked')].map(i=>i.name); if(!keys.length)return alert('Tick at least one section.'); this.closeModal(); this.exportVaultBackup(false,{sections:keys}); };
+            }
+
             validateBackupData(data) {
                 if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Decrypted content is not a database object.');
                 if (!Array.isArray(data.tx)) throw new Error('The backup is missing the Transactions list.');
@@ -209,7 +347,8 @@ ${lines.join('\n')}`;
              * Creates a vault backup and its metadata; erase-related exports use the guarded path.
              * Parameters: forFullErase = false. Side effects, if any, are described by the statements below.
              */
-            async exportVaultBackup(forFullErase = false) {
+            async exportVaultBackup(forFullErase = false, opts = {}) {
+                const kind = opts.sections && opts.sections.length ? 'partial' : 'full';   // partial: only the chosen sections
                 if (!this.currentPassword) return alert('Unlock the vault first so the backup can be verified before export.');
                 // Flush all pending saves and persist the latest in-memory state before reading the backup source.
                 // This prevents a backup taken immediately after an edit/import from capturing an older vault.
@@ -226,7 +365,8 @@ ${lines.join('\n')}`;
                 } catch (err) {
                     return alert('Backup was not created because the current vault could not be verified. No file was downloaded.\n\n' + (err && err.message ? err.message : 'Vault verification failed.'));
                 }
-                const parsedEncrypted = JSON.parse(stored);
+                let parsedEncrypted = JSON.parse(stored);
+                if (kind === 'partial') { data = this.backupSubset(data, opts.sections); parsedEncrypted = JSON.parse(await this.vault.encryptData(data, this.currentPassword)); }
                 // Every backup gets a separate, high-entropy backup code and a second encrypted copy that only the code opens.
                 // Restoring with the code never needs the old master password; you set a new one after it opens.
                 let recoveryCode = null;
@@ -251,6 +391,7 @@ ${lines.join('\n')}`;
                     createdAt: new Date().toISOString(),
                     encryption: 'AES-GCM-256 / PBKDF2-SHA-256',
                     recordCounts: this.getBackupRecordCounts(data),
+                    ...(kind === 'partial' ? { partial: opts.sections } : {}),
                     encryptedVault: parsedEncrypted,
                     recovery: { scheme: 'AES-GCM-256 / PBKDF2-SHA-256; separate random backup code', encryptedVault: recoveryEncryptedVault }
                 };
@@ -270,24 +411,24 @@ ${lines.join('\n')}`;
                 // File name: aificoledger-YYMMDD-HHmm (see fileStamp)
                 const stamp = this.fileStamp();
                 a.href = url;
-                a.download = `${stamp}-full-backup-encrypted.json`;
+                a.download = `${stamp}-${kind}-backup-encrypted.json`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
                 setTimeout(() => URL.revokeObjectURL(url), 1500);
                 const c = backup.recordCounts;
                 // The backup code goes in its own file (never inside the encrypted backup)
-                const codeText = `aifico ledger — Backup Code\n\nBackup file: ${stamp}-full-backup-encrypted.json\nCreated: ${backup.createdAt}\n\nBackup code:\n${recoveryCode}\n\nTo restore: Restore backup → choose the backup file above → enter this code → set a new master password. The old master password is not needed.\n\nKeep this file separate from the backup file: anyone with both can open your financial data. Do not upload either file to public storage.\n`;
+                const codeText = `aifico ledger — Backup Code\n\nBackup file: ${stamp}-${kind}-backup-encrypted.json\nCreated: ${backup.createdAt}\n\nBackup code:\n${recoveryCode}\n\nTo restore: Restore backup → choose the backup file above → enter this code → set a new master password. The old master password is not needed.\n\nKeep this file separate from the backup file: anyone with both can open your financial data. Do not upload either file to public storage.\n`;
                 const codeBlob = new Blob([codeText], { type: 'text/plain;charset=utf-8' });
                 const codeUrl = URL.createObjectURL(codeBlob);
                 const codeAnchor = document.createElement('a');
                 codeAnchor.href = codeUrl;
-                codeAnchor.download = `${stamp}-full-backup-code.txt`;
+                codeAnchor.download = `${stamp}-${kind}-backup-code.txt`;
                 document.body.appendChild(codeAnchor);
                 codeAnchor.click();
                 codeAnchor.remove();
                 setTimeout(() => URL.revokeObjectURL(codeUrl), 1500);
-                alert(`${forFullErase ? 'FULL ERASE BACKUP VERIFIED' : 'BACKUP VERIFIED'}\n\nTwo files are saved:\n1. ${stamp}-full-backup-encrypted.json (your data, encrypted)\n2. ${stamp}-full-backup-code.txt (its backup code)\n\nBackup code — keep it apart from the backup file:\n\n${recoveryCode}\n\nTo restore this backup you only need the code; you then set a new master password. (The code is not copied to the clipboard, where clipboard history or sync could keep it.)\n\nIncluded: ${c.transactions} Core Ledger transactions (${c.ledgerActive} active, ${c.ledgerExcluded} excluded), ${c.accounts} accounts, ${c.categories} categories, ${c.budgets} budgets, ${c.goals} goals, ${c.sharedSplits} shared splits.`);
+                alert(`${forFullErase ? 'FULL ERASE BACKUP VERIFIED' : 'BACKUP VERIFIED'}\n\nTwo files are saved:\n1. ${stamp}-${kind}-backup-encrypted.json (your data, encrypted)\n2. ${stamp}-${kind}-backup-code.txt (its backup code)\n\nBackup code — keep it apart from the backup file:\n\n${recoveryCode}\n\nTo restore this backup you only need the code; you then set a new master password. (The code is not copied to the clipboard, where clipboard history or sync could keep it.)\n\nIncluded: ${c.transactions} Core Ledger transactions (${c.ledgerActive} active, ${c.ledgerExcluded} excluded), ${c.accounts} accounts, ${c.categories} categories, ${c.budgets} budgets, ${c.goals} goals, ${c.sharedSplits} shared splits.`);
                 return true;
             }
 
@@ -407,6 +548,8 @@ ${lines.join('\n')}`;
                         }
                         if (!restoredData || recoveryFailure) throw new Error('This backup code does not open this backup. Check that the code and the backup file are from the same backup (same date and time in their names). Your current data has not been changed.');
                         usedRecoveryCode = true;
+                        // Unlocked with data here: bring back missing items, or replace everything (asked before any new password)
+                        { const m = await this.restoreModeFor(restoredData, file.name, backupMeta, oldStored); if (m !== 'replace') return; }
                         const newPassword = await this.uiInput('Set a new master password', 'The backup opened. Choose a new master password for the restored data (at least 8 characters). Write it down somewhere safe.', '', {inputType:'password', okLabel:'Continue'});
                         if (newPassword === null) return;
                         if (String(newPassword).length < 8) throw new Error('The new master password must be at least 8 characters. Your current data has not been changed.');
@@ -421,6 +564,7 @@ ${lines.join('\n')}`;
                         pwd = await this.uiInput('Enter the backup\'s password', 'This backup has no backup code. Enter the master password that was in use when it was made. Your current data is not replaced unless the backup opens and checks out.', '', {inputType:'password', okLabel:'Open backup'});
                         if (pwd === null) return;
                         restoredData = this.validateBackupData(await this.vault.decryptData(encryptedPayload, pwd));
+                        { const m = await this.restoreModeFor(restoredData, file.name, backupMeta, oldStored); if (m !== 'replace') return; }
                     }
                     const actualCounts = this.getBackupRecordCounts(restoredData);
                     if (backupMeta) {
@@ -482,6 +626,8 @@ ${lines.join('\n')}`;
                         try {
                             await this.storage.setItem(recoveryKey, oldStored);
                             if (await this.storage.getItem(recoveryKey) !== oldStored) throw new Error('Recovery snapshot read-back mismatch.');
+                            // listed for Backup & Settings → Undo last restore (newest 3 kept)
+                            try { const list = this.restoreSnapshots(); list.unshift({ key: recoveryKey, at: new Date().toISOString(), kind: 'replace' }); for (const old of list.slice(3)) { try { await this.storage.removeItem(old.key); } catch (_) {} } localStorage.setItem('aifico_restore_snapshots', JSON.stringify(list.slice(0, 3))); } catch (_) {}
                         } catch (snapshotErr) {
                             if (recoveryKey) { try { await this.storage.removeItem(recoveryKey); } catch (_) {} }
                             recoveryKey = null;

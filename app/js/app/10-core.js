@@ -980,6 +980,7 @@
                 try { this.renderAutoLockSetting(); } catch (e) {}
                 try { this.renderMyFields(); } catch (e) { console.error('My fields could not be shown', e); }
                 try { this.renderSmsRulesCard(); } catch (e) { console.error('SMS rules could not be shown', e); }
+                try { this.renderUndoRestore(); } catch (e) {}
                 try { this.renderCurrencySetting(); aificoApplyCurrencyToPage(); } catch (e) { console.error('Currency display could not be updated', e); }
                 this.processSalarySchedule();
                 if (this.isPro()) this.processRecurringPayments();
