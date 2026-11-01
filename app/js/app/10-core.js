@@ -818,6 +818,7 @@
              */
             switchTab(tabId) {
                 if(tabId==='projects'&&!this.isDeveloper())return;
+                if(tabId!=='ledger')this.ledgerAccount='';   // one account's entries (Accounts → View entries) only while on Core Ledger
                 if(!this.isPro()&&['yearly','goals','shared','sms'].includes(tabId)){ this.closeNavigation(); return this.requirePro(tabId); }
                 this.closeNavigation();
                 { const mc=document.getElementById('modal-container'); if(mc&&!mc.classList.contains('hidden')&&mc.classList.contains('embedded'))this.closeModal(); }
@@ -978,6 +979,7 @@
                 this.renderGlobalDefaultAccount();
                 try { this.renderAutoLockSetting(); } catch (e) {}
                 try { this.renderMyFields(); } catch (e) { console.error('My fields could not be shown', e); }
+                try { this.renderSmsRulesCard(); } catch (e) { console.error('SMS rules could not be shown', e); }
                 try { this.renderCurrencySetting(); aificoApplyCurrencyToPage(); } catch (e) { console.error('Currency display could not be updated', e); }
                 this.processSalarySchedule();
                 if (this.isPro()) this.processRecurringPayments();

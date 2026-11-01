@@ -91,6 +91,8 @@ This only changes the account balance; all Core Ledger transactions remain uncha
                 const name=String(accountName||'');
                 const account=(this.data.accounts||[]).find(a=>String(a.name||'')===name);
                 if(!account)return alert('Account not found. Refresh the Accounts & Wallets view and try again.');
+                // Phones: the account's entries as their own full-screen page (Core Ledger filtered to this account); wide screens keep the table panel
+                if(window.innerWidth<768){ this.accountLedgerPanelAccount=''; this.renderAccountLedgerEntriesPanel(); return this.openLedgerAccount(name); }
                 this.accountLedgerPanelAccount=name;
                 this.accountLedgerSelectedIds=new Set();
                 this.renderAccountLedgerEntriesPanel();

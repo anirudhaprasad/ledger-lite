@@ -31,13 +31,14 @@
                 // Day (from the Calendar) and category (from Stats): shown as chips even while the filter panel is open.
                 if(this.ledgerDay&&this.ledgerViewName()==='daily')out.push({id:'__day',label:new Date(this.ledgerDay+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'}),reset:'',always:true});
                 if(this.ledgerCategory)out.push({id:'__cat',label:this.ledgerCategory,reset:'',always:true});
+                if(this.ledgerAccount)out.push({id:'__acc',label:this.ledgerAccount,reset:'',always:true});
                 return out;
             }
             /**
              * Handles the clear ledger filter workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: id,reset){ const el=document.getElementById(id); if(el. Side effects, if any, are described by the statements below.
              */
-            clearLedgerFilter(id,reset){ if(id==='__day')this.ledgerDay=''; else if(id==='__cat')this.ledgerCategory=''; else { const el=document.getElementById(id); if(el){ el.value=reset||''; } } this.filterLedger(); }
+            clearLedgerFilter(id,reset){ if(id==='__day')this.ledgerDay=''; else if(id==='__cat')this.ledgerCategory=''; else if(id==='__acc')this.ledgerAccount=''; else { const el=document.getElementById(id); if(el){ el.value=reset||''; } } this.filterLedger(); }
             /**
              * Changes the ledger filters and refreshes dependent UI.
              * Parameters: none. Side effects, if any, are described by the statements below.
@@ -149,6 +150,10 @@
             openLedgerCategory(cat,period){ this.ledgerCategory=cat; this.ledgerDay=''; const yearOnly=/^\d{4}$/.test(String(period||'')); this.ledgerPeriod=yearOnly?'all':(period||'all');
                 ['ledger-filter-year','ledger-date-from','ledger-date-to'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; });
                 if(yearOnly){ this.populateLedgerYears(); const y=document.getElementById('ledger-filter-year'); if(y)y.value=period; } this.ledgerView='daily'; try{ localStorage.setItem('aifico_ledger_view','daily'); }catch(e){} this.ledgerShown=0; this.switchTab('ledger'); this.renderLedger(); }
+            /** Accounts → View entries on phones: Core Ledger with only this account's entries (all time), and a chip to clear it */
+            openLedgerAccount(name){ this.ledgerAccount=String(name||''); this.ledgerCategory=''; this.ledgerDay=''; this.ledgerPeriod='all';
+                ['ledger-filter-year','ledger-date-from','ledger-date-to'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=''; }); const box=document.getElementById('ledger-search'); if(box)box.value='';
+                this.ledgerView='daily'; try{ localStorage.setItem('aifico_ledger_view','daily'); }catch(e){} this.ledgerShown=0; this.switchTab('ledger'); this.renderLedger(); window.scrollTo(0,0); }
             /** Tapping the month name: pick any month, this month, or all time. */
             openLedgerPeriodPicker(){
                 const box=document.getElementById('modal-box'); const cur=this.ledgerMonth();
@@ -249,7 +254,7 @@
                 const scoped=opts.period===undefined;
                 const period=scoped?(this.ledgerViewName()==='daily'?this.ledgerMonth():'all'):opts.period;
                 const day=scoped&&this.ledgerViewName()==='daily'?(this.ledgerDay||''):'';
-                const catFilter=this.ledgerCategory||'';
+                const catFilter=this.ledgerCategory||'', accFilter=this.ledgerAccount||'';
                 const search = document.getElementById('ledger-search')?.value.toLowerCase() || '';
                 const typeFilter = document.getElementById('ledger-filter-type')?.value || '';
                 const yearFilter=document.getElementById('ledger-filter-year')?.value||'';
@@ -273,7 +278,7 @@
                     const matchTo=!toDate||iso<=toDate;
                     const matchPeriod=period==='all'||iso.slice(0,7)===period;
                     const matchDay=!day||iso===day;
-                    const matchCat=!catFilter||(t.category||'Uncategorized')===catFilter;
+                    const matchCat=(!catFilter||(t.category||'Uncategorized')===catFilter)&&(!accFilter||t.account===accFilter||(t.destinationAccount||t.toAccount)===accFilter);
                     return matchSearch && matchType && matchYear && matchMonth && matchFrom && matchTo && matchPeriod && matchDay && matchCat;
                 }).sort((a,b)=>{const cmpText=(x,y)=>String(x??'').trim().localeCompare(String(y??'').trim(),undefined,{sensitivity:'base',numeric:true});if(sortOrder.startsWith('payee-')){const c=cmpText(a.payee||a.description||a.notes||a.note,b.payee||b.description||b.notes||b.note);return sortOrder.endsWith('desc')?-c:c;}if(sortOrder.startsWith('type-')){const c=cmpText(a.type,b.type);return sortOrder.endsWith('desc')?-c:c;}if(sortOrder.startsWith('category-')){const c=cmpText(a.category,b.category);return sortOrder.endsWith('desc')?-c:c;}if(sortOrder.startsWith('account-')){const c=cmpText(a.account,b.account);return sortOrder.endsWith('desc')?-c:c;}if(sortOrder.startsWith('amount-')){const c=(Number(a.amount)||0)-(Number(b.amount)||0);return sortOrder.endsWith('desc')?-c:c;}const da=this.normalizeLedgerDate(a.date),db=this.normalizeLedgerDate(b.date);if(!da&&!db)return 0;if(!da)return 1;if(!db)return -1;return sortOrder==='asc'?da.localeCompare(db):db.localeCompare(da);});
             }
@@ -359,7 +364,7 @@
                 // Empty filtered view: say so instead of leaving a blank list.
                 if(!(listed||filtered).length){ const mode=document.getElementById('ledger-excluded-filter')?.value||'active'; const month=this.ledgerMonth();
                     const where=this.ledgerDay?' on this day':month!=='all'?` in ${this.monthLabel(month,true)}`:'';
-                    const filtersOn=this.ledgerActiveFilters().some(a=>!a.always)||!!this.ledgerCategory||!!document.getElementById('ledger-search')?.value;
+                    const filtersOn=this.ledgerActiveFilters().some(a=>!a.always)||!!this.ledgerCategory||!!this.ledgerAccount||!!document.getElementById('ledger-search')?.value;
                     const msg={excluded:`No excluded transactions${where}. Entries you exclude appear here so you can restore them.`,duplicates:`No SMS duplicates found${where}.`}[mode]||(filtersOn?`No transactions match the current filters${where}.`:`No transactions${where}.`);
                     const more=month!=='all'&&(this.data.tx||[]).length?`<div class="mt-3"><button type="button" class="s-btn s-secondary" onclick="app.setLedgerPeriod('all')">Show all months</button></div>`:'';
                     tbody.innerHTML=`<tr class="lx-empty"><td colspan="8" class="py-8 text-center text-sm text-slate-500">${msg}${more}</td></tr>`; }

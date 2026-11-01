@@ -13,6 +13,7 @@
             }
             const calc = document.getElementById('aifico-calculator-overlay'); if (calc) { calc.remove(); return true; }
             if (document.getElementById('app-sidebar')?.classList.contains('mobile-nav-open')) { app.closeNavigation(); return true; }
+            if (app.currentPassword && app.currentTab === 'ledger' && app.ledgerAccount) { app.switchTab('accounts'); return true; }   // back from one account's entries
             if (app.currentPassword && app.currentTab && app.currentTab !== 'dashboard') { app.switchTab('dashboard'); return true; }
             return false;
         };

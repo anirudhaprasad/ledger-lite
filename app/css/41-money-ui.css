@@ -479,3 +479,21 @@ html.dark .sms-myfields .mf-compact select,html.dark .sms-myfields .mf-compact i
   #sms-reconcile-tbody button, #main-layout button.px-2.py-1, #modal-box button.px-2.py-1, #main-layout button.px-3.py-1, #main-layout button.px-3.py-1\.5 { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; padding-left: 12px; padding-right: 12px; }
   #main-layout button.hover\:underline, #main-layout td button.text-xs, #vault-screen button.hover\:underline { min-height: 36px; display: inline-flex; align-items: center; padding: 0 6px; }
 }
+
+/* SMS rules: skipped SMS list and sender settings */
+.sk-list, .sr-list { display: flex; flex-direction: column; gap: 10px; }
+.sk-row, .sr-row { padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; flex-direction: column; gap: 6px; }
+.sk-head, .sr-name { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+.sk-head span, .sr-name span { color: #64748b; }
+.sk-reason { font-size: 12px; font-weight: 600; color: #92400e; }
+.sk-body { font-size: 12.5px; white-space: pre-wrap; overflow-wrap: anywhere; background: #f8fafc; border-radius: 8px; padding: 8px; color: #334155; }
+.sk-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.sk-actions .s-btn { flex: 1 1 auto; }
+.sr-row .mf-compact, #sms-teach-form .mf-compact, #sms-pc-form .mf-compact { display: flex; flex-direction: column; gap: 2px; font-size: 12px; font-weight: 600; color: #475569; }
+.sr-row .mf-compact select, #sms-teach-form .mf-compact select, #sms-teach-form .mf-compact input, #sms-pc-form .mf-compact select, #sms-pc-form .mf-compact input, .sr-list ~ form .mf-compact input { min-height: 40px; padding: 4px 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #0f172a; font-size: 14px; font-weight: 400; }
+.sms-rules-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dark .sk-row, .dark .sr-row { border-color: #334155; }
+.dark .sk-body { background: #0f172a; color: #cbd5e1; }
+.dark .sk-reason { color: #fcd34d; }
+.dark .sr-row .mf-compact, .dark #sms-teach-form .mf-compact, .dark #sms-pc-form .mf-compact { color: #cbd5e1; }
+.dark .sr-row .mf-compact select, .dark #sms-teach-form .mf-compact select, .dark #sms-teach-form .mf-compact input, .dark #sms-pc-form .mf-compact select, .dark #sms-pc-form .mf-compact input, .dark .sr-list ~ form .mf-compact input { background: #0f172a; color: #f1f5f9; border-color: #475569; }
