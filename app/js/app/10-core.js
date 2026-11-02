@@ -578,6 +578,18 @@
              * Handles the init swipe workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: none. Side effects, if any, are described by the statements below.
              */
+            /** A round "back to top" button that shows once a page is scrolled down a screen or so (page or open sheet). */
+            initToTop(){
+                if(document.getElementById('to-top'))return; const b=document.createElement('button'); b.type='button'; b.id='to-top'; b.hidden=true; b.setAttribute('aria-label','Back to top'); b.innerHTML='<i data-lucide="arrow-up"></i>'; document.body.appendChild(b);
+                const area=document.getElementById('app-scroll'); const boxes=()=>[area,document.getElementById('modal-box'),document.scrollingElement].filter(Boolean);
+                const top=()=>boxes().find(el=>el.scrollTop>600&&el.getClientRects().length);
+                const sync=()=>{ const t=top(); b.hidden=!t||!!document.getElementById('aifico-calculator-overlay'); b.classList.toggle('in-sheet',!!t&&t.id==='modal-box');
+                    // on phones, stack it right above the floating + button, centred on it
+                    const plus=document.querySelector('body.nav-bottom #app-main-header button[onclick="app.openTransactionModal()"]'); const r=plus?.getBoundingClientRect();
+                    if(!b.hidden&&r&&r.width){ b.style.right=Math.round(innerWidth-r.right+(r.width-48)/2)+'px'; b.style.bottom=Math.round(innerHeight-r.top+12)+'px'; } else { b.style.right=''; b.style.bottom=''; } };
+                b.addEventListener('click',()=>{ const t=top(); if(t)t.scrollTo({top:0,behavior:'smooth'}); });
+                document.addEventListener('scroll',sync,{capture:true,passive:true}); new MutationObserver(sync).observe(document.getElementById('modal-container')||document.body,{attributes:true,attributeFilter:['class']}); window.lucide?.createIcons?.();
+            }
             initSwipe(){
                 const area=document.getElementById('app-scroll'); if(!area||area.dataset.swipe)return; area.dataset.swipe='1'; let s=null;
                 const blocked=el=>{ for(let n=el;n&&n!==area;n=n.parentElement){ if(/^(INPUT|SELECT|TEXTAREA|CANVAS|BUTTON)$/.test(n.tagName))return true; const cs=getComputedStyle(n); if(/(auto|scroll)/.test(cs.overflowX)&&n.scrollWidth>n.clientWidth+2)return true; } return false; };
@@ -1071,8 +1083,13 @@
             calculateAmountExpression(expression){
                 const exp=String(expression||'').replace(/[₹,\s]/g,'').replace(/[×]/g,'*').replace(/[÷]/g,'/');
                 if(!exp||!/^[0-9.+*/()\-]+$/.test(exp))throw new Error('Invalid characters');
-                // Restrict evaluation to arithmetic characters only.
-                const result=Function('"use strict";return ('+exp+')')();
+                // A small parser (+ − × ÷, brackets, unary minus): the page's security policy forbids eval/Function
+                let i=0; const peek=()=>exp[i];
+                const num=()=>{ const m=/^\d*\.?\d+|^\d+\.?/.exec(exp.slice(i)); if(!m)throw new Error('Number expected'); i+=m[0].length; return parseFloat(m[0]); };
+                const factor=()=>{ if(peek()==='-'){ i++; return -factor(); } if(peek()==='+'){ i++; return factor(); } if(peek()==='('){ i++; const v=sum(); if(peek()!==')')throw new Error('Missing )'); i++; return v; } return num(); };
+                const term=()=>{ let v=factor(); while(peek()==='*'||peek()==='/'){ const op=exp[i++]; const r=factor(); v=op==='*'?v*r:v/r; } return v; };
+                const sum=()=>{ let v=term(); while(peek()==='+'||peek()==='-'){ const op=exp[i++]; const r=term(); v=op==='+'?v+r:v-r; } return v; };
+                const result=sum(); if(i!==exp.length)throw new Error('Unexpected '+exp[i]);
                 if(typeof result!=='number'||!Number.isFinite(result))throw new Error('Invalid result');
                 return Math.round((result+Number.EPSILON)*100)/100;
             }

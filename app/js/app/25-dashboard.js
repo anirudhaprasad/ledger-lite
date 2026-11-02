@@ -78,14 +78,16 @@
             /** "Needs attention": SMS to review, SMS entries parked as Excluded, payments due within a week, bank or cash below zero. */
             renderDashboardAttention(){ const box=document.getElementById('dash-attention'); if(!box)return; const items=[]; const n=(c,one,many)=>`${c} ${c===1?one:many}`;
                 const pending=(this.data.smsInbox||[]).filter(x=>(x.status||'pending')==='pending').length;
-                if(pending)items.push({icon:'message-square',text:n(pending,'SMS to review','SMS to review'),go:"app.switchTab('sms')"});
+                if(pending)items.push({text:n(pending,'SMS to review','SMS to review'),detail:'Merge, match or ignore them on the SMS page',go:"app.switchTab('sms')"});
                 const parked=(this.data.tx||[]).filter(t=>t&&t.smsInboxId!=null&&t.excludedFromLedger).length;
-                if(parked&&typeof this.openExcludedInLedger==='function')items.push({icon:'eye-off',text:n(parked,'SMS entry not yet included','SMS entries not yet included'),go:'app.openExcludedInLedger()'});
-                const today=this.todayISO(), week=this.todayISO(new Date(Date.now()+7*864e5)); let due=0;
-                (Array.isArray(this.data.yearly)?this.data.yearly:[]).filter(y=>y.enabled!==false&&y.startDate).forEach(y=>{ try{ const nx=this.scheduleProgress?this.scheduleProgress(y,0).next:''; if(nx&&nx>=today&&nx<=week)due++; }catch(e){} });
-                if(due)items.push({icon:'calendar-clock',text:n(due,'payment due this week','payments due this week'),go:"app.switchTab('yearly')"});
-                (this.data.accounts||[]).filter(a=>['Checking','Cash','Savings','Savings Account'].includes(a.type)&&Number(a.balance)<0).slice(0,2).forEach(a=>items.push({icon:'alert-triangle',text:`${a.name} is below zero`,go:"app.switchTab('accounts')",bad:true}));
-                box.hidden=!items.length; box.innerHTML=items.length?`<span class="da-h">Needs attention</span>${items.map(i=>`<button type="button" class="da-i${i.bad?' da-bad':''}" onclick="${i.go}"><i data-lucide="${i.icon}"></i><span>${this.escapeHtml(i.text)}</span></button>`).join('')}`:''; window.lucide?.createIcons?.(); }
+                if(parked&&typeof this.openExcludedInLedger==='function')items.push({text:n(parked,'SMS entry not yet included','SMS entries not yet included'),detail:"Saved as Excluded: they don't count until you include them",go:'app.openExcludedInLedger()'});
+                const today=this.todayISO(), week=this.todayISO(new Date(Date.now()+7*864e5)); const due=[];
+                (Array.isArray(this.data.yearly)?this.data.yearly:[]).filter(y=>y.enabled!==false&&y.startDate).forEach(y=>{ try{ const nx=this.scheduleProgress?this.scheduleProgress(y,0).next:''; if(nx&&nx>=today&&nx<=week)due.push({y,nx}); }catch(e){} });
+                due.sort((a,b)=>a.nx.localeCompare(b.nx));
+                if(due.length)items.push({text:n(due.length,'payment due this week','payments due this week'),detail:due.slice(0,3).map(d=>`${d.y.title||'Payment'} on ${new Date(d.nx+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'})}`).join(' · ')+(due.length>3?' …':''),go:"app.switchTab('yearly')"});
+                (this.data.accounts||[]).filter(a=>['Checking','Cash','Savings','Savings Account'].includes(a.type)&&Number(a.balance)<0).slice(0,2).forEach(a=>items.push({text:`${a.name} is below zero`,detail:`Balance ${this.fmtMoney(Number(a.balance))}: check its entries or set the balance`,go:"app.switchTab('accounts')",bad:true}));
+                // Shown like notifications: a dot, a title, one line of detail; tap to go there
+                box.hidden=!items.length; box.innerHTML=items.length?`<div class="da-h">Needs attention <span class="da-n">${items.length}</span></div>${items.map(i=>`<button type="button" class="da-i${i.bad?' da-bad':''}" onclick="${i.go}"><span class="da-dot" aria-hidden="true"></span><span class="da-t"><b>${this.escapeHtml(i.text)}</b><small>${this.escapeHtml(i.detail)}</small></span><i data-lucide="chevron-right"></i></button>`).join('')}`:''; window.lucide?.createIcons?.(); }
             /**
              * Renders the  monthly comparison UI from the current app state.
              * Parameters: none. Side effects, if any, are described by the statements below.
@@ -169,6 +171,147 @@
                 this.charts.cf=new Chart(ctxCf,{type:'bar',data:{labels:months.map(m=>m.label),datasets:[{label:'Income',data:incomeData,backgroundColor:'#059669',borderRadius:6},{label:'Expenses / allocations',data:expenseData,backgroundColor:'#e11d48',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},onClick:(event,elements,chart)=>{if(!elements.length)return;const el=elements[0],month=months[el.index],type=el.datasetIndex===0?'Income':'Expense';this.openDashboardDrilldown(`${month.label} — ${type} Entries`,'month-type',{monthKey:month.key,type});}}});
                 this.populateDashboardPieYearOptions();
                 this.renderDashboardPieChart();
+                this.renderDashCharts();
+            }
+
+            // ---------- Dashboard charts: default charts you can hide or reorder, plus charts you build yourself ----------
+            /** Default charts. Cash flow and Expense Breakdown are in the page; the others are drawn by drawDashChart. */
+            dashChartDefaults(){ return {
+                cashflow:{title:'Monthly Cash Flow Trend',sub:'Income vs spending, last 6 months',wide:true},
+                breakdown:{title:'Expense Breakdown',sub:'Spending by category'},
+                networth:{title:'Net worth over time',sub:'Month end, last 12 months',wide:true},
+                budget:{title:'Budget vs actual',sub:'This month'} }; }
+            /** Ready-made custom charts offered in Customise; each can be changed after it is added. */
+            dashChartPresets(){ return [
+                {title:'Invested each month',measure:'invested',by:'month',period:'12m',type:'bar'},
+                {title:'Spending by account',measure:'spending',by:'account',period:'month',type:'hbar'},
+                {title:'Top payees',measure:'spending',by:'payee',period:'3m',type:'hbar'},
+                {title:'Spending by weekday',measure:'spending',by:'weekday',period:'3m',type:'bar'},
+                {title:'Income by category',measure:'income',by:'category',period:'year',type:'doughnut'} ]; }
+            /** Your charts in order: {id:'cashflow'} for a default one, {id:'c_…', spec:{title,measure,by,period,type}} for your own. Kept in the vault (and its backups). */
+            dashChartList(){ const s=this.data.settings?.dashCharts; return Array.isArray(s)?s:[{id:'cashflow'},{id:'breakdown'},{id:'networth'},{id:'budget'}]; }
+            saveDashChartList(list){ this.data.settings ||= {}; this.data.settings.dashCharts=list; this.saveVault(); this.renderDashCharts(); }
+            renderDashCharts(){
+                const grid=document.getElementById('dash-charts'); if(!grid||typeof Chart==='undefined')return;
+                const list=this.dashChartList(), defs=this.dashChartDefaults(), esc=v=>this.escapeHtml(String(v??'')); this.charts.dash ||= {};
+                const keep=new Set(list.map(c=>c.id));
+                grid.querySelectorAll('[data-chart]').forEach(card=>{ if(keep.has(card.dataset.chart))return; if(card.dataset.gen){ this.charts.dash[card.dataset.chart]?.destroy(); delete this.charts.dash[card.dataset.chart]; card.remove(); } else card.hidden=true; });
+                list.forEach((c,i)=>{
+                    const info=c.spec?{title:c.spec.title||'My chart',sub:this.dashSpecLabel(c.spec),wide:c.spec.by==='month'}:defs[c.id]; if(!info)return;
+                    let card=[...grid.querySelectorAll('[data-chart]')].find(x=>x.dataset.chart===c.id);
+                    if(!card){ card=document.createElement('div'); card.dataset.chart=c.id; card.dataset.gen='1'; grid.appendChild(card); }
+                    card.hidden=false; card.style.order=String(i);
+                    if(!card.dataset.gen)return;
+                    card.className=`dash-chart${info.wide?' lg:col-span-2':''} bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4`;
+                    card.innerHTML=`<div class="flex flex-wrap items-center justify-between gap-2"><h3 class="font-bold text-sm">${esc(info.title)}</h3><span class="text-xs text-slate-500">${esc(info.sub)}</span></div><div class="h-72"><canvas></canvas></div>`;
+                    try{ this.drawDashChart(c,card.querySelector('canvas')); }catch(e){ console.error('Chart could not be drawn',e); }
+                });
+                grid.closest('.tab-panel')?.querySelector('.dash-charts-empty')?.remove();
+                if(!list.length)grid.insertAdjacentHTML('beforebegin','<p class="dash-charts-empty">No charts on the Dashboard. Tap Customise to add some.</p>');
+            }
+            /** Draws one default or custom chart into a canvas (a short message instead when there is nothing to show). */
+            drawDashChart(c,canvas){
+                this.charts.dash ||= {}; this.charts.dash[c.id]?.destroy(); delete this.charts.dash[c.id];
+                const money=v=>this.fmtMoney0(v), base={responsive:true,maintainAspectRatio:false,animation:{duration:400}};
+                const empty=msg=>{ canvas.hidden=true; let p=canvas.parentElement.querySelector('.dash-chart-empty'); if(!p){ p=document.createElement('p'); p.className='dash-chart-empty'; canvas.parentElement.appendChild(p); } p.textContent=msg; };
+                canvas.hidden=false; canvas.parentElement.querySelector('.dash-chart-empty')?.remove();
+                let cfg;
+                if(c.id==='networth'){ const h=this.netWorthHistory(12);
+                    cfg={type:'line',data:{labels:h.map(x=>x.label),datasets:[{label:'Net worth',data:h.map(x=>x.value),borderColor:'#4f46e5',backgroundColor:'rgba(79,70,229,.12)',fill:true,tension:.3,pointRadius:3}]},options:{...base,scales:{y:{beginAtZero:true}},plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>money(x.parsed.y)}}}}}; }
+                else if(c.id==='budget'){ const b=this.budgetVsActual(); if(!b.length)return empty('No budgets yet. Set them in Budgets.');
+                    cfg={type:'bar',data:{labels:b.map(x=>x.category),datasets:[{label:'Spent',data:b.map(x=>x.spent),backgroundColor:b.map(x=>x.spent>x.limit?'#e11d48':'#059669'),borderRadius:6},{label:'Budget',data:b.map(x=>x.limit),backgroundColor:'#cbd5e1',borderRadius:6}]},options:{...base,indexAxis:'y',plugins:{tooltip:{callbacks:{label:x=>`${x.dataset.label}: ${money(x.parsed.x)}`}}}}}; }
+                else if(c.spec){ const s=c.spec, d=this.customChartData(s); if(!d.values.some(v=>v))return empty('Nothing to show for this period.');
+                    const round=s.type==='pie'||s.type==='doughnut', line=s.type==='line';
+                    const colors=d.labels.map((l,i)=>s.by==='category'&&l!=='Other'?this.categoryColor(l):this.dashPalette(i));
+                    cfg={type:round?s.type:line?'line':'bar',data:{labels:d.labels,datasets:[{label:s.title||'My chart',data:d.values,backgroundColor:line?'rgba(5,150,105,.15)':colors,borderColor:line?'#059669':undefined,fill:line,tension:.3,borderRadius:round||line?0:6}]},
+                        options:{...base,indexAxis:s.type==='hbar'?'y':'x',...(round?{}:{scales:{[s.type==='hbar'?'x':'y']:{beginAtZero:true}}}),plugins:{legend:{display:round,position:'bottom'},tooltip:{callbacks:{label:x=>money(round?x.parsed:s.type==='hbar'?x.parsed.x:x.parsed.y)}}}}}; }
+                if(cfg)this.charts.dash[c.id]=new Chart(canvas.getContext('2d'),cfg);
+            }
+            dashPalette(i){ return ['#059669','#4f46e5','#f59e0b','#e11d48','#0ea5e9','#8b5cf6','#14b8a6','#f97316','#64748b'][i%9]; }
+            /** Month-end net worth for the last n months: today's balances, stepped back through the balance effect of every later entry. */
+            netWorthHistory(n=12){
+                const assetTypes=['Receivable','Checking','Cash','Savings','Savings Account','Investment','Investment Account','Fixed Deposit','Fixed Deposit Account','Recurring Deposit','RD','RD Account'], loanTypes=['Loan Account','Loan'];
+                const accs=this.data.accounts||[]; const bal=new Map(accs.map(a=>[a.name,Number(a.balance)||0]));
+                const worth=()=>accs.reduce((s,a)=>assetTypes.includes(a.type)?s+bal.get(a.name):loanTypes.includes(a.type)?s-Math.abs(bal.get(a.name)):s,0);
+                const tx=(this.data.tx||[]).filter(t=>t&&!t.balanceEffectRemoved).map(t=>({t,d:this.normalizeLedgerDate(t.date)||''})).sort((a,b)=>b.d.localeCompare(a.d));
+                const out=[], now=new Date(); let k=0;
+                for(let i=0;i<n;i++){ const end=new Date(now.getFullYear(),now.getMonth()-i+1,0), endIso=this.todayISO(end);
+                    while(k<tx.length&&tx[k].d>endIso){ this.txEffects(tx[k].t).forEach(e=>{ if(bal.has(e.account))bal.set(e.account,bal.get(e.account)-e.delta); }); k++; }
+                    out.unshift({label:end.toLocaleDateString('en-IN',{month:'short',year:'2-digit'}),value:Math.round(worth())}); }
+                return out; }
+            /** Each budget this month: its limit and what was spent in that category, most used (as a share) first. */
+            budgetVsActual(){ const mk=this.todayISO().slice(0,7), spent={};
+                this.countedTx().forEach(t=>{ if(!this.isSpending(t)||!(this.normalizeLedgerDate(t.date)||'').startsWith(mk))return; const c=this.spendingCategory(t); spent[c]=(spent[c]||0)+Math.abs(Number(t.amount)||0); });
+                return Object.entries(this.data.budgets||{}).map(([category,limit])=>({category,limit:Number(limit)||0,spent:Math.round(spent[category]||0)})).filter(x=>x.limit>0).sort((a,b)=>b.spent/b.limit-a.spent/a.limit); }
+            dashPeriodRange(p){ const now=new Date(), y=now.getFullYear(), m=now.getMonth(), first=k=>this.todayISO(new Date(y,m-k,1));
+                return p==='month'?[first(0),'9999']:p==='lastmonth'?[first(1),this.todayISO(new Date(y,m,0))]:p==='3m'?[first(2),'9999']:p==='6m'?[first(5),'9999']:p==='12m'?[first(11),'9999']:p==='year'?[`${y}-01-01`,'9999']:['0000','9999']; }
+            dashSpecLabel(s){ const m={spending:'Spending',income:'Income',invested:'Invested'}[s.measure]||'', by={category:'by category',account:'by account',payee:'by payee',month:'by month',weekday:'by weekday'}[s.by]||'';
+                const per={month:'this month',lastmonth:'last month','3m':'last 3 months','6m':'last 6 months','12m':'last 12 months',year:'this year',all:'all time'}[s.period]||'';
+                const only=[s.onlyCat,s.onlyAcc].filter(Boolean).join(', '); return `${m}${only?` (${only})`:''} ${by} · ${per}`; }
+            /** A custom chart's numbers: the chosen money (spending, income or invested) in the period, added up by the chosen grouping. */
+            customChartData(s){
+                const [from,to]=this.dashPeriodRange(s.period); const inv=s.measure==='invested'?new Set(this.investedTx()):null; const W=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+                const catOf=t=>s.measure==='spending'?this.spendingCategory(t):(t.category||'Uncategorized');
+                const rows=this.countedTx().filter(t=>{ const d=this.normalizeLedgerDate(t.date)||''; if(!d||d<from||d>to)return false; if(s.onlyCat&&catOf(t)!==s.onlyCat)return false; if(s.onlyAcc&&t.account!==s.onlyAcc)return false; return s.measure==='income'?t.type==='Income':s.measure==='invested'?inv.has(t):this.isSpending(t); });
+                const keyOf=t=>{ const d=this.normalizeLedgerDate(t.date); if(s.by==='month')return d.slice(0,7); if(s.by==='weekday')return W[(new Date(d+'T12:00:00').getDay()+6)%7];
+                    if(s.by==='account')return t.account||'No account'; if(s.by==='payee')return String(t.payee||t.description||'').trim().slice(0,30)||'Unknown'; return catOf(t); };
+                const sum=new Map(); rows.forEach(t=>{ const k=keyOf(t); sum.set(k,(sum.get(k)||0)+Math.abs(Number(t.amount)||0)); });
+                let entries=[...sum.entries()];
+                if(s.by==='month'){ // every month in the period, oldest first, a month with nothing as 0
+                    const last=to==='9999'?this.todayISO().slice(0,7):to.slice(0,7); const start=from==='0000'?([...sum.keys()].sort()[0]||last):from.slice(0,7); const keys=[]; let [yy,mm]=start.split('-').map(Number);
+                    while(keys.length<240){ const k=`${yy}-${String(mm).padStart(2,'0')}`; keys.push(k); if(k>=last)break; if(++mm>12){ mm=1; yy++; } }
+                    entries=keys.map(k=>[this.monthLabel(k),sum.get(k)||0]); }
+                else if(s.by==='weekday')entries=W.map(w=>[w,sum.get(w)||0]);
+                else { entries.sort((a,b)=>b[1]-a[1]); if(entries.length>8)entries=[...entries.slice(0,7),['Other',entries.slice(7).reduce((a,e)=>a+e[1],0)]]; }
+                return {labels:entries.map(e=>e[0]),values:entries.map(e=>Math.round(e[1]))}; }
+            /** Customise: the Dashboard's charts in order (move, remove, change), and add a default one, a ready-made one or your own. */
+            openChartCustomiser(work){
+                const list=work||this.dashChartList().map(c=>({...c,spec:c.spec?{...c.spec}:undefined})); const defs=this.dashChartDefaults(), esc=v=>this.escapeHtml(String(v??''));
+                const name=c=>c.spec?(c.spec.title||'My chart'):defs[c.id]?.title||c.id; const missing=Object.keys(defs).filter(id=>!list.some(c=>c.id===id));
+                const box=document.getElementById('modal-box');
+                box.innerHTML=`<div id="cc" class="space-y-3"><div class="flex justify-between items-center"><h3 class="font-bold text-base">Dashboard charts</h3><button type="button" data-x class="text-slate-400" aria-label="Close"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+                    <p class="text-sm text-slate-500">Shown in this order. Move a chart with the arrows; ✕ takes it off the Dashboard.</p>
+                    <div class="cc-list">${list.map((c,i)=>`<div class="cc-row"><span class="cc-name"><b>${esc(name(c))}</b><small>${c.spec?esc(this.dashSpecLabel(c.spec)):'Default chart'}</small></span>${c.spec?`<button type="button" class="cc-b" data-edit="${i}" aria-label="Change ${esc(name(c))}"><i data-lucide="pencil"></i></button>`:''}<button type="button" class="cc-b" data-up="${i}" ${i?'':'disabled'} aria-label="Move ${esc(name(c))} up"><i data-lucide="arrow-up"></i></button><button type="button" class="cc-b" data-down="${i}" ${i<list.length-1?'':'disabled'} aria-label="Move ${esc(name(c))} down"><i data-lucide="arrow-down"></i></button><button type="button" class="cc-b" data-del="${i}" aria-label="Remove ${esc(name(c))}"><i data-lucide="x"></i></button></div>`).join('')||'<p class="cc-none">No charts yet. Add one below.</p>'}</div>
+                    <h4 class="cc-h">Add a chart</h4><div class="cc-add">${missing.map(id=>`<button type="button" class="pie-pill" data-add-def="${id}"><i data-lucide="plus"></i><span>${esc(defs[id].title)}</span></button>`).join('')}${this.dashChartPresets().map((p,i)=>`<button type="button" class="pie-pill" data-add-pre="${i}"><i data-lucide="plus"></i><span>${esc(p.title)}</span></button>`).join('')}<button type="button" class="pie-pill on" data-build><i data-lucide="wand-sparkles"></i><span>Build your own…</span></button></div>
+                    <div class="af-actions"><button type="button" class="s-btn s-secondary" data-x>Cancel</button><button type="button" class="s-btn s-primary" data-save>Save</button></div></div>`;
+                document.getElementById('modal-container').classList.remove('hidden'); window.lucide?.createIcons?.();
+                const newId=()=>'c_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+                document.getElementById('cc').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b)return; const d=b.dataset;
+                    if('x' in d)return this.closeModal();
+                    if('save' in d){ this.closeModal(); return this.saveDashChartList(list.map(c=>c.spec?{id:c.id,spec:c.spec}:{id:c.id})); }
+                    if('build' in d)return this.openChartBuilder(list,-1);
+                    if(d.edit!=null)return this.openChartBuilder(list,+d.edit);
+                    if(d.up!=null){ const i=+d.up; [list[i-1],list[i]]=[list[i],list[i-1]]; }
+                    else if(d.down!=null){ const i=+d.down; [list[i+1],list[i]]=[list[i],list[i+1]]; }
+                    else if(d.del!=null)list.splice(+d.del,1);
+                    else if(d.addDef)list.push({id:d.addDef});
+                    else if(d.addPre!=null)list.push({id:newId(),spec:{...this.dashChartPresets()[+d.addPre]}});
+                    this.openChartCustomiser(list); });
+            }
+            /** Build your own chart (or change one): what to show, grouped how, over which period, as which kind of chart, with a live preview. */
+            openChartBuilder(list,index){
+                const cur=index>=0?list[index].spec:{title:'',measure:'spending',by:'category',period:'month',type:'bar'}; const esc=v=>this.escapeHtml(String(v??''));
+                const sel=(id,label,opts,v)=>`<label class="af-row"><span>${label}</span><select id="${id}">${opts.map(([k,t])=>`<option value="${k}" ${k===v?'selected':''}>${t}</option>`).join('')}</select></label>`;
+                const box=document.getElementById('modal-box');
+                box.innerHTML=`<div id="cb" class="space-y-3"><div class="flex justify-between items-center"><h3 class="font-bold text-base">${index>=0?'Change chart':'Build your own chart'}</h3><button type="button" data-back class="text-slate-400" aria-label="Back"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+                    <div class="af-form"><label class="af-row"><span>Name</span><input id="cb-title" type="text" maxlength="40" placeholder="e.g. Food by month" value="${esc(cur.title)}"></label>
+                    ${sel('cb-measure','Show',[['spending','Spending'],['income','Income'],['invested','Money invested']],cur.measure)}
+                    ${sel('cb-by','Group by',[['category','Category'],['account','Account'],['payee','Payee'],['month','Month'],['weekday','Day of the week']],cur.by)}
+                    ${sel('cb-only-cat','Only category',[['','All categories'],...[...new Set([...(this.data.categories||[]),...this.countedTx().map(t=>t.category).filter(Boolean)])].sort((a,b)=>a.localeCompare(b)).map(c=>[esc(c),esc(c)])],esc(cur.onlyCat||''))}
+                    ${sel('cb-only-acc','Only account',[['','All accounts'],...(this.data.accounts||[]).map(a=>[esc(a.name),esc(a.name)])],esc(cur.onlyAcc||''))}
+                    ${sel('cb-period','Period',[['month','This month'],['lastmonth','Last month'],['3m','Last 3 months'],['6m','Last 6 months'],['12m','Last 12 months'],['year','This year'],['all','All time']],cur.period)}
+                    ${sel('cb-type','Chart',[['bar','Bars'],['hbar','Bars across'],['line','Line'],['pie','Pie'],['doughnut','Ring']],cur.type)}</div>
+                    <div class="cb-preview"><div class="h-56"><canvas id="cb-canvas"></canvas></div></div>
+                    <div class="af-actions"><button type="button" class="s-btn s-secondary" data-back>Back</button><button type="button" class="s-btn s-primary" data-ok>${index>=0?'Save chart':'Add chart'}</button></div></div>`;
+                window.lucide?.createIcons?.();
+                const spec=()=>{ const s={measure:document.getElementById('cb-measure').value,by:document.getElementById('cb-by').value,period:document.getElementById('cb-period').value,type:document.getElementById('cb-type').value};
+                    const oc=document.getElementById('cb-only-cat').value, oa=document.getElementById('cb-only-acc').value; if(oc)s.onlyCat=oc; if(oa)s.onlyAcc=oa;
+                    s.title=document.getElementById('cb-title').value.trim()||this.dashSpecLabel(s).replace(' · ',', '); return s; };
+                const preview=()=>{ try{ this.drawDashChart({id:'__preview',spec:spec()},document.getElementById('cb-canvas')); }catch(e){ console.error(e); } };
+                document.querySelectorAll('#cb select').forEach(s=>s.addEventListener('change',preview)); preview();
+                document.getElementById('cb').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b)return;
+                    if('back' in b.dataset){ this.charts.dash?.__preview?.destroy(); return this.openChartCustomiser(list); }
+                    if('ok' in b.dataset){ this.charts.dash?.__preview?.destroy(); const s=spec(); if(index>=0)list[index]={...list[index],spec:s}; else list.push({id:'c_'+Date.now().toString(36),spec:s}); this.openChartCustomiser(list); } });
             }
 
             /**
@@ -206,13 +349,35 @@
                     return d.slice(0,4)===year && (month==='all'||d.slice(5,7)===month);
                 }).forEach(t=>{const cat=t.category||'Uncategorized';catTotals[cat]=(catTotals[cat]||0)+Math.max(0,num(t.amount));});
                 if(this.charts.cat)this.charts.cat.destroy();
-                const categories=Object.keys(catTotals);
+                // Categories you chose to leave out (remembered on this device) are not drawn
+                this._pieTotals=catTotals; const hidden=new Set(this.pieHiddenCategories()); const all=Object.keys(catTotals).sort((a,b)=>catTotals[b]-catTotals[a]);
+                const categories=all.filter(c=>!hidden.has(c)); const off=all.length-categories.length;
+                const pick=document.querySelector('#dashboard-pie-cats span'); if(pick)pick.textContent=off?`${categories.length} of ${all.length} categories`:'All categories';
+                document.getElementById('dashboard-pie-cats')?.classList.toggle('on',!!off);
+                if(label&&off)label.textContent+=` · ${off} hidden`;
                 if(!categories.length){
                     const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
-                    this.charts.cat=new Chart(canvas.getContext('2d'),{type:'pie',data:{labels:['No expenses'],datasets:[{data:[1],backgroundColor:['#cbd5e1']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false},title:{display:true,text:'No expenses for this period'}}}});
+                    this.charts.cat=new Chart(canvas.getContext('2d'),{type:'pie',data:{labels:['No expenses'],datasets:[{data:[1],backgroundColor:['#cbd5e1']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false},title:{display:true,text:all.length?'Every category is hidden: tap Categories':'No expenses for this period'}}}});
                     return;
                 }
                 this.charts.cat=new Chart(canvas.getContext('2d'),{type:'pie',data:{labels:categories,datasets:[{data:categories.map(c=>catTotals[c]),backgroundColor:categories.map(c=>this.categoryColor(c)),borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},onClick:(event,elements)=>{if(!elements.length)return;const category=categories[elements[0].index];if(category)this.openDashboardDrilldown(`${category} — ${period}`,'category-period',{category,year,month});}}});
+            }
+            /** Expense Breakdown: categories left out of the pie (this device only). */
+            pieHiddenCategories(){ try{ const v=JSON.parse(localStorage.getItem('aifico_pie_hidden')||'[]'); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
+            /** Pick which categories the Expense Breakdown pie shows: the period's categories, biggest first, with their amounts. */
+            openPieCategoryPicker(){
+                const totals=this._pieTotals||{}; const cats=Object.keys(totals).sort((a,b)=>totals[b]-totals[a]); const hidden=new Set(this.pieHiddenCategories()); const esc=v=>this.escapeHtml(String(v??''));
+                const box=document.getElementById('modal-box');
+                box.innerHTML=`<div class="flex justify-between items-center pb-2"><h3 class="font-bold text-base">Categories in the pie</h3><button type="button" onclick="app.closeModal()" class="text-slate-400" aria-label="Close"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+                    ${cats.length?`<div class="pie-pick-all"><button type="button" class="s-btn s-secondary" data-all="1">Show all</button><button type="button" class="s-btn s-secondary" data-all="0">Hide all</button></div>
+                    <div class="pie-pick-list">${cats.map(c=>`<label class="pie-pick"><input type="checkbox" value="${esc(c)}" ${hidden.has(c)?'':'checked'}><i class="cat-dot" style="--c:${esc(this.categoryColor(c))}"></i><span>${esc(c)}</span><b>${this.fmtMoney0(totals[c])}</b></label>`).join('')}</div>`:'<p class="text-sm text-slate-500">No spending in this period.</p>'}
+                    <div class="af-actions"><button type="button" class="s-btn s-secondary" onclick="app.closeModal()">Cancel</button><button type="button" class="s-btn s-primary" id="pie-pick-save">Show</button></div>`;
+                document.getElementById('modal-container').classList.remove('hidden'); window.lucide?.createIcons?.();
+                box.querySelectorAll('[data-all]').forEach(b=>b.addEventListener('click',()=>box.querySelectorAll('.pie-pick input').forEach(i=>{ i.checked=b.dataset.all==='1'; })));
+                document.getElementById('pie-pick-save').addEventListener('click',()=>{
+                    // keep choices for categories not in this period; update the ones shown here
+                    const next=new Set(this.pieHiddenCategories()); box.querySelectorAll('.pie-pick input').forEach(i=>{ i.checked?next.delete(i.value):next.add(i.value); });
+                    try{ localStorage.setItem('aifico_pie_hidden',JSON.stringify([...next])); }catch(e){} this.closeModal(); this.renderDashboardPieChart(); });
             }
 
             // ---------- Stats: where the money went (or came from) in a month or a year ----------

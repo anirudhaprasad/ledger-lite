@@ -21,6 +21,7 @@
         try { app.applyEdition(); } catch (e) { console.error(e); }
         try { app.setupPageTitleBar(); app.decorateSettings(); } catch (e) { console.error(e); }
         try { app.initSwipe(); } catch (e) { console.error(e); }
+        try { app.initToTop(); } catch (e) { console.error(e); }
         (function(){ const go=()=>{ try{ app.applyNavMode(); app.applyLedgerHeader(); }catch(e){} }; go(); window.addEventListener('resize',go); window.addEventListener('orientationchange',go); const mc=document.getElementById('modal-container'); if(mc) new MutationObserver(()=>{ if(mc.classList.contains('hidden')&&mc.classList.contains('more-sheet')) mc.classList.remove('more-sheet'); }).observe(mc,{attributes:true,attributeFilter:['class']}); })();
 
         // Shared app-styled information/validation dialog used by all existing alert() call sites.

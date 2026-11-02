@@ -435,13 +435,17 @@ Type REMOVE SMS to continue:`);
             /** Ticked SMS (pending only) for Merge selected; kept while the app is open */
             smsPicked(){ if(!(this._smsSel instanceof Set))this._smsSel=new Set(); return this._smsSel; }
             toggleSmsPick(id,on){ const s=this.smsPicked(); on?s.add(String(id)):s.delete(String(id)); this.renderSmsSelectBar(); }
-            pickAllShownSms(on){ const s=this.smsPicked(); const shown=this._smsShown||new Set(); (this.data.smsInbox||[]).filter(x=>(x.status||'pending')==='pending'&&shown.has(String(x.id))).forEach(x=>on?s.add(String(x.id)):s.delete(String(x.id))); this.renderSmsReconciliation(); }
+            clearSmsPicks(){ this.smsPicked().clear(); document.querySelectorAll('#sms-reconcile-tbody .sms-pick input').forEach(cb=>{ cb.checked=false; }); this.renderSmsSelectBar(); }
+            /** Pending SMS the list shows now (search, status and year applied), drawn or not */
+            smsShownPending(){ const shown=this._smsShown||new Set(); return (this.data.smsInbox||[]).filter(x=>(x.status||'pending')==='pending'&&shown.has(String(x.id))).map(x=>String(x.id)); }
+            // One button: merges the SMS you ticked, or, with none ticked, every pending SMS the list shows
             renderSmsSelectBar(){ const bar=document.getElementById('sms-select-bar'); if(!bar)return; const pend=new Set((this.data.smsInbox||[]).filter(x=>(x.status||'pending')==='pending').map(x=>String(x.id)));
-                const s=this.smsPicked(); [...s].forEach(id=>{ if(!pend.has(id))s.delete(id); }); const shown=[...(this._smsShown||new Set())].filter(id=>pend.has(id)); const all=shown.length&&shown.every(id=>s.has(id));
-                bar.hidden=!pend.size; bar.innerHTML=`<label class="sms-pick-all"><input type="checkbox" ${all?'checked':''} onchange="app.pickAllShownSms(this.checked)"> Select all shown (${shown.length})</label><button type="button" class="px-3 py-1.5 rounded-lg bg-emerald-700 text-white text-sm" ${s.size?'':'disabled'} onclick="app.mergeSelectedSms()">Merge selected (${s.size})</button>`; }
-            /** Merge selected: each ticked SMS goes to Core Ledger as Excluded (parked), read as on its card; include them there when right */
+                const s=this.smsPicked(); [...s].forEach(id=>{ if(!pend.has(id))s.delete(id); }); const shown=this.smsShownPending().length;
+                bar.hidden=!shown; bar.innerHTML=s.size?`<button type="button" class="s-btn sms-merge-btn" onclick="app.mergeSelectedSms()">Merge ${s.size} ticked</button><button type="button" class="s-btn s-secondary" onclick="app.clearSmsPicks()">Clear ticks</button><p class="sms-pick-hint">Only the SMS you ticked are merged.</p>`
+                    :`<button type="button" class="s-btn sms-merge-btn" onclick="app.mergeSelectedSms()">Merge all ${shown} shown</button><p class="sms-pick-hint">Search or filter first to narrow the list, or tick some SMS to merge only those. They go to Core Ledger as Excluded, so you can check or bulk edit them there before including.</p>`; }
+            /** Merge many: the ticked SMS (or, none ticked, all shown) go to Core Ledger as Excluded (parked), read as on their cards; include them there when right */
             async mergeSelectedSms(){
-                const ids=[...this.smsPicked()]; const items=(this.data.smsInbox||[]).filter(x=>ids.includes(String(x.id))&&(x.status||'pending')==='pending'); if(!items.length)return;
+                const ids=this.smsPicked().size?[...this.smsPicked()]:this.smsShownPending(); const items=(this.data.smsInbox||[]).filter(x=>ids.includes(String(x.id))&&(x.status||'pending')==='pending'); if(!items.length)return;
                 const accounts=this.data.accounts||[]; if(!accounts.length)return alert('Create an account in Accounts & Wallets first.');
                 if(!await this.uiConfirm(`Merge ${items.length} SMS into Core Ledger?\n\nThey are added as Excluded: they don't count in totals or change balances until you include them. In Core Ledger, filter Excluded, check or bulk edit them, then Include selected.`,{okLabel:'Merge'}))return;
                 let n=0; const def=this.getGlobalDefaultAccount()||accounts[0];
@@ -766,7 +770,10 @@ Type REMOVE SMS to continue:`);
                 const cnt=document.getElementById('sms-search-count'); if(cnt)cnt.textContent=words.length?`${visible.length} of ${byStatus.length}`:'';
                 if(!visible.length){body.innerHTML=`<tr><td colspan="7" class="p-6 text-center text-slate-500">${words.length?`No SMS records match "${this.escapeHtml(q)}".`:inbox.length?'No SMS records for this status filter.':'No SMS records staged yet. Paste SMS text or upload an SMS backup above.'}</td></tr>`;return;}
                 let lastYear=null; const perYear=visible.reduce((m,x)=>(m[yearOf(x)]=(m[yearOf(x)]||0)+1,m),{});
-                body.innerHTML=visible.map(item=>{
+                // Draw the newest 100 (then 100 more on request): drawing every card at once froze phones for seconds.
+                // Filters, search and "Tick all" still cover every SMS that matches, drawn or not.
+                const key=[filter,year,q].join('|'); if(this._smsKey!==key){ this._smsKey=key; this._smsLimit=100; } const limit=this._smsLimit||100;
+                body.innerHTML=visible.slice(0,limit).map(item=>{
                     const y=yearOf(item); const yearRow=y!==lastYear?`<tr class="sms-year-row"><td colspan="7">${this.escapeHtml(y)} · ${perYear[y]} SMS</td></tr>`:''; lastYear=y;
                     const status=item.status||'pending';
                     const matches=status==='pending'?this.findSmsMatches(item):[];
@@ -777,9 +784,10 @@ Type REMOVE SMS to continue:`);
                     else if(status==='matched'){ const mt=(this.data.tx||[]).find(t=>String(t.id)===String(item.matchedTransactionId)); actions=`<div class="text-slate-600 dark:text-slate-300">Matched to Core Ledger: ${mt?`${this.escapeHtml(mt.date||'')} · ${this.escapeHtml(mt.payee||mt.description||'')} · ${CUR()}${(Number(mt.amount)||0).toLocaleString('en-IN')}`:'(not found)'}</div><button class="px-2 py-1 rounded border mt-1" onclick="app.reopenSmsInbox('${String(item.id).replace(/'/g,"\\'")}')">Undo match</button>`; }
                     else actions=`<span class="text-slate-500">${this.escapeHtml(status)}</span>`;
                     return yearRow+`<tr class="border-b border-slate-100 dark:border-slate-800 align-top"><td class="p-2 whitespace-nowrap">${this.escapeHtml(this.smsWhenText(item))}</td><td class="p-2 min-w-56"><div class="font-medium">${this.escapeHtml(item.payee||item.description||'SMS')}</div><div class="text-slate-500 whitespace-normal sms-msg" onclick="this.classList.toggle('open')">${this.escapeHtml(item.description||'')}</div>${(()=>{ const o=status==='pending'?this.smsResolveAccount(item):null; const r=(item.accountRefs||[])[0]; return o?`<div class="text-xs text-emerald-700 dark:text-emerald-300">${this.escapeHtml(o.account.name)}${o.to?' → '+this.escapeHtml(o.to.name):''} · ${this.escapeHtml(o.how)}</div>`:(status==='pending'&&r?`<div class="text-xs text-amber-700 dark:text-amber-300">${r.card?'Card':'A/c'} ••${this.escapeHtml(r.digits)} isn't on any account yet: add it in Accounts → Edit → Last digits</div>`:''); })()}${status==='pending'&&this.myFields().length?`<div class="sms-myfields">${this.myFieldsInputs(item.custom,'sms-mf-'+this.escapeHtml(String(item.id).replace(/[^\w-]/g,'')),`app.setSmsField('${this.escapeHtml(String(item.id).replace(/'/g,"\\'"))}','%ID%',this.value)`,true)}</div>`:(item.custom?`<div class="text-xs text-slate-500">${this.myFieldsSummary(item.custom).map(([n,v])=>this.escapeHtml(n+': '+v)).join(' · ')}</div>`:'')}<div class="text-slate-400 sms-src">${this.escapeHtml(item.sourceFile||'')}</div></td><td class="p-2 whitespace-nowrap">${item.type==='Income'?'+':'−'}${CUR()}${(Number(item.amount)||0).toLocaleString('en-IN')}</td><td class="p-2 sms-ref${item.reference?'':' sms-empty'}">${item.reference?'<span class="sms-ref-l">Ref </span>'+this.escapeHtml(item.reference):'—'}</td><td class="p-2 min-w-64 sms-match${(status==='pending'&&!matches.length)||(status!=='pending'&&!(item.matchedTransactionId||item.matchReason))?' sms-empty':''}">${status==='pending'?matchHtml:this.escapeHtml(item.matchedTransactionId||item.matchReason||'—')}</td><td class="p-2 sms-status"><span class="sms-chip sms-${this.escapeHtml(status)}">${this.escapeHtml(status)}</span></td><td class="p-2 min-w-40">${actions}</td></tr>`;
-                }).join('');
+                }).join('')+(visible.length>limit?`<tr class="sms-more-row"><td colspan="7"><button type="button" class="s-btn s-secondary" onclick="app.showMoreSms()">Show ${Math.min(100,visible.length-limit)} more · ${visible.length-limit} not shown yet</button></td></tr>`:'');
                 this.renderSmsSelectBar();
             }
+            showMoreSms(){ this._smsLimit=(this._smsLimit||100)+100; const sc=document.getElementById('app-scroll'), y=sc?.scrollTop; this.renderSmsReconciliation(); if(sc&&y!=null)sc.scrollTop=y; }
             /**
              * Handles the refresh sms matches workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: none. Side effects, if any, are described by the statements below.
