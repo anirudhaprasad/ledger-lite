@@ -52,7 +52,7 @@
                     const has=(this.data.tx||[]).some(t=>!t.excludedFromLedger&&(this.parseLedgerDate(t.date)||'').startsWith(key)); if(has)months.push(key); }
                 const set=new Set(months); let income=0, spend=0; const cats=new Map();
                 for(const t of (this.data.tx||[])){ if(t.excludedFromLedger)continue; const m=(this.parseLedgerDate(t.date)||'').slice(0,7); if(!set.has(m))continue; const a=Math.abs(Number(t.amount)||0);
-                    if(t.type==='Income')income+=a; else if(['Expense','EMI','Installment'].includes(t.type)){ spend+=a; const c=t.category||'Uncategorized'; cats.set(c,(cats.get(c)||0)+a); } }
+                    if(t.type==='Income')income+=a; else if(this.isSpending(t)){ spend+=a; const c=t.category||'Uncategorized'; cats.set(c,(cats.get(c)||0)+a); } }
                 const n=Math.max(1,months.length); const flex=/dining|restaurant|food & dining|eating|shopping|entertainment|movie|travel|holiday|vacation|subscription|ott|personal|gift|outing|leisure|hobby|gadget|electronics|clothing|fashion|beauty/i;
                 const categories=[...cats].map(([name,total])=>({name,avg:total/n,flexible:flex.test(name)})).sort((a,b)=>b.avg-a.avg);
                 return {months,count:months.length,income:income/n,spend:spend/n,surplus:(income-spend)/n,categories,flexible:categories.filter(c=>c.flexible).reduce((s,c)=>s+c.avg,0)};

@@ -108,11 +108,6 @@
              * Parameters: headers,rows. Side effects, if any, are described by the statements below.
              */
             ssTable(headers,rows,cls=''){ return rows.length?`<div class="ss-tablewrap"><table class="ss-table ${cls}"><thead><tr>${headers.map(h=>`<th class="${h.num?'r':''}">${h.label}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`:'<p class="ip-empty">Nothing here yet.</p>'; }
-            /**
-             * Handles the ss balance row workflow. See the implementation below for its inputs, state changes, and side effects.
-             * Parameters: r. Side effects, if any, are described by the statements below.
-             */
-            ssBalanceRow(r){ const esc=v=>this.escapeHtml(String(v??'')); const m=v=>this.ssMoneyFit(v); return `<tr><td><b>${esc(this.ssPerson(r.id))}</b></td><td class="r" data-label="Paid">${m(r.paid)}</td><td class="r" data-label="Share">${m(r.share)}</td><td class="r" data-label="Settled">${r.sent>.004?`<small>paid</small>${m(r.sent)}`:r.received>.004?`<small>got</small>${m(r.received)}`:"—"}</td><td class="r ss-bal ${r.balance>.005?'ip-pos':r.balance<-.005?'ip-neg':''}"><small>${r.balance>.005?'gets':r.balance<-.005?'owes':'settled'}</small><b>${m(Math.abs(r.balance))}</b></td></tr>`; }
             /** "Who owes whom?" as a readable list: the person's position in large type, how it came about in one small line. */
             ssBalanceList(rows){
                 if(!rows.length)return '<p class="ip-empty">Nothing here yet.</p>'; const esc=v=>this.escapeHtml(String(v??'')); const m=v=>this.ssMoneyFit(v);
@@ -303,64 +298,6 @@
                 document.getElementById('modal-container').classList.remove('hidden');
                 document.getElementById('ss-settle-form').addEventListener('submit',e=>{ e.preventDefault(); const a=Number(document.getElementById('ss-st-amount').value); if(!(a>0))return alert('Enter a positive amount.'); const lg=document.getElementById('ss-st-ledger'); d.settlements.push({id:this.newUid(),date:document.getElementById('ss-st-date').value,from,to,amount:a,trip:document.getElementById('ss-st-trip').value,ledger:!!lg?.checked,account:document.getElementById('ss-st-account')?.value||''}); this.closeModal(); this.ssChanged(); });
             }
-            /**
-             * Renders the  shared legacy UI from the current app state.
-             * Parameters: none. Side effects, if any, are described by the statements below.
-             */
-            renderSharedLegacy() {
-                const container = document.getElementById('shared-container');
-                if (!this.data.shared.length) { container.innerHTML = '<p class="text-sm text-slate-500 py-8 text-center">No shared expenses yet. Add an expense to start splitting bills.</p>'; return; }
-                container.innerHTML = this.data.shared.map(s => {
-                    const people = Array.isArray(s.members) ? s.members : String(s.splitWith || '').split(',').map(x=>x.trim()).filter(Boolean);
-                    const shareLines = people.map(name => { const m=(s.shares||{})[name]; const paid=Number((s.settlements||{})[name]||0); const owed=Number(m ?? (name===s.paidBy ? 0 : (Number(s.total)||0)/Math.max(people.length,1))); return `<div class="flex items-center justify-between gap-3 text-xs py-1"><span>${this.escapeHtml(name)}${name===s.paidBy?' (paid)':''}</span><span>Share ${CUR()}${owed.toLocaleString('en-IN',{maximumFractionDigits:2})} · Settled ${CUR()}${paid.toLocaleString('en-IN',{maximumFractionDigits:2})}</span></div>`; }).join('');
-                    const totalSettled=Object.values(s.settlements||{}).reduce((a,v)=>a+(Number(v)||0),0);
-                    const isSettled=s.settled || (Number(s.total)>0 && totalSettled >= Number(s.total)-0.01);
-                    return `<div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
-                      <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3"><div class="min-w-0"><h4 class="font-bold text-sm">${this.escapeHtml(s.title)}</h4><p class="text-xs text-slate-500 mt-1">Total ${CUR()}${Number(s.total||0).toLocaleString('en-IN',{maximumFractionDigits:2})} · Paid by ${this.escapeHtml(s.paidBy||'—')} · Shared with ${this.escapeHtml(people.join(', ')||'—')}</p><p class="text-xs text-slate-500 mt-1">Your share: ${CUR()}${Number(s.myShare||0).toLocaleString('en-IN',{maximumFractionDigits:2})}</p></div><div class="flex items-center gap-2"><span class="px-3 py-1 rounded-full text-xs font-medium ${isSettled?'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400':'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'}">${isSettled?'Settled':'Pending Settlement'}</span><button onclick="app.openSettlementModal('${s.id}')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-600 text-white">${isSettled?'View / Edit':'Record Settlement'}</button><button onclick="app.deleteSharedExpense('${s.id}')" class="px-2 py-1.5 rounded-lg border text-xs">Delete</button></div></div>
-                      <div class="border-t border-slate-200 dark:border-slate-700 pt-2">${shareLines}</div></div>`;
-                }).join('');
-            }
 
-            /**
-             * Opens the  members modal screen, dialog, or workflow.
-             * Parameters: none. Side effects, if any, are described by the statements below.
-             */
-            openMembersModal() {
-                this.data.members ||= [];
-                const box=document.getElementById('modal-box');
-                box.innerHTML=`<div class="flex items-center justify-between"><h3 class="font-bold text-lg">Manage Members</h3><button type="button" onclick="app.closeModal()">✕</button></div><form id="member-form" class="flex gap-2"><input id="member-name" required maxlength="80" placeholder="Member name" class="flex-1 px-3 py-2 rounded-xl border dark:bg-slate-800"><button class="px-4 py-2 bg-emerald-600 text-white rounded-xl">Add</button></form><div id="member-list" class="space-y-2"></div><p class="text-xs text-slate-500">Members are stored only in your encrypted local vault.</p>`;
-                const draw=()=>{document.getElementById('member-list').innerHTML=this.data.members.map((m,i)=>`<div class="flex items-center justify-between border rounded-xl p-3 dark:border-slate-700"><span>${this.escapeHtml(m)}</span><button type="button" class="text-rose-600 text-sm" onclick="app.removeMember(${i})">Remove</button></div>`).join('')||'<p class="text-sm text-slate-500">No members added.</p>';};
-                document.getElementById('member-form').onsubmit=e=>{e.preventDefault();const name=document.getElementById('member-name').value.trim();if(!name)return;if(this.data.members.some(m=>m.toLowerCase()===name.toLowerCase()))return alert('Member already exists.');this.data.members.push(name);this.saveVault();draw();document.getElementById('member-name').value='';};
-                this.removeMember=(i)=>{const name=this.data.members[i];if(this.data.shared.some(x=>(x.members||[]).includes(name)))return alert('This member is used in a shared expense. Remove them from that expense first.');this.data.members.splice(i,1);this.saveVault();draw();};
-                draw();document.getElementById('modal-container').classList.remove('hidden');
-            }
-            /**
-             * Opens the  shared modal screen, dialog, or workflow.
-             * Parameters: none. Side effects, if any, are described by the statements below.
-             */
-            openSharedModal() {
-                this.data.members ||= [];
-                const box=document.getElementById('modal-box');
-                const members=this.data.members;
-                box.innerHTML=`<div class="flex items-center justify-between"><h3 class="font-bold text-lg">Add Shared Expense</h3><button type="button" onclick="app.closeModal()">✕</button></div><form id="shared-form" class="space-y-3"><div><label class="block text-xs font-semibold text-slate-500 mb-1">Expense name</label><input id="sh-title" required class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800" placeholder="e.g. Dinner, trip, rent"></div><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-semibold text-slate-500 mb-1">Total amount${CURL()}</label><input id="sh-total" type="number" min="0.01" step="0.01" required class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></div><div><label class="block text-xs font-semibold text-slate-500 mb-1">Paid by</label><select id="sh-paidby" required class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800"><option value="You">You</option>${members.map(m=>`<option value="${this.escapeHtml(m)}">${this.escapeHtml(m)}</option>`).join('')}</select></div></div><div><label class="block text-xs font-semibold text-slate-500 mb-1">Share with</label><select id="sh-scope" class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800"><option value="all">All members</option><option value="specific">Specific members</option></select></div><div id="sh-member-picks" class="grid grid-cols-2 gap-2">${members.map((m,i)=>`<label class="flex gap-2 items-center text-sm border rounded-lg p-2 dark:border-slate-700"><input type="checkbox" value="${this.escapeHtml(m)}" checked class="sh-member">${this.escapeHtml(m)}</label>`).join('')||'<p class="text-xs text-slate-500 col-span-2">No members yet. Add members with Manage Members.</p>'}</div><div><label class="block text-xs font-semibold text-slate-500 mb-1">Your share${CURL()}</label><input id="sh-myshare" type="number" min="0" step="0.01" value="0" required class="w-full px-3 py-2 rounded-xl border dark:bg-slate-800"><p class="text-xs text-slate-500 mt-1">Choose participants; equal shares are suggested automatically. You can edit your share.</p></div><div class="flex justify-end gap-2 pt-2"><button type="button" onclick="app.closeModal()" class="px-4 py-2 border rounded-xl">Cancel</button><button class="px-4 py-2 bg-emerald-600 text-white rounded-xl">Save Expense</button></div></form>`;
-                const scope=document.getElementById('sh-scope');const picks=()=>{const all=scope.value==='all';document.querySelectorAll('.sh-member').forEach(c=>{c.checked=all;c.disabled=all;});};scope.onchange=picks;
-                document.getElementById('shared-form').onsubmit=e=>{e.preventDefault();const total=Number(document.getElementById('sh-total').value);if(!(total>0))return alert('Enter a total amount greater than zero.');const chosen=[...document.querySelectorAll('.sh-member:checked')].map(c=>c.value);const participants=['You',...chosen.filter(n=>n!=='You')];if(!participants.length)return alert('Select at least one participant.');const share=total/participants.length;const shares=Object.fromEntries(participants.map(n=>[n,Number(share.toFixed(2))]));const myShare=Number(document.getElementById('sh-myshare').value);this.data.shared.push({id:'s_'+Date.now(),title:document.getElementById('sh-title').value.trim(),total,paidBy:document.getElementById('sh-paidby').value,members:participants,splitWith:participants.join(', '),shares,myShare,settlements:{},settled:false,createdAt:new Date().toISOString()});this.saveVault();this.renderAll();this.closeModal();};
-                document.getElementById('modal-container').classList.remove('hidden');
-            }
-            /**
-             * Opens the  settlement modal screen, dialog, or workflow.
-             * Parameters: id. Side effects, if any, are described by the statements below.
-             */
-            openSettlementModal(id) {
-                const s=this.data.shared.find(x=>String(x.id)===String(id));if(!s)return;const people=Array.isArray(s.members)?s.members:String(s.splitWith||'').split(',').map(x=>x.trim()).filter(Boolean);const box=document.getElementById('modal-box');
-                box.innerHTML=`<div class="flex items-center justify-between"><h3 class="font-bold text-lg">Settlement — ${this.escapeHtml(s.title)}</h3><button type="button" onclick="app.closeModal()">✕</button></div><p class="text-sm text-slate-500">Record how much each participant has paid back. Partial settlements are supported.</p><form id="settlement-form" class="space-y-3">${people.map((n,i)=>`<div class="grid grid-cols-2 gap-3 items-center"><label class="text-sm">${this.escapeHtml(n)} — share ${CUR()}${Number((s.shares||{})[n]||0).toLocaleString('en-IN',{maximumFractionDigits:2})}</label><input type="number" min="0" step="0.01" id="settle-${i}" data-member="${this.escapeHtml(n)}" value="${Number((s.settlements||{})[n]||0)}" class="px-3 py-2 rounded-xl border dark:bg-slate-800" placeholder="Amount settled"></div>`).join('')}<div class="flex justify-end gap-2 pt-3"><button type="button" onclick="app.closeModal()" class="px-4 py-2 border rounded-xl">Cancel</button><button class="px-4 py-2 bg-emerald-600 text-white rounded-xl">Save Settlement</button></div></form>`;
-                document.getElementById('settlement-form').onsubmit=e=>{e.preventDefault();s.settlements ||= {};for(let i=0;i<people.length;i++){const val=Number(document.getElementById('settle-'+i).value);if(!Number.isFinite(val)||val<0)return alert('Settlement amounts must be zero or greater.');s.settlements[people[i]]=val;}const outstanding=people.reduce((sum,n)=>sum+Math.max(0,Number((s.shares||{})[n]||0)-Number(s.settlements[n]||0)),0);s.settled=outstanding<=0.01;this.saveVault();this.renderAll();this.closeModal();};
-                document.getElementById('modal-container').classList.remove('hidden');
-            }
-            /**
-             * Removes shared expense, including associated cleanup where applicable.
-             * Parameters: id. Side effects, if any, are described by the statements below.
-             */
-            async deleteSharedExpense(id) { if(!await this.uiConfirm('Delete this shared expense and its settlement records?'))return;this.data.shared=this.data.shared.filter(s=>String(s.id)!==String(id));this.saveVault();this.renderAll(); }
 
         }

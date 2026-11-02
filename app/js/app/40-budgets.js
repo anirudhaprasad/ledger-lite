@@ -32,7 +32,7 @@
                     </div>`;
                 container.innerHTML = allocationSummary + budgetEntries.map(([cat, limit]) => {
                     const spent = this.countedTx().filter(t => {
-                        if (t.category !== cat || !['Expense','EMI','Installment'].includes(t.type)) return false;
+                        if (t.category !== cat || !this.isSpending(t)) return false;
                         const d = new Date(t.date || t.timestamp || '');
                         return !Number.isNaN(d.getTime()) && d.getMonth() === month && d.getFullYear() === year;
                     }).reduce((acc, t) => acc + (Number(t.amount) || 0), 0);

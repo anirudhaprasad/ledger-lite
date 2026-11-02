@@ -16,12 +16,12 @@
                 const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
                 const inMonth = t => (this.parseLedgerDate(t.date)||'').slice(0,7) === monthKey;
                 const income = this.countedTx().filter(t => t.type === 'Income' && inMonth(t)).reduce((sum,t)=>sum+Math.max(0,num(t.amount)),0);
-                const expense = this.countedTx().filter(t => (['Expense','EMI','Installment'].includes(t.type)) && inMonth(t)).reduce((sum,t)=>sum+Math.max(0,num(t.amount)),0);
+                const expense = this.countedTx().filter(t => (this.isSpending(t)) && inMonth(t)).reduce((sum,t)=>sum+Math.max(0,num(t.amount)),0);
                 const suspiciousAccounts = this.data.accounts.filter(a => !Number.isFinite(Number(a.balance)) || Math.abs(num(a.balance)) >= 1000000000);
                 const suspiciousTx = this.data.tx.filter(t => !Number.isFinite(Number(t.amount)) || Math.abs(num(t.amount)) >= 1000000000);
                 let warning = document.getElementById('dashboard-calculation-warning');
                 if (!warning) { warning=document.createElement('div'); warning.id='dashboard-calculation-warning'; warning.className='mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900'; document.querySelector('#panel-dashboard')?.prepend(warning); }
-                const moneyDashboard = v => `${CUR()}${num(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                const moneyDashboard = v => `${num(v)<0?'−':''}${CUR()}${Math.abs(num(v)).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
                 warning.classList.toggle('hidden', !(suspiciousAccounts.length || suspiciousTx.length));
                 if (suspiciousAccounts.length || suspiciousTx.length) {
                     const accountDetails = suspiciousAccounts.map(a => `<li><strong>${this.escapeHtml(a.name||'Unnamed account')}</strong> (${this.escapeHtml(a.type||'Unknown type')}): ${moneyDashboard(a.balance)}</li>`).join('');
@@ -34,6 +34,17 @@
                 liquidEl.innerText = suspiciousAccounts.some(a=>['Checking','Cash','Savings','Savings Account'].includes(a.type)) ? 'Review data' : moneyDashboard(liquid);
                 document.getElementById('kpi-income').innerText = `${CUR()}${income.toLocaleString('en-IN', {minimumFractionDigits: 2,maximumFractionDigits:2})}`;
                 document.getElementById('kpi-expense').innerText = `${CUR()}${expense.toLocaleString('en-IN', {minimumFractionDigits: 2,maximumFractionDigits:2})}`;
+                // Net worth, in parts: bank and cash, investments (FD/RD, funds…), minus loans
+                const investAcc = a => this.isInvestmentAccount(a);
+                const invested = this.data.accounts.filter(a => assetTypes.includes(a.type) && investAcc(a)).reduce((sum,a)=>sum+num(a.balance),0);
+                const nwParts = [`Bank & cash ${this.fmtMoney0(assets-invested)}`, invested?`Investments ${this.fmtMoney0(invested)}`:'', liabilities?`Loans −${this.fmtMoney0(liabilities)}`:''].filter(Boolean);
+                const nwS = document.getElementById('kpi-net-worth-s'); if (nwS && !suspiciousAccounts.length) { if (!nwS.dataset.plain) nwS.dataset.plain = nwS.textContent; nwS.textContent = nwParts.length>1 ? nwParts.map(s=>s.replace(/ /g,' ')).join(' · ') : nwS.dataset.plain; }
+                netEl.classList.toggle('dk-out', !suspiciousAccounts.length && netWorth<0);
+                // Money put into investments this month (not spending, unless the account counts it as spending)
+                const putIn = this.investedTx(inMonth).reduce((sum,t)=>sum+Math.max(0,num(t.amount)),0);
+                const invEl = document.getElementById('dash-invested');
+                if (invEl) { invEl.hidden = !putIn; invEl.innerHTML = putIn ? `<i data-lucide="trending-up"></i><span>Invested this month <b>${this.fmtMoney(putIn)}</b></span><small>Kept in your investment accounts, so it isn't spending</small>` : ''; }
+                this.renderDashboardAttention();
                 this.renderMonthlyComparison();
                 const tbody = document.getElementById('dashboard-tx-tbody');
                 // Latest five by date (not by when they were typed in). Money in shows +, money out −, a move between your own accounts no sign.
@@ -59,6 +70,22 @@
                 this.renderCharts(income, expense);
             }
 
+            /** An account that holds investments: funds, shares, NPS/PPF, insurance, fixed or recurring deposits. */
+            isInvestmentAccount(a){ return !!a&&/invest|mutual|demat|stock|nps|ppf|pension|insurance|fixed deposit|recurring deposit|^rd\b/i.test(String(a.type||'')); }
+            /** Counted entries that put money into investments (an Investment, or a transfer into an investment account) and aren't spending. */
+            investedTx(keep=()=>true){ const inv=new Set((this.data.accounts||[]).filter(a=>this.isInvestmentAccount(a)).map(a=>String(a.name)));
+                return this.countedTx().filter(t=>keep(t)&&!this.isSpending(t)&&(t.type==='Investment'||(t.type==='Transfer'&&t.transferDirection!=='in'&&inv.has(String(t.destinationAccount||t.toAccount||''))))); }
+            /** "Needs attention": SMS to review, SMS entries parked as Excluded, payments due within a week, bank or cash below zero. */
+            renderDashboardAttention(){ const box=document.getElementById('dash-attention'); if(!box)return; const items=[]; const n=(c,one,many)=>`${c} ${c===1?one:many}`;
+                const pending=(this.data.smsInbox||[]).filter(x=>(x.status||'pending')==='pending').length;
+                if(pending)items.push({icon:'message-square',text:n(pending,'SMS to review','SMS to review'),go:"app.switchTab('sms')"});
+                const parked=(this.data.tx||[]).filter(t=>t&&t.smsInboxId!=null&&t.excludedFromLedger).length;
+                if(parked&&typeof this.openExcludedInLedger==='function')items.push({icon:'eye-off',text:n(parked,'SMS entry not yet included','SMS entries not yet included'),go:'app.openExcludedInLedger()'});
+                const today=this.todayISO(), week=this.todayISO(new Date(Date.now()+7*864e5)); let due=0;
+                (Array.isArray(this.data.yearly)?this.data.yearly:[]).filter(y=>y.enabled!==false&&y.startDate).forEach(y=>{ try{ const nx=this.scheduleProgress?this.scheduleProgress(y,0).next:''; if(nx&&nx>=today&&nx<=week)due++; }catch(e){} });
+                if(due)items.push({icon:'calendar-clock',text:n(due,'payment due this week','payments due this week'),go:"app.switchTab('yearly')"});
+                (this.data.accounts||[]).filter(a=>['Checking','Cash','Savings','Savings Account'].includes(a.type)&&Number(a.balance)<0).slice(0,2).forEach(a=>items.push({icon:'alert-triangle',text:`${a.name} is below zero`,go:"app.switchTab('accounts')",bad:true}));
+                box.hidden=!items.length; box.innerHTML=items.length?`<span class="da-h">Needs attention</span>${items.map(i=>`<button type="button" class="da-i${i.bad?' da-bad':''}" onclick="${i.go}"><i data-lucide="${i.icon}"></i><span>${this.escapeHtml(i.text)}</span></button>`).join('')}`:''; window.lucide?.createIcons?.(); }
             /**
              * Renders the  monthly comparison UI from the current app state.
              * Parameters: none. Side effects, if any, are described by the statements below.
@@ -69,7 +96,7 @@
                 const current = new Date(now.getFullYear(), now.getMonth(), 1);
                 const previous = new Date(now.getFullYear(), now.getMonth()-1, 1);
                 const key = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-                const flowExpense = t => ['Expense','EMI','Installment'].includes(t.type);
+                const flowExpense = t => this.isSpending(t);
                 const totals = monthKey => {
                     const rows=this.countedTx().filter(t=>(this.parseLedgerDate(t.date)||'').slice(0,7)===monthKey);
                     const income=rows.filter(t=>t.type==='Income').reduce((sum,t)=>sum+Math.max(0,num(t.amount)),0);
@@ -111,10 +138,11 @@
                 } else {
                     rows=this.countedTx().filter(t=>{
                         if(mode==='income-current')return t.type==='Income'&&inMonth(t);
-                        if(mode==='expense-current')return inMonth(t)&&(['Expense','EMI','Installment'].includes(t.type));
-                        if(mode==='month-type')return (this.parseLedgerDate(t.date)||'').slice(0,7)===extra.monthKey && (extra.type==='Income'?t.type==='Income':(['Expense','EMI','Installment'].includes(t.type)));
-                        if(mode==='category')return inMonth(t)&&['Expense','EMI','Installment'].includes(t.type)&&(t.category||'Uncategorized')===extra.category;
-                        if(mode==='category-period'){const d=this.parseLedgerDate(t.date)||'';return ['Expense','EMI','Installment'].includes(t.type)&&(t.category||'Uncategorized')===extra.category&&d.slice(0,4)===extra.year&&(extra.month==='all'||d.slice(5,7)===extra.month);}
+                        if(mode==='expense-current')return inMonth(t)&&(this.isSpending(t));
+                        if(mode==='invested-current')return inMonth(t)&&this.investedTx(x=>x===t).length>0;
+                        if(mode==='month-type')return (this.parseLedgerDate(t.date)||'').slice(0,7)===extra.monthKey && (extra.type==='Income'?t.type==='Income':(this.isSpending(t)));
+                        if(mode==='category')return inMonth(t)&&this.isSpending(t)&&(t.category||'Uncategorized')===extra.category;
+                        if(mode==='category-period'){const d=this.parseLedgerDate(t.date)||'';return this.isSpending(t)&&(t.category||'Uncategorized')===extra.category&&d.slice(0,4)===extra.year&&(extra.month==='all'||d.slice(5,7)===extra.month);}
                         return false;
                     }).sort((a,b)=>(this.parseLedgerDate(b.date)||'').localeCompare(this.parseLedgerDate(a.date)||''));
                 }
@@ -136,7 +164,7 @@
                 const months=Array.from({length:6},(_,i)=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-5+i);return {key:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,label:d.toLocaleDateString('en-IN',{month:'short',year:'2-digit'})};});
                 const monthTransactions=key=>this.countedTx().filter(t=>(this.parseLedgerDate(t.date)||'').startsWith(key));
                 const incomeData=months.map(m=>monthTransactions(m.key).filter(t=>t.type==='Income').reduce((a,t)=>a+Math.max(0,num(t.amount)),0));
-                const expenseData=months.map(m=>monthTransactions(m.key).filter(t=>['Expense','EMI','Installment'].includes(t.type)).reduce((a,t)=>a+Math.max(0,num(t.amount)),0));
+                const expenseData=months.map(m=>monthTransactions(m.key).filter(t=>this.isSpending(t)).reduce((a,t)=>a+Math.max(0,num(t.amount)),0));
                 const ctxCf=document.getElementById('chart-cashflow').getContext('2d');if(this.charts.cf)this.charts.cf.destroy();
                 this.charts.cf=new Chart(ctxCf,{type:'bar',data:{labels:months.map(m=>m.label),datasets:[{label:'Income',data:incomeData,backgroundColor:'#059669',borderRadius:6},{label:'Expenses / allocations',data:expenseData,backgroundColor:'#e11d48',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},onClick:(event,elements,chart)=>{if(!elements.length)return;const el=elements[0],month=months[el.index],type=el.datasetIndex===0?'Income':'Expense';this.openDashboardDrilldown(`${month.label} — ${type} Entries`,'month-type',{monthKey:month.key,type});}}});
                 this.populateDashboardPieYearOptions();
@@ -173,7 +201,7 @@
                 const num=v=>{if(typeof v==='string')v=v.replace(/[₹,\s]/g,'');const n=Number(v);return Number.isFinite(n)?n:0;};
                 const catTotals={};
                 this.countedTx().filter(t=>{
-                    if(!['Expense','EMI','Installment'].includes(t.type))return false;
+                    if(!this.isSpending(t))return false;
                     const d=this.parseLedgerDate(t.date)||'';
                     return d.slice(0,4)===year && (month==='all'||d.slice(5,7)===month);
                 }).forEach(t=>{const cat=t.category||'Uncategorized';catTotals[cat]=(catTotals[cat]||0)+Math.max(0,num(t.amount));});
@@ -219,7 +247,7 @@
             /** Category totals for the chosen period: [{category, amount, share, count}], largest first. Excluded entries are not counted. */
             statsRows(){
                 const s=this.statsState(); const types=s.kind==='income'?['Income']:['Expense','EMI','Installment']; const by=new Map(); let total=0;
-                this.countedTx().forEach(t=>{ if(!types.includes(t.type))return; const iso=this.normalizeLedgerDate(t.date); if(!this.statsInPeriod(iso,s.key))return; const a=Math.max(0,Number(t.amount)||0); const c=t.category||'Uncategorized'; const o=by.get(c)||{category:c,amount:0,count:0}; o.amount+=a; o.count++; by.set(c,o); total+=a; });
+                this.countedTx().forEach(t=>{ if(s.kind==='income'?t.type!=='Income':!this.isSpending(t))return; const iso=this.normalizeLedgerDate(t.date); if(!this.statsInPeriod(iso,s.key))return; const a=Math.max(0,Number(t.amount)||0); const c=s.kind==='income'?(t.category||'Uncategorized'):this.spendingCategory(t); const o=by.get(c)||{category:c,amount:0,count:0}; o.amount+=a; o.count++; by.set(c,o); total+=a; });
                 return {total,rows:[...by.values()].sort((a,b)=>b.amount-a.amount).map(o=>({...o,share:total?o.amount/total*100:0}))};
             }
             renderStats(){
@@ -227,7 +255,7 @@
                 const label=document.getElementById('stats-period-label'); if(label)label.textContent=this.statsPeriodLabel(s.key); panel.querySelectorAll('.st-head .lp-nav').forEach(b=>b.hidden=s.key==='all');
                 panel.querySelectorAll('.st-mode [data-mode]').forEach(b=>{ const on=b.dataset.mode===s.mode; b.classList.toggle('on',on); b.setAttribute('aria-selected',String(on)); });
                 panel.querySelectorAll('.st-kind [data-kind]').forEach(b=>{ const on=b.dataset.kind===s.kind; b.classList.toggle('on',on); b.setAttribute('aria-selected',String(on)); });
-                const sumOf=kind=>{ const types=kind==='income'?['Income']:['Expense','EMI','Installment']; return this.countedTx().filter(t=>types.includes(t.type)&&this.statsInPeriod(this.normalizeLedgerDate(t.date),s.key)).reduce((n,t)=>n+Math.max(0,Number(t.amount)||0),0); };
+                const sumOf=kind=>{ const types=kind==='income'?['Income']:['Expense','EMI','Installment']; return this.countedTx().filter(t=>(kind==='income'?t.type==='Income':this.isSpending(t))&&this.statsInPeriod(this.normalizeLedgerDate(t.date),s.key)).reduce((n,t)=>n+Math.max(0,Number(t.amount)||0),0); };
                 const setText=(id,v)=>{ const el=document.getElementById(id); if(el)el.textContent=v; };
                 setText('stats-total-expense',this.fmtMoney(sumOf('expense'))); setText('stats-total-income',this.fmtMoney(sumOf('income')));
                 const {total,rows}=this.statsRows(); const period=this.statsPeriodLabel(s.key,true);

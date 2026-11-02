@@ -30,7 +30,7 @@
                     const date=new Date(cursor.getFullYear(),cursor.getMonth(),day,12);
                     if(date<=now&&!this.data.tx.some(t=>t.recurringSalaryMonth===month&&t.recurringSalaryAccount===String(s.accountId))){
                         const tx={id:'salary_auto_'+month+'_'+Date.now(),date:date.toISOString().slice(0,10),type:'Income',amount:Number(s.amount),account:account.name,category:'Salary',subcategory:'Monthly Salary',payee:s.title||'Monthly Salary',notes:'Automatically generated monthly salary',description:`${s.title||'Monthly Salary'} — ${month}`,currency:'INR',source:'recurring-salary',recurringSalaryMonth:month,recurringSalaryAccount:String(s.accountId)};
-                        this.data.tx.unshift(tx);account.balance=(Number(account.balance)||0)+Number(s.amount);this.ensureCategoryAndSubcategory('Salary','Monthly Salary');changed=true;
+                        this.data.tx.unshift(tx);this.applyTxEffects(tx,1);this.ensureCategoryAndSubcategory('Salary','Monthly Salary');changed=true;
                     }
                     cursor.setMonth(cursor.getMonth()+1);
                 }
@@ -177,12 +177,9 @@
                     if(tx.source!=='recurring-schedule'||!tx.recurringScheduleMarker||tx.accountBalanceApplied)continue;
                     const acc=(this.data.accounts||[]).find(a=>String(a.name)===String(tx.account));
                     if(!acc)continue;
-                    const amount=Number(tx.amount)||0;
-                    if(tx.transferDirection==='in') acc.balance=(Number(acc.balance)||0)+amount;
-                    else if(tx.transferDirection==='out') acc.balance=(Number(acc.balance)||0)-amount;
-                    else if(['Expense','EMI','Installment','Insurance','Investment'].includes(String(tx.type))) acc.balance=(Number(acc.balance)||0)-amount;
-                    else if(String(tx.type)==='Income') acc.balance=(Number(acc.balance)||0)+amount;
-                    else continue;
+                    // The shared balance rule; a transfer with neither direction nor a destination was never applied before, so leave it
+                    if(tx.type==='Transfer'&&!tx.transferDirection&&!(tx.destinationAccount||tx.toAccount))continue;
+                    this.applyTxEffects(tx,1);
                     tx.accountBalanceApplied=true;
                     reconciledExisting=true;
                 }
@@ -214,17 +211,16 @@
                         const amount=this.scheduleAmount(s,k); const name=this.scheduleEntryName(s,k);
                         if(destinationType==='account'){
                             const base={date,type:'Transfer',amount,category:'Transfer',subcategory:'Scheduled Transfer',payee:name,notes:s.note||`Scheduled transfer: ${source.name} → ${dest.name}`,description:`${s.title} — recurring ${freq} transfer`,currency:'INR',source:'recurring-schedule',recurringScheduleId:s.id,recurringScheduleMarker:marker,accountBalanceApplied:true};
-                            this.data.tx.unshift({...base,id:'sched_out_'+marker,account:source.name,transferDirection:'out',transferPeer:dest.name});
-                            this.data.tx.unshift({...base,id:'sched_in_'+marker+'_in',account:dest.name,transferDirection:'in',transferPeer:source.name});
-                            source.balance=(Number(source.balance)||0)-amount;dest.balance=(Number(dest.balance)||0)+amount;
+                            this.data.tx.unshift({...base,id:'sched_out_'+marker,account:source.name,transferDirection:'out',transferPeer:dest.name}); this.applyTxEffects(this.data.tx[0],1);
+                            this.data.tx.unshift({...base,id:'sched_in_'+marker+'_in',account:dest.name,transferDirection:'in',transferPeer:source.name}); this.applyTxEffects(this.data.tx[0],1);
                             this.ensureCategoryAndSubcategory('Transfer','Scheduled Transfer');
                         }else{
                             const txType=s.transactionType||'Expense';
                             const category=s.category||'Uncategorized',subcategory=s.subcategory||'';
                             const tx={id:'sched_exp_'+marker,date,type:txType,amount,account:source.name,category,subcategory,payee:name,notes:s.note||`Scheduled ${txType.toLowerCase()}: ${s.title}`,description:`${s.title} — ${s.installments?'installment':'recurring '+freq} ${category}${subcategory?' / '+subcategory:''}`,currency:'INR',source:'recurring-schedule',recurringScheduleId:s.id,recurringScheduleMarker:marker,accountBalanceApplied:true};
                             this.data.tx.unshift(tx);
-                            // Income adds to the account; everything else is paid from it. Overdrafts are allowed: never clamp to zero.
-                            source.balance=(Number(source.balance)||0)+(txType==='Income'?amount:-amount);
+                            // The shared balance rule: income adds to the account; everything else is paid from it. Overdrafts are allowed.
+                            this.applyTxEffects(tx,1);
                             this.ensureCategoryAndSubcategory(category,subcategory);
                         }
                         changed=true;

@@ -510,6 +510,13 @@
              * Handles the tx effects workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: t. Side effects, if any, are described by the statements below.
              */
+            /** Is this entry spending? Expenses, EMIs and installments; and money moved into an account marked
+             * "Count money put in as spending" (for example an investment or credit card account) by a transfer or investment. */
+            isSpending(t){ if(!t)return false; if(['Expense','EMI','Installment'].includes(t.type))return true;
+                if(t.type==='Transfer'||t.type==='Investment'){ const dest=t.destinationAccount||t.toAccount; const acc=dest&&(this.data?.accounts||[]).find(a=>a.name===dest); return !!(acc&&acc.countInAsSpending); }
+                return false; }
+            /** The category a spending entry is shown under: its own, or for money put into a marked account, that account's name */
+            spendingCategory(t){ return (t.type==='Transfer'||t.type==='Investment')&&(t.destinationAccount||t.toAccount)&&(!t.category||t.category==='Transfer')?String(t.destinationAccount||t.toAccount):(t.category||'Uncategorized'); }
             txEffects(t){
                 const a=Math.abs(Number(t&&t.amount)||0); if(!t||!a)return [];
                 if(t.type==='Income')return [{account:t.account,delta:a}];
@@ -667,7 +674,7 @@
             saveLedgerHeaderPrefs(p){ try{ localStorage.setItem('aifico_ledger_header',JSON.stringify(p)); }catch(e){} this.applyLedgerHeader(); }
             // Backup & Settings: an icon on every card; descriptions sit behind an ⓘ button
             decorateSettings(){
-                const icons={'backup & restore':'archive-restore','default account':'landmark','navigation':'navigation','import':'file-down','aifico ledger spreadsheet':'sheet','data health':'heart-pulse','security':'shield-check','sms entries in core ledger':'message-square','erase all data':'trash-2','reconciliation':'scale'};
+                const icons={'backup & restore':'archive-restore','default account':'landmark','navigation':'navigation','import':'file-down','aifico ledger spreadsheet':'sheet','data health':'heart-pulse','security':'shield-check','sms entries in core ledger':'message-square','erase all data':'trash-2','reconciliation':'scale','my fields':'list-plus','sms rules':'filter','currency':'coins'};
                 document.querySelectorAll('#panel-settings .set-card').forEach(card=>{ if(card.dataset.decorated)return; const h=card.querySelector('.set-title'); if(!h)return; card.dataset.decorated='1';
                     const key=h.childNodes[0]?.textContent?.trim().toLowerCase()||h.textContent.trim().toLowerCase(); const ic=icons[Object.keys(icons).find(k=>key.startsWith(k))]||'settings';
                     h.insertAdjacentHTML('afterbegin',`<i data-lucide="${ic}" class="set-ic"></i>`);
@@ -970,6 +977,8 @@
                 this.saveVault();
                 this.renderAll();
             }
+            /** Settings → Advanced: remember whether it was left open. */
+            rememberAdvancedOpen(open){ try { localStorage.setItem('aifico_settings_advanced',open?'1':'0'); } catch (e) {} }
             renderAll() {
                 try { if (this.ensureUids()) this.saveVault(); } catch (e) { console.error('UUID check failed', e); }
                 try { if (this.repairSubcategoriesOnce()) this.saveVault(); } catch (e) { console.error('Subcategory repair failed', e); }
@@ -983,6 +992,7 @@
                 try { this.renderMyFields(); } catch (e) { console.error('My fields could not be shown', e); }
                 try { this.renderSmsRulesCard(); } catch (e) { console.error('SMS rules could not be shown', e); }
                 try { this.renderUndoRestore(); } catch (e) {}
+                try { const adv=document.getElementById('settings-advanced'); if(adv&&localStorage.getItem('aifico_settings_advanced')==='1')adv.open=true; } catch (e) {}
                 try { this.renderCurrencySetting(); aificoApplyCurrencyToPage(); } catch (e) { console.error('Currency display could not be updated', e); }
                 this.processSalarySchedule();
                 if (this.isPro()) this.processRecurringPayments();

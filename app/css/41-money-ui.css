@@ -585,3 +585,35 @@ html.dark .sms-myfields .mf-compact select,html.dark .sms-myfields .mf-compact i
 .dark .sms-chip { background: #1e293b; color: #e2e8f0; } .dark .sms-chip.sms-pending { background: #451a03; color: #fde68a; } .dark .sms-chip.sms-merged, .dark .sms-chip.sms-matched { background: #022c22; color: #a7f3d0; }
 .sms-ref-l { color: #64748b; }
 .dark .sms-ref-l { color: #a3b0c2; }
+/* SMS: tick to select, select all shown, merge selected */
+.sms-pick, .sms-pick-all { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; min-height: 36px; padding-right: 8px; }
+.sms-pick input, .sms-pick-all input { width: 20px; height: 20px; }
+#sms-select-bar { position: sticky; top: 0; z-index: 3; background: inherit; padding: 6px 0; }
+#sms-select-bar[hidden] { display: none !important; }
+#sms-select-bar button[disabled] { opacity: .5; }
+/* Transaction form: one-tap chips (most used categories, notes you used before) */
+.af-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+.af-chips[hidden], .af-chips.af-empty, .af-form .af-chips:empty { display: none !important; }
+.af-chip { min-height: 32px; padding: 4px 12px; border-radius: 999px; border: 1px solid #cbd5e1; background: #f8fafc; color: #1e293b; font-size: 13px; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.af-chip.on { background: #dbeafe; border-color: #3b82f6; color: #1e3a8a; font-weight: 600; }
+.dark .af-chip { background: #1e293b; border-color: #475569; color: #e2e8f0; }
+.dark .af-chip.on { background: #1e3a8a; border-color: #60a5fa; color: #fff; }
+/* Dashboard: money invested this month, and what needs attention */
+.dash-invested { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; width: 100%; margin-top: 10px; padding: 10px 14px; border: 1px solid #c7d2fe; border-radius: 14px; background: #eef2ff; color: #312e81; text-align: left; font-size: 14px; }
+.dash-invested[hidden], .dash-attention[hidden] { display: none !important; }
+.dash-invested svg { width: 18px; height: 18px; flex-shrink: 0; } .dash-invested b { font-variant-numeric: tabular-nums; }
+.dash-invested small { flex-basis: 100%; font-size: 12px; color: #4338ca; }
+.dash-attention { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.da-h { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .04em; margin-right: 2px; }
+.da-i { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 12px; border-radius: 999px; border: 1px solid #fcd34d; background: #fffbeb; color: #78350f; font-size: 13px; font-weight: 600; }
+.da-i svg { width: 16px; height: 16px; } .da-bad { border-color: #fda4af; background: #fff1f2; color: #9f1239; }
+.dark .dash-invested { background: #1e1b4b; border-color: #3730a3; color: #e0e7ff; } .dark .dash-invested small { color: #c7d2fe; }
+.dark .da-h { color: #94a3b8; } .dark .da-i { background: #422006; border-color: #92400e; color: #fde68a; } .dark .da-bad { background: #4c0519; border-color: #9f1239; color: #fecdd3; }
+/* Settings → Advanced: the less used cards, folded */
+.set-adv { border: 1px solid #e2e8f0; border-radius: 16px; background: #f8fafc; }
+.set-adv-sum { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; min-height: 48px; cursor: pointer; list-style: none; }
+.set-adv-sum::-webkit-details-marker { display: none; }
+.set-adv-sum span { display: flex; flex-direction: column; gap: 2px; } .set-adv-sum strong { font-size: 15px; color: #0f172a; } .set-adv-sum small { font-size: 12.5px; color: #64748b; }
+.set-adv-sum svg { width: 20px; height: 20px; color: #64748b; transition: transform .15s; } .set-adv[open] .set-adv-sum svg { transform: rotate(180deg); }
+.set-adv-body { padding: 0 10px 10px; }
+.dark .set-adv { background: #0b1222; border-color: #1e293b; } .dark .set-adv-sum strong { color: #f1f5f9; } .dark .set-adv-sum small, .dark .set-adv-sum svg { color: #94a3b8; }

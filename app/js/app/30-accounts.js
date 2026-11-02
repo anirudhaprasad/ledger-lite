@@ -359,10 +359,11 @@ This only changes the account balance; all Core Ledger transactions remain uncha
                 <label class="block text-sm">Current balance${CURL()}<input id="edit-account-balance" type="number" step="0.01" required value="${Number(a.balance)||0}" class="mt-1 w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></label>
                 <p class="text-xs text-slate-500">This edits the account's stored balance; it does not rewrite historical transactions.</p>
                 <fieldset class="space-y-3 border-t pt-3"><legend class="text-sm font-semibold">For bank SMS <span class="font-normal text-slate-500">(optional)</span></legend>
-                <label class="block text-sm">Bank name<input id="edit-account-bank" maxlength="60" placeholder="e.g. ICICI Bank" value="${this.escapeHtml(a.bankName||'')}" class="mt-1 w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></label>
+                <label class="block text-sm">Bank name<input id="edit-account-bank" maxlength="60" placeholder="e.g. ICICI Bank  ·  investments: NPS, SIP, Mutual, LIC" value="${this.escapeHtml(a.bankName||'')}" class="mt-1 w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></label>
                 <label class="block text-sm">Last digits of the account or card<input id="edit-account-digits" maxlength="40" inputmode="numeric" placeholder="e.g. 0861 (several: 0861, 4321)" value="${this.escapeHtml(a.lastDigits||'')}" class="mt-1 w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></label>
                 <label class="block text-sm">Full account or card number<input id="edit-account-number" type="password" autocomplete="off" maxlength="24" inputmode="numeric" placeholder="Your reference only; kept hidden" value="${this.escapeHtml(a.accountNumber||'')}" class="mt-1 w-full px-3 py-2 rounded-xl border dark:bg-slate-800"></label>
-                <p class="text-xs text-slate-500">Bank SMS show only the last 3–4 digits ("A/c XX861", "Card ending 4321"). With them, imported SMS go to this account by themselves.${(a.smsSenders||[]).length?` Learned SMS senders: ${this.escapeHtml(a.smsSenders.join(', '))}.`:''}</p></fieldset>
+                <label class="flex items-start gap-2 text-sm"><input type="checkbox" id="edit-account-spend" class="mt-1" ${a.countInAsSpending?'checked':''}><span><b>Count money put in as spending</b><br><span class="text-xs text-slate-500">Transfers and investments into this account also show as spending in Dashboard and Stats. Balances and net worth are not affected (the money only moves). For a credit card, tick this only if you don't record each card purchase as an expense, or the same money is counted twice.</span></span></label>
+                <p class="text-xs text-slate-500">Bank SMS show only the last 3–4 digits ("A/c XX861", "Card ending 4321"). With them, imported SMS go to this account by themselves. For an investment account, put keywords in Bank name, separated by commas (for example NPS, SIP, Mutual, LIC): a bank debit SMS that mentions one becomes an investment into this account.${(a.smsSenders||[]).length?` Learned SMS senders: ${this.escapeHtml(a.smsSenders.join(', '))}.`:''}</p></fieldset>
                 <div class="flex justify-end gap-2"><button type="button" onclick="app.closeModal()" class="px-4 py-2 border rounded-lg">Cancel</button><button class="px-4 py-2 bg-emerald-600 text-white rounded-lg">Save changes</button></div></form>`;
                 document.getElementById('modal-container').classList.remove('hidden');
             }
@@ -384,6 +385,7 @@ This only changes the account balance; all Core Ledger transactions remain uncha
                 const number=(document.getElementById('edit-account-number')?.value||'').replace(/[\s-]/g,'');
                 if(number&&!/^\d{6,20}$/.test(number))return alert('Full account or card number: 6 to 20 digits.');
                 a.bankName=(document.getElementById('edit-account-bank')?.value||'').trim(); a.lastDigits=digits.join(', '); a.accountNumber=number;
+                if(document.getElementById('edit-account-spend')?.checked)a.countInAsSpending=true; else delete a.countInAsSpending;
                 a.name=newName;a.type=type;a.balance=balance;
                 this.saveVault();this.renderAll();this.closeModal();
             }
