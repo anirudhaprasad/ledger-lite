@@ -140,7 +140,9 @@
                     if (committed !== value) throw new Error('IndexedDB write committed but read-back verification failed. Save status is uncertain; do not reset or restore until the vault is checked.');
                 }
                 this.mode = 'IndexedDB';
-                try { localStorage.setItem(key, value); } catch (mirrorError) { console.warn('Legacy localStorage mirror skipped; IndexedDB save was verified.', mirrorError); }
+                // The localStorage copy is only a mirror. When it can't be updated (a vault over the ~5 MB localStorage limit),
+                // remove it, so a fallback can never open an older copy of the vault than the one just saved.
+                try { localStorage.setItem(key, value); } catch (mirrorError) { console.warn('Legacy localStorage mirror skipped; IndexedDB save was verified.', mirrorError); try { localStorage.removeItem(key); } catch (_) {} }
                 return true;
             }
             /**

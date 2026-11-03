@@ -221,7 +221,7 @@
                             this.data.tx.unshift(tx);
                             // The shared balance rule: income adds to the account; everything else is paid from it. Overdrafts are allowed.
                             this.applyTxEffects(tx,1);
-                            this.ensureCategoryAndSubcategory(category,subcategory);
+                            tx.category=this.ensureCategoryAndSubcategory(category,subcategory)||category;   // your spelling of a look-alike name
                         }
                         changed=true;
                     }

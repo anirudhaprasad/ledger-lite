@@ -4,3 +4,4 @@
       .pro-gate { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
       .pro-gate .ip-form-actions { width: 100%; margin-top: 6px; }
       body.edition-lite .edition-pro-only { display: none !important; }
+body:not(.build-lite) .edition-lite-only { display: none !important; }   /* controls only the Lite app has (e.g. Back up & send to PC) */

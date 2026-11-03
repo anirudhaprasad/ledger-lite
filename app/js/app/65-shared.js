@@ -107,7 +107,10 @@
              * Handles the ss table workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: headers,rows. Side effects, if any, are described by the statements below.
              */
-            ssTable(headers,rows,cls=''){ return rows.length?`<div class="ss-tablewrap"><table class="ss-table ${cls}"><thead><tr>${headers.map(h=>`<th class="${h.num?'r':''}">${h.label}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`:'<p class="ip-empty">Nothing here yet.</p>'; }
+            // Each cell carries its column name, so on phones a row can show as a small card with labels (ss-cards)
+            ssTable(headers,rows,cls=''){ const lab=h=>String(h.label||'').replace(/<[^>]*>/g,'').replace(/"/g,'&quot;').trim();
+                const labelled=rows.map(r=>{ let i=0; return String(r).replace(/<td\b/g,()=>`<td data-l="${lab(headers[i++]||{})}"`); });
+                return rows.length?`<div class="ss-tablewrap"><table class="ss-table ss-cards ${cls}"><thead><tr>${headers.map(h=>`<th class="${h.num?'r':''}">${h.label}</th>`).join('')}</tr></thead><tbody>${labelled.join('')}</tbody></table></div>`:'<p class="ip-empty">Nothing here yet.</p>'; }
             /** "Who owes whom?" as a readable list: the person's position in large type, how it came about in one small line. */
             ssBalanceList(rows){
                 if(!rows.length)return '<p class="ip-empty">Nothing here yet.</p>'; const esc=v=>this.escapeHtml(String(v??'')); const m=v=>this.ssMoneyFit(v);

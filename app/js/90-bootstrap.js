@@ -22,6 +22,15 @@
         try { app.setupPageTitleBar(); app.decorateSettings(); } catch (e) { console.error(e); }
         try { app.initSwipe(); } catch (e) { console.error(e); }
         try { app.initToTop(); } catch (e) { console.error(e); }
+        // PC access: the phone app tells the page when the PC saved or the server stopped; the PC's lock screen offers the phone's data
+        window.aificoBioResult = r => app.bioResult?.(r);
+        window.aificoPcIncoming = () => app.pcIncoming?.(); window.aificoPcStopped = reason => app.stopPcAccess?.(reason);
+        { const pb = document.getElementById('vault-phone-btn'), served = !!app.servedByPhone?.();
+          // Lite reaches the phone only from the page the phone serves (https://<phone>:8765); there it is the only way in
+          if (pb) pb.hidden = !!window.AndroidBridge || typeof app.openPhoneConnect !== 'function' || (window.AIFICO_EDITION === 'lite' && !served);
+          if (served && !window.AndroidBridge) { document.body.classList.add('served-by-phone'); const sub = document.getElementById('vault-subtitle'); if (sub) sub.textContent = "Your phone's data"; setTimeout(() => app.openPhoneConnect(), 0); } }
+        // Fields on the pages too: no browser autofill list (it covers the form on phones and can leave a ghost image)
+        document.addEventListener('focusin', e => { const el = e.target; if (el && /^(INPUT|TEXTAREA)$/.test(el.tagName) && el.type !== 'password' && !el.hasAttribute('autocomplete')) el.setAttribute('autocomplete', 'off'); }, true);
         (function(){ const go=()=>{ try{ app.applyNavMode(); app.applyLedgerHeader(); }catch(e){} }; go(); window.addEventListener('resize',go); window.addEventListener('orientationchange',go); const mc=document.getElementById('modal-container'); if(mc) new MutationObserver(()=>{ if(mc.classList.contains('hidden')&&mc.classList.contains('more-sheet')) mc.classList.remove('more-sheet'); }).observe(mc,{attributes:true,attributeFilter:['class']}); })();
 
         // Shared app-styled information/validation dialog used by all existing alert() call sites.

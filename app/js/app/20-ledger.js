@@ -459,20 +459,23 @@
                 const box=document.getElementById('modal-box');
                 const opts=(arr,current='')=>['<option value="">— Leave unchanged —</option>',...arr.map(v=>`<option value="${this.escapeHtml(v)}">${this.escapeHtml(v)}</option>`)].join('');
                 box.innerHTML=`<div class="flex justify-between items-center border-b pb-3"><h3 class="font-bold">Bulk edit ${ids.length} transaction(s)</h3><button onclick="app.closeModal()">✕</button></div>
-                <p class="text-sm text-slate-500">Only fields you change will be applied to every selected transaction. Leave a field unchanged to preserve its current value.</p>
+                <p class="text-sm text-slate-500">Only the fields you fill in are changed on every selected transaction. Empty fields stay as they are.</p>
                 <form onsubmit="app.applyBulkEdit(event)" class="space-y-3">
                 <label class="block text-xs font-semibold">Date<input id="bulk-date" type="date" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"></label>
                 <label class="block text-xs font-semibold">Type<select id="bulk-edit-type" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800">${opts(['Expense','Income','Transfer','EMI','Installment','Investment'])}</select></label>
-                <label class="block text-xs font-semibold">Amount<input id="bulk-amount" type="number" min="0" step="0.01" placeholder="Leave unchanged" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"><button type="button" onclick="app.openAmountCalculator('bulk-amount')" class="mt-1 text-xs text-emerald-600 hover:underline">🧮 Calculator</button></label>
-                <label class="block text-xs font-semibold">Payee / Name<input id="bulk-payee" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800" placeholder="Leave unchanged"></label>
-                <label class="block text-xs font-semibold">Category<select id="bulk-category" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800">${opts([...new Set([...(this.data.categories||[]),...this.data.tx.map(t=>t.category).filter(Boolean)])])}</select></label>
-                <label class="block text-xs font-semibold">Subcategory<input id="bulk-subcategory" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800" placeholder="Leave unchanged"></label>
+                <label class="block text-xs font-semibold">Amount<input id="bulk-amount" type="number" min="0" step="0.01" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"><button type="button" onclick="app.openAmountCalculator('bulk-amount')" class="mt-1 text-xs text-emerald-600 hover:underline">🧮 Calculator</button></label>
+                <label class="block text-xs font-semibold">Payee / Name<input id="bulk-payee" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"></label>
+                <label class="block text-xs font-semibold">Category<select id="bulk-category" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800">${opts((this.data.categories||[]).filter(c=>!/^(uncategori[sz]ed|none|transfer)$/i.test(c)))}<option value="Uncategorized">None (Uncategorized)</option></select></label>
+                <label class="block text-xs font-semibold">Subcategory<select id="bulk-subcategory" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"><option value="">— Leave unchanged —</option><option value="__none">None (clear subcategory)</option></select></label>
                 <label class="block text-xs font-semibold">Account<select id="bulk-account" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800">${opts(this.data.accounts.map(a=>a.name))}</select></label>
                 <label class="block text-xs font-semibold">Invested in / To (investments and transfers)<select id="bulk-destination" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800">${opts(this.data.accounts.map(a=>a.name))}</select></label>
-                <label class="block text-xs font-semibold">Note<input id="bulk-note" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800" placeholder="Leave unchanged"></label>
-                <label class="block text-xs font-semibold">Description / Narration<textarea id="bulk-description" rows="3" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800" placeholder="Leave unchanged"></textarea></label>
+                <label class="block text-xs font-semibold">Note<input id="bulk-note" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"></label>
+                <label class="block text-xs font-semibold">Description / Narration<textarea id="bulk-description" rows="3" class="mt-1 w-full p-2 rounded-lg border dark:bg-slate-800"></textarea></label>
                 <div class="flex justify-end gap-2 pt-3"><button type="button" onclick="app.closeModal()" class="px-4 py-2 border rounded-lg">Cancel</button><button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg">Apply to selected</button></div></form>`;
                 document.getElementById('modal-container').classList.remove('hidden');
+                // Subcategory: the chosen category's own subcategories, or None to clear (bulk edit never adds a subcategory)
+                { const cat=document.getElementById('bulk-category'), sub=document.getElementById('bulk-subcategory'); const paint=()=>{ const list=(this.categorySubcategoryMap()[cat.value]||[]).map(x=>typeof x==='string'?x:x.name).filter(Boolean);
+                    sub.innerHTML=`<option value="">— Leave unchanged —</option><option value="__none">None (clear subcategory)</option>${list.map(v=>`<option value="${this.escapeHtml(v)}">${this.escapeHtml(v)}</option>`).join('')}`; }; cat.addEventListener('change',paint); paint(); }
             }
             /**
              * Handles the apply bulk edit workflow. See the implementation below for its inputs, state changes, and side effects.
@@ -488,7 +491,7 @@
                 if(!Object.values(changes).some(v=>v!==''))return alert('Make at least one change before applying.');
                 if(!await this.uiConfirm(`Apply the selected field changes to ${ids.length} transaction(s)? Account balances follow the changes.`))return;
                 let count=0;
-                this.data.tx.forEach(t=>{if(!ids.includes(String(t.id)))return;this.applyTxEffects({...t},-1);for(const [k,v] of Object.entries(changes)){if(v==='')continue;if(k==='destinationAccount'){ if(['Investment','Transfer'].includes(changes.type||t.type)){ t.destinationAccount=v; delete t.toAccount; delete t.transferDirection; } continue; }if(k==='amount')t[k]=Number(v);else if(k==='subcategory')t.subcategory=v;else if(k==='note')t.note=v;else t[k]=v;}if(t.type!=='Transfer'){delete t.transferDirection;}else if(!(t.destinationAccount||t.toAccount)&&!t.transferDirection)t.transferDirection='out';if((t.destinationAccount||t.toAccount)===t.account){delete t.destinationAccount;delete t.toAccount;t.transferDirection='out';}this.applyTxEffects(t,1);this.ensureCategoryAndSubcategory(t.category,t.subcategory);count++;});
+                this.data.tx.forEach(t=>{if(!ids.includes(String(t.id)))return;this.applyTxEffects({...t},-1);for(const [k,v] of Object.entries(changes)){if(v==='')continue;if(k==='destinationAccount'){ if(['Investment','Transfer'].includes(changes.type||t.type)){ t.destinationAccount=v; delete t.toAccount; delete t.transferDirection; } continue; }if(k==='amount')t[k]=Number(v);else if(k==='subcategory'){ if(v==='__none')delete t.subcategory; else t.subcategory=v; }else if(k==='notes'){ t.notes=v; if(t.note!==undefined)t.note=v; }else t[k]=v;}if(changes.category&&!changes.subcategory&&t.subcategory&&!(this.categorySubcategoryMap()[t.category]||[]).some(x=>(typeof x==='string'?x:x.name)===t.subcategory))delete t.subcategory;if(t.type!=='Transfer'){delete t.transferDirection;}else if(!(t.destinationAccount||t.toAccount)&&!t.transferDirection)t.transferDirection='out';if((t.destinationAccount||t.toAccount)===t.account){delete t.destinationAccount;delete t.toAccount;t.transferDirection='out';}this.applyTxEffects(t,1);count++;});
                 this.saveVault();this.renderAll();this.renderLedger();this.closeModal();this.showToast(`Updated ${count} transaction(s); account balances updated.`);
             }
             /**
@@ -578,7 +581,7 @@
                 if(transfer&&(!destinationAccount||destinationAccount===account))return alert('Choose a destination account that is different from the source account.');
                 const category=transfer?'Transfer':(val('modal-tx-category')||'Uncategorized'), subcategory=transfer?'':val('modal-tx-subcategory').trim(), note=val('modal-tx-note').trim();
                 const tx={id:'sms_merge_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),uid:this.newUid(),date,type,amount,account,category,...(subcategory?{subcategory}:{}),payee:val('modal-tx-payee').trim(),notes:note,...(note?{note}:{}),...(destinationAccount?{destinationAccount}:{}),
-                    description:val('modal-tx-description'),reference:item.reference||'',originalSmsDate:item.originalSmsDate||item.date,...(this.smsWhen?.(item)?.time?{time:this.smsWhen(item).time}:{}),source:'sms-reconciled',smsInboxId:item.id,
+                    description:val('modal-tx-description'),reference:item.reference||'',originalSmsDate:item.originalSmsDate||item.date,...(this.smsWhen?.(item)?.time?{time:this.smsWhen(item).time}:{}),source:'sms-reconciled',smsInboxId:item.id,smsUid:item.smsUid||this.smsUid(item.sender,item.originalSmsDate,item.description),
                     // Parked: shown in Core Ledger as Excluded; including it (eye icon) applies the amount to the account
                     excludedFromLedger:true,balanceEffectRemoved:true,parkedFromSms:true};
                 if(!transfer)this.ensureCategoryAndSubcategory(category,subcategory);
@@ -645,6 +648,8 @@
                 const oneSided=!!(edit&&edit.type==='Transfer'&&edit.transferDirection&&!p.destinationAccount);
                 // SMS review (Merge on the SMS page): same form; saving parks the entry in Core Ledger as Excluded
                 const smsItem=!edit&&p.smsInboxId!=null?(this.data.smsInbox||[]).find(x=>String(x.id)===String(p.smsInboxId)):null; const review=edit||smsItem;
+                // An SMS's category is offered only as one of yours (or Uncategorized), so merging never adds a look-alike category
+                if(smsItem&&p.category&&p.type!=='Transfer'){ const own=this.matchCategory(p.category); if(!own)p.subcategory=''; p.category=own||'Uncategorized'; }
                 const smsJs=smsItem?esc(String(smsItem.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'")):'';
                 const editJs=edit?esc(String(edit.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'")):'';
                 const accounts=this.data.accounts||[]; const def=p.account||this.getGlobalDefaultAccount()?.name||accounts[0]?.name||'';

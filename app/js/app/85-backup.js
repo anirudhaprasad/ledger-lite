@@ -35,7 +35,7 @@
                 // Verify that the currently saved encrypted vault can be read and decrypted without changing it.
                 try {
                     await this.saveQueue;
-                    const stored = await this.storage.getItem('aifico_vault');
+                    const stored = await this.activeVaultText();
                     if (!stored) add('error', 'No encrypted vault was found in persistent storage.');
                     else {
                         const roundTrip = await this.vault.decryptData(stored, this.currentPassword);
@@ -272,7 +272,7 @@ ${lines.join('\n')}`;
                 try{ localStorage.setItem('aifico_restore_snapshots',JSON.stringify(list.slice(0,3))); }catch(e){} return key; }
             restoreSnapshots(){ try{ return JSON.parse(localStorage.getItem('aifico_restore_snapshots')||'[]'); }catch(e){ return []; } }
             /** Settings: put the vault back as it was just before the last restore */
-            async undoLastRestore(){
+            async undoLastRestore(){ if (this.remote) return this.remoteBlocked?.('Undoing a restore');
                 const s=this.restoreSnapshots()[0]; if(!s)return alert('There is no restore to undo on this device.');
                 const when=new Date(s.at).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'numeric',minute:'2-digit'});
                 if(!await this.uiConfirm(`Undo the restore of ${when}?\n\nThe data goes back to exactly how it was just before that restore${s.kind==='merge'?' (the items it brought back are removed)':''}. Anything added since then is lost, so back up first if you need it.\n\nAfter the app reloads, unlock with the master password you used before that restore.`,{okLabel:'Undo restore',danger:true}))return;
@@ -344,8 +344,24 @@ ${lines.join('\n')}`;
             }
 
             /**
+             * Hands a file to the device's share sheet: the Android app's own (AndroidBridge.shareFile), else the browser's
+             * (Web Share with files). Returns 'android' / 'web' when the share sheet opened, 'cancel' when it was closed,
+             * or null when this device has no share sheet for files (the caller then saves the file as usual).
+             */
+            async shareBackupFile(blob, name) {
+                if (window.AndroidBridge && typeof window.AndroidBridge.shareFile === 'function') {
+                    const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => { const d = String(r.result || ''); res(d.slice(d.indexOf(',') + 1)); }; r.onerror = rej; r.readAsDataURL(blob); });
+                    window.AndroidBridge.shareFile(b64, name, 'application/json'); return 'android';
+                }
+                const file = new File([blob], name, { type: 'application/json' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try { await navigator.share({ files: [file], title: name }); return 'web'; } catch (e) { return e && e.name === 'AbortError' ? 'cancel' : null; }
+                }
+                return null;
+            }
+            /**
              * Creates a vault backup and its metadata; erase-related exports use the guarded path.
-             * Parameters: forFullErase = false. Side effects, if any, are described by the statements below.
+             * Parameters: forFullErase = false; opts.sections (partial backup), opts.share (send it through the share sheet).
              */
             async exportVaultBackup(forFullErase = false, opts = {}) {
                 const kind = opts.sections && opts.sections.length ? 'partial' : 'full';   // partial: only the chosen sections
@@ -357,7 +373,8 @@ ${lines.join('\n')}`;
                 try { await this.saveQueue; } catch (_) {
                     return alert('Backup stopped because a pending vault save failed. No backup was downloaded and no data was reset.');
                 }
-                const stored = await this.storage.getItem('aifico_vault');
+                // During PC access this is the phone's data: the backup downloaded on this PC is of the phone
+                let stored; try { stored = await this.activeVaultText(); } catch (e) { return alert("Backup stopped: couldn't read your phone's data (" + (e?.message || e) + '). Check PC access is still on.'); }
                 if (!stored) return alert('No vault data found. Nothing was exported.');
                 let data;
                 try {
@@ -406,10 +423,21 @@ ${lines.join('\n')}`;
                     return alert('Backup verification failed; no file was downloaded.\n\n' + (err && err.message ? err.message : 'Unknown verification error.'));
                 }
                 const blob = new Blob([json], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
                 // File name: aificoledger-YYMMDD-HHmm (see fileStamp)
                 const stamp = this.fileStamp();
+                // Back up & share: the verified backup goes to the share sheet (Quick Share / Nearby Share to a PC,
+                // Bluetooth, email…) instead of being saved. Only the encrypted file is sent; its backup code is not.
+                if (opts.share) {
+                    const sent = await this.shareBackupFile(blob, `${stamp}-${kind}-backup-encrypted.json`);
+                    if (sent === 'cancel') return false;
+                    if (sent) {
+                        alert(`BACKUP VERIFIED AND READY TO SEND\n\nChoose your PC (Quick Share / Nearby Share), Bluetooth or email in the list.\nFile: ${stamp}-${kind}-backup-encrypted.json (encrypted)\n\nTo bring it back: send it from the PC to this phone, then Restore from backup and pick it (usually in Downloads). It opens with your master password.\n\nIts backup code (only needed if you forget the password) — keep it somewhere safe, apart from the file:\n${recoveryCode}`);
+                        return true;
+                    }
+                    // No share sheet here (older browser): save it as usual instead
+                }
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
                 a.href = url;
                 a.download = `${stamp}-${kind}-backup-encrypted.json`;
                 document.body.appendChild(a);
@@ -418,7 +446,7 @@ ${lines.join('\n')}`;
                 setTimeout(() => URL.revokeObjectURL(url), 1500);
                 const c = backup.recordCounts;
                 // The backup code goes in its own file (never inside the encrypted backup)
-                const codeText = `aifico ledger — Backup Code\n\nBackup file: ${stamp}-${kind}-backup-encrypted.json\nCreated: ${backup.createdAt}\n\nBackup code:\n${recoveryCode}\n\nTo restore: Restore backup → choose the backup file above → enter this code → set a new master password. The old master password is not needed.\n\nKeep this file separate from the backup file: anyone with both can open your financial data. Do not upload either file to public storage.\n`;
+                const codeText = `aifico ledger — Backup Code\n\nBackup file: ${stamp}-${kind}-backup-encrypted.json\nCreated: ${backup.createdAt}\n\nBackup code:\n${recoveryCode}\n\nTo restore: on the lock screen tap ? → Restore from a backup (or Backup & Settings → Restore from backup) → choose the backup file above → enter this code → set a new master password. The old master password is not needed.\n\nKeep this file separate from the backup file: anyone with both can open your financial data. Do not upload either file to public storage.\n`;
                 const codeBlob = new Blob([codeText], { type: 'text/plain;charset=utf-8' });
                 const codeUrl = URL.createObjectURL(codeBlob);
                 const codeAnchor = document.createElement('a');
@@ -478,6 +506,7 @@ ${lines.join('\n')}`;
              * Parameters: event. Side effects, if any, are described by the statements below.
              */
             async restoreVaultBackup(event) {
+                if (this.remote) { if (event?.target) event.target.value = ''; return this.remoteBlocked?.('Restoring a backup'); }
                 const input = event && event.target;
                 const file = input && input.files && input.files[0];
                 if (!file) return;

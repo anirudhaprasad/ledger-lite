@@ -41,7 +41,7 @@
                 passwordToggle?.addEventListener('click', () => {
                     const reveal = passwordInput.type === 'password';
                     passwordInput.type = reveal ? 'text' : 'password';
-                    passwordToggle.textContent = reveal ? 'Hide' : 'Show';
+                    passwordToggle.innerHTML = reveal ? '<i data-lucide="eye-off"></i>' : '<i data-lucide="eye"></i>'; try { window.lucide?.createIcons?.(); } catch (e) {}
                     passwordToggle.setAttribute('aria-label', reveal ? 'Hide password' : 'Show password');
                     passwordToggle.setAttribute('aria-pressed', reveal ? 'true' : 'false');
                     passwordInput.focus();
@@ -71,11 +71,11 @@
                     document.getElementById('vault-screen')?.classList.add('vault-first-run');
                 } else {
                     document.getElementById('vault-action-btn').onclick = () => this.unlockVault();
-                    const hint=this.restoredHint(); if(hint)this.setVaultLoginStatus(hint,'info');
+                    const hint=this.restoredHint(); if(hint)this.setVaultLoginStatus(hint,'info'); else setTimeout(()=>this.bioAutoPrompt(),300);
                 }
 
+                // Restore lives in Backup & Settings (the login screen only unlocks); erase is Settings → Erase all data
                 document.getElementById('vault-restore-file').onchange = (e) => this.restoreVaultBackup(e);
-                document.getElementById('vault-reset-link').onclick = () => this.resetVault();
             }
 
             /**
@@ -173,13 +173,57 @@
             // ---------- Password help (login "?") and the default-password reminder ----------
             passwordHelpHtml(){ return `<h4>First time on this device</h4><ol><li>The screen says <b>Create a master password</b>.</li><li>Type your own password (at least 8 characters). Avoid simple passwords such as a run of numbers.</li><li>Tap <b>Create Vault</b>. Your data is encrypted on this device with that password.</li></ol>
 <h4>Still using the old default password?</h4><p>Vaults created by earlier versions may still use it, and the app shows a reminder after every unlock. Change it immediately: <b>Backup &amp; Settings → Security → Change password</b>. Until you do, anyone who knows the default can open your data.</p>
-<h4>Forgot your password?</h4><p>There is no "forgot password" — the data never leaves your device. You can get your data back from a <b>backup plus its backup code</b>: on the lock screen tap <b>Restore backup</b>, choose the backup file and enter the code from its code file (the one whose name ends in “backup-code.txt”); the old password is not needed, and you then set a new one. Every backup saves this code file. Without a backup and its code, the only way on is <b>New vault</b>, which deletes the data on this device.</p>
-<h4>Good habits</h4><ul><li>Write your password down somewhere safe.</li><li>Back up regularly: Backup &amp; Settings → Back up now.</li><li>New phone: back up on the old one, then <b>Restore backup</b> on the new one with the same password.</li></ul>`; }
+<h4>Forgot your password?</h4><p>There is no "forgot password" — the data never leaves your device. You can get your data back from a <b>backup plus its backup code</b>: tap <b>Restore from a backup</b> below, choose the backup file and enter the code from its code file (the one whose name ends in “backup-code.txt”); the old password is not needed, and you then set a new one. Every backup saves this code file. Without a backup and its code the data can't be opened by anyone; to start again, clear the app's data (on a phone: Settings → Apps → aifico ledger → Storage → Clear data), which deletes the data on this device.</p>
+<h4>Fingerprint unlock (phone)</h4><p>Turn it on in <b>Backup &amp; Settings → Security → Unlock with fingerprint or face</b>. The app then opens with your fingerprint or face; your password stays locked in the phone's secure key store. You still type the password every 30 days, after the phone's fingerprints change, and on a PC.</p><h4>Good habits</h4><ul><li>Write your password down somewhere safe.</li><li>Back up regularly: Backup &amp; Settings → Back up now.</li><li>New phone: back up on the old one, then on the new one open <b>?</b> → <b>Restore from a backup</b> (or, once you are in, Backup &amp; Settings → Restore from backup).</li></ul>`; }
             openPasswordHelp(){
                 document.getElementById('pw-help-overlay')?.remove();
                 const o=document.createElement('div'); o.id='pw-help-overlay'; o.setAttribute('role','dialog'); o.setAttribute('aria-modal','true'); o.setAttribute('aria-label','Password help');
-                o.innerHTML=`<div class="pw-help-box"><div class="pw-help-head"><h3>Your master password</h3><button type="button" aria-label="Close" onclick="document.getElementById('pw-help-overlay').remove()">✕</button></div><div class="pw-help-body">${this.passwordHelpHtml()}</div></div>`;
+                o.innerHTML=`<div class="pw-help-box"><div class="pw-help-head"><h3>Your master password</h3><button type="button" aria-label="Close" onclick="document.getElementById('pw-help-overlay').remove()">✕</button></div><div class="pw-help-body">${this.passwordHelpHtml()}${this.currentPassword ? '' : '<div class="set-actions"><button type="button" class="s-btn s-secondary s-wide" id="pw-help-restore"><span>Restore from a backup</span></button></div>'}</div></div>`;
+                o.querySelector('#pw-help-restore')?.addEventListener('click', () => { o.remove(); document.getElementById('vault-restore-file').click(); });
                 o.addEventListener('click',e=>{ if(e.target===o)o.remove(); }); document.body.appendChild(o); o.querySelector('button').focus();
+            }
+            // ---------- Fingerprint unlock (Android app: BiometricUnlock) ----------
+            // The phone keeps the master password encrypted under a key only a fingerprint/face check releases. The
+            // password is still asked every 30 days (so it isn't forgotten) and always on the PC, which has no fingerprint.
+            bioState(){ try { return JSON.parse(window.AndroidBridge?.bioStatus?.() || '{}'); } catch (e) { return {}; } }
+            bioPasswordDue(){ let t = 0; try { t = Number(localStorage.getItem('aifico_bio_pw_at')) || 0; } catch (e) {} return Date.now() - t > 30 * 86400000; }
+            renderBio(){
+                // Back in front while locked (e.g. it locked itself in the background): offer the fingerprint again
+                if (!this._bioHook) { this._bioHook = true; this.onResume?.(() => { if (!this.currentPassword) this.bioAutoPrompt(); }); }
+                const st = this.bioState(), row = document.getElementById('bio-row'), t = document.getElementById('bio-toggle');
+                if (row) row.hidden = !st.available; if (t) t.checked = !!st.enrolled;
+                const b = document.getElementById('vault-bio-btn'); if (b) b.hidden = !(st.enrolled && !this.currentPassword && !this.bioPasswordDue());
+                return st;
+            }
+            /** Settings → Security switch. On: the fingerprint check stores the current password; off: it is deleted. */
+            setBioUnlock(on){
+                if (!on) { window.AndroidBridge?.bioDisable?.(); this.renderBio(); return; }
+                if (!this.currentPassword || this.remote) { this.renderBio(); return; }
+                window.AndroidBridge?.bioEnable?.(this.currentPassword);
+            }
+            bioUnlock(){ if (this._bioBusy || this.currentPassword) return; this._bioBusy = true; window.AndroidBridge?.bioUnlock?.(); }
+            /** On the lock screen: ask for the fingerprint straight away, unless the 30-day password turn is due. */
+            bioAutoPrompt(){
+                const st = this.renderBio(); if (!st.enrolled || this.currentPassword || this._bioDeclined) return;
+                if (this.bioPasswordDue()) { this.setVaultLoginStatus("Type your password this time: it's asked every 30 days so you don't forget it. Fingerprint unlock works again after that.", 'info'); return; }
+                this.bioUnlock();
+            }
+            async bioResult(r){
+                this._bioBusy = false; r = r || {};
+                if (r.op === 'unlock' && !r.ok && r.error === 'cancelled') this._bioDeclined = true;   // "Use password": not asked again until the next lock
+                if (r.op === 'enable') {
+                    if (r.ok) { try { localStorage.setItem('aifico_bio_pw_at', String(Date.now())); } catch (e) {} await this.uiDialog('Fingerprint unlock is on', "Open the app with your fingerprint or face. Your master password is still asked every 30 days, after the phone's fingerprints change, and on a PC.", { type: 'notice' }); }
+                    else if (r.error !== 'cancelled') alert('Fingerprint unlock could not be turned on' + (r.error ? ' (' + r.error + ')' : '') + '.');
+                    this.renderBio(); return;
+                }
+                if (r.op !== 'unlock') return;
+                const input = document.getElementById('vault-password');
+                if (r.ok && r.password) {
+                    input.value = r.password; this._bioUnlocking = true;
+                    try { await this.unlockVault(); } finally { this._bioUnlocking = false; }
+                    if (!this.currentPassword) { input.value = ''; window.AndroidBridge?.bioDisable?.(); this.setVaultLoginStatus('Your master password has changed since fingerprint unlock was turned on, so it was turned off. Type your password, then turn it on again in Settings → Security.', 'info'); }
+                } else if (r.error === 'changed') this.setVaultLoginStatus("The phone's fingerprints changed, so fingerprint unlock was turned off. Type your password; you can turn it on again in Settings → Security.", 'info');
+                this.renderBio();
             }
             usingDefaultPassword(){ return this.currentPassword==='12345'; }
             checkDefaultPassword(){
@@ -188,6 +232,10 @@
                 if(!on&&b)b.remove();
                 const sec=document.getElementById('security-default-note'); if(sec)sec.hidden=!on;
             }
+            /** Missing parts of an opened vault filled in (older vaults, other editions); used by unlock and PC access. */
+            prepareVaultData(d=this.data){ d.accounts ||= []; d.tx ||= []; d.smsInbox ||= []; d.categories ||= ['Food & Dining','Groceries','Rent & Housing','Utilities','Transportation','Shopping','Entertainment','Salary','Investment','Bank Charges','Healthcare','Cash Withdrawal','Transfer','Uncategorized','Other Income']; d.budgets ||= {}; d.yearly ||= []; d.goals ||= []; d.shared ||= []; d.members ||= []; d.bankProfiles ||= {}; d.importHistory ||= []; return d; }
+            /** The encrypted vault in use: the phone's latest copy during a PC access session, otherwise this device's own. */
+            async activeVaultText(){ if (this.remote) { const v = await this.phoneFetch('/vault'); if (v.status !== 200) throw new Error("The phone didn't send its data (" + v.status + ')'); this.remote.version = v.json.version; return v.json.vault; } return this.storage.getItem('aifico_vault'); }
             async unlockVault() {
                 const input = document.getElementById('vault-password');
                 const pwd = input.value;
@@ -209,7 +257,7 @@
                         return;
                     }
                     if (!stored) {
-                        this.setVaultLoginStatus('No existing vault was found. Use New vault only if you intend to create a new vault, or restore a verified backup.');
+                        this.setVaultLoginStatus('No existing vault was found. Create one with a new password, or restore a verified backup from ? → Restore from a backup.');
                         return;
                     }
                     try {
@@ -220,7 +268,8 @@
                         input.focus();
                         return;
                     }
-                    this.data.accounts ||= []; this.data.tx ||= []; this.data.smsInbox ||= []; this.data.categories ||= ['Food & Dining','Groceries','Rent & Housing','Utilities','Transportation','Shopping','Entertainment','Salary','Investment','Bank Charges','Healthcare','Cash Withdrawal','Transfer','Uncategorized','Other Income']; this.data.budgets ||= {}; this.data.yearly ||= []; this.data.goals ||= []; this.data.shared ||= []; this.data.members ||= []; this.data.bankProfiles ||= {}; this.data.importHistory ||= [];
+                    this.prepareVaultData();
+                    if (!this._bioUnlocking) { try { localStorage.setItem('aifico_bio_pw_at', String(Date.now())); } catch (e) {} }
                     this.currentPassword = pwd; setTimeout(()=>this.checkDefaultPassword(),300); setTimeout(()=>{ try{ this.afterUnlock?.(); }catch(e){ console.error(e); } },900); // e.g. the Developer edition checks the phone for new bank SMS
                     input.value = '';
                     this.enterApp();
@@ -248,7 +297,9 @@
                 const password = this.currentPassword;
                 const write = this.saveQueue.catch(() => {}).then(async () => {
                     const encrypted = await this.vault.encryptData(snapshot, password);
+                    if (this.remote) { await this.remotePut(encrypted); return true; }   // PC access: saved on the phone, not here
                     await this.storage.setItem('aifico_vault', encrypted);
+                    this.afterVaultWrite?.(encrypted);
                     return true;
                 });
                 this.saveQueue = write;
@@ -256,6 +307,7 @@
                     return await write;
                 } catch (err) {
                     console.error('Vault save failed:', err);
+                    if (this.remote) { this.remoteSaveFailed?.(err); return false; }
                     alert('The vault could not be saved to browser storage. Your latest changes may not be persistent. Please export a verified backup before leaving this page.');
                     return false;
                 }
@@ -340,6 +392,7 @@
              * Parameters: none. Side effects, if any, are described by the statements below.
              */
             lockVault(opts={}) {
+                if (this.remote) return this.disconnectPhone?.();   // PC access: locking ends the session and shows this PC's own lock screen
                 this.currentPassword = null;
                 this.data = this.getDefaultData();
                 try { this.closeModal(); document.getElementById('app-toast')?.remove(); } catch (e) {}
@@ -351,7 +404,7 @@
                 const btn = document.getElementById('vault-action-btn'); if (btn) { btn.innerText = 'Unlock Vault'; btn.onclick = () => this.unlockVault(); }
                 const dh = document.getElementById('vault-default-hint'); if (dh) dh.hidden = true;
                 document.getElementById('vault-screen').classList.remove('vault-first-run');
-                this.setVaultLoginStatus('', '');
+                this.setVaultLoginStatus('', ''); this._bioDeclined = false; this.renderBio(); if (document.visibilityState !== 'hidden') setTimeout(() => this.bioAutoPrompt(), 300);
                 // Clear what was drawn behind the lock screen, so no figures stay in the page while it is locked
                 try { this.renderAll(); } catch (e) {}
                 if (opts.reason === 'auto') this.setVaultLoginStatus(`Locked after ${opts.minutes} min without use.`, 'info');
@@ -362,6 +415,7 @@
              * Parameters: none. Side effects, if any, are described by the statements below.
              */
             async resetVault() {
+                if (this.remote) return this.remoteBlocked?.('Erasing data');
                 const stored = await this.storage.getItem('aifico_vault');
                 if (!stored) {
                     await this.uiDialog('No vault found','No existing vault was found. You are already at the new-vault setup screen. Enter a new master password and choose Create Vault.',{type:'notice'});
@@ -483,7 +537,7 @@
              * Parameters: none. Side effects, if any, are described by the statements below.
              */
             applyEdition(){
-                const pro=this.isPro(); if(!this.isDeveloper())document.querySelectorAll('[data-dev-only]').forEach(e=>e.remove()); document.body.classList.toggle('edition-lite',!pro); document.body.classList.toggle('edition-pro',pro);
+                const pro=this.isPro(); if(!this.isDeveloper())document.querySelectorAll('[data-dev-only]').forEach(e=>e.remove()); document.body.classList.toggle('edition-lite',!pro); document.body.classList.toggle('build-lite',window.AIFICO_EDITION==='lite'); document.body.classList.toggle('edition-pro',pro);
                 // Version from js/04-version.js: "ledger v1.2610.85 · Developer" under "aifico" in the side menu (the edition is a word, not a letter on the number)
                 const v=window.aificoVersion?window.aificoVersion():{label:'',detail:''}; const label=`ledger ${v.label} · ${this.editionName()}`;
                 document.querySelectorAll('[data-app-version-short]').forEach(el=>{el.textContent=v.label;});
@@ -516,7 +570,7 @@
                 if(t.type==='Transfer'||t.type==='Investment'){ const dest=t.destinationAccount||t.toAccount; const acc=dest&&(this.data?.accounts||[]).find(a=>a.name===dest); return !!(acc&&acc.countInAsSpending); }
                 return false; }
             /** The category a spending entry is shown under: its own, or for money put into a marked account, that account's name */
-            spendingCategory(t){ return (t.type==='Transfer'||t.type==='Investment')&&(t.destinationAccount||t.toAccount)&&(!t.category||t.category==='Transfer')?String(t.destinationAccount||t.toAccount):(t.category||'Uncategorized'); }
+            spendingCategory(t){ return (t.type==='Transfer'||t.type==='Investment')&&(t.destinationAccount||t.toAccount)&&(!t.category||/^(transfer|uncategori[sz]ed)$/i.test(t.category))?String(t.destinationAccount||t.toAccount):(t.category||'Uncategorized'); }
             txEffects(t){
                 const a=Math.abs(Number(t&&t.amount)||0); if(!t||!a)return [];
                 if(t.type==='Income')return [{account:t.account,delta:a}];
@@ -658,6 +712,9 @@
              * Parameters: root. Side effects, if any, are described by the statements below.
              */
             enhanceFields(root){
+                // No browser autofill list over the form: on phones it covers the fields and can leave a ghost image behind.
+                // The app's own suggestions (chips) appear under the fields instead. Password boxes keep theirs.
+                (root||document).querySelectorAll('input:not([type=password]):not([autocomplete]), textarea:not([autocomplete])').forEach(el=>{ el.setAttribute('autocomplete','off'); });
                 // Older forms (e.g. New Transaction): <div class="space-y-1"><label>Text</label><input></div> → same floating style
                 (root||document).querySelectorAll('.space-y-1').forEach(w=>{ const lab=w.firstElementChild; if(!lab||lab.tagName!=='LABEL')return; const ctl=[...w.children].find(c=>/^(INPUT|SELECT|TEXTAREA)$/.test(c.tagName)&&!/^(checkbox|radio|file)$/.test(c.type)); if(!ctl)return;
                     const sp=document.createElement('span'); sp.textContent=lab.textContent.trim(); w.replaceChild(sp,lab); w.classList.remove('space-y-1'); w.classList.add('ip-field'); if(!ctl.getAttribute('aria-label'))ctl.setAttribute('aria-label',sp.textContent); });
@@ -686,7 +743,7 @@
             saveLedgerHeaderPrefs(p){ try{ localStorage.setItem('aifico_ledger_header',JSON.stringify(p)); }catch(e){} this.applyLedgerHeader(); }
             // Backup & Settings: an icon on every card; descriptions sit behind an ⓘ button
             decorateSettings(){
-                const icons={'backup & restore':'archive-restore','default account':'landmark','navigation':'navigation','import':'file-down','aifico ledger spreadsheet':'sheet','data health':'heart-pulse','security':'shield-check','sms entries in core ledger':'message-square','erase all data':'trash-2','reconciliation':'scale','my fields':'list-plus','sms rules':'filter','currency':'coins'};
+                const icons={'backup & restore':'archive-restore','default account':'landmark','navigation':'navigation','import':'file-down','aifico ledger spreadsheet':'sheet','data health':'heart-pulse','security':'shield-check','sms entries in core ledger':'message-square','erase all data':'trash-2','reconciliation':'scale','my fields':'list-plus','sms rules':'filter','currency':'coins','pc access':'monitor-smartphone'};
                 document.querySelectorAll('#panel-settings .set-card').forEach(card=>{ if(card.dataset.decorated)return; const h=card.querySelector('.set-title'); if(!h)return; card.dataset.decorated='1';
                     const key=h.childNodes[0]?.textContent?.trim().toLowerCase()||h.textContent.trim().toLowerCase(); const ic=icons[Object.keys(icons).find(k=>key.startsWith(k))]||'settings';
                     h.insertAdjacentHTML('afterbegin',`<i data-lucide="${ic}" class="set-ic"></i>`);
@@ -713,7 +770,7 @@
                 const metaFor={ledger:()=>plural(Number(String(document.getElementById('ledger-total-count')?.textContent||'0').replace(/[^0-9]/g,''))||0,'transaction'),
                     budgets:()=>`${plural(Object.keys(D.budgets||{}).length,'category')} · ${month}`.replace('categorys','categories'),
                     accounts:()=>plural((D.accounts||[]).length,'account'), yearly:()=>plural((D.yearly||[]).length,'schedule'),
-                    goals:()=>plural((D.goals||[]).length,'goal'), projects:()=>plural((D.projects||[]).length,'project'),
+                    goals:()=>plural((D.goals||[]).length,'goal'), recon:()=>{ const n=this.reconFindings?.().length||0; return n?plural(n,'finding'):'All good'; }, projects:()=>plural((D.projects||[]).length,'project'),
                     shared:()=>{ const t=(D.splitShare?.trips||[]); return `${plural(t.filter(x=>!x.closed).length,'open event')}`; },
                     configuration:()=>plural((D.categories||[]).length,'category').replace('categorys','categories'),
                     sms:()=>plural((D.smsInbox||[]).filter(x=>(x.status||'pending')==='pending').length,'SMS')+' to review',
@@ -745,7 +802,7 @@
              * Parameters: tab. Side effects, if any, are described by the statements below.
              */
             hideDuplicateTitles(tab){
-                if(tab==='settings')return; // its cards are sections (Backup & restore, Security…), not repeats of the page title
+                if(tab==='settings'||tab==='recon')return; // its cards are sections (Backup & restore, Security…), not repeats of the page title
                 const panel=document.getElementById('panel-'+tab); if(!panel)return; const title=(document.getElementById('tab-title')?.textContent||'').toLowerCase();
                 const words=t=>String(t).toLowerCase().replace(/&/g,' ').split(/[^a-z]+/).filter(w=>w.length>2&&!['and','the','expenses','overview','financial','monthly','statement','unified','allocation','savings'].includes(w));
                 const tw=words(title); const h=panel.querySelector('h2, h3'); if(!h||!tw.length)return; const hw=words(h.textContent);
@@ -868,13 +925,14 @@
                     yearly: 'Schedules',
                     goals: 'Financial Goals', projects: 'Projects',
                     shared: 'Shared & Split Expenses',
-                    sms: 'SMS Reconciliation',
+                    sms: 'SMS Reconciliation', recon: 'Reconcile & Check',
                     settings: 'Backup & Settings',
                     configuration: 'Categories',
                     guide: 'User Guide'
                 };
                 document.getElementById('tab-title').innerText = titles[tabId] || 'Dashboard';
                 if(tabId==='sms') this.renderSmsReconciliation();
+                if(tabId==='recon') { try{ this.renderRecon?.(); }catch(e){ console.error('Reconcile & Check could not be shown', e); } }
                 if(tabId==='stats') { try{ this.renderStats(); }catch(e){ console.error('Stats could not be shown', e); } }
                 window.lucide?.createIcons?.();
             }
@@ -1004,6 +1062,8 @@
                 try { this.renderMyFields(); } catch (e) { console.error('My fields could not be shown', e); }
                 try { this.renderSmsRulesCard(); } catch (e) { console.error('SMS rules could not be shown', e); }
                 try { this.renderUndoRestore(); } catch (e) {}
+                try { this.renderPcAccess?.(); } catch (e) {}
+                try { this.renderBio?.(); } catch (e) {}
                 try { const adv=document.getElementById('settings-advanced'); if(adv&&localStorage.getItem('aifico_settings_advanced')==='1')adv.open=true; } catch (e) {}
                 try { this.renderCurrencySetting(); aificoApplyCurrencyToPage(); } catch (e) { console.error('Currency display could not be updated', e); }
                 this.processSalarySchedule();
@@ -1124,6 +1184,7 @@
              * Parameters: ) { const box=document.getElementById('modal-box');box.innerHTML=`<h3 class="font-bold text-lg border-b border-slate-200 dark:border-slate-800 pb-3">Change master password</h3><form id="pw-form" class="ip-form"><label class="ip-field"><span>Current password</span><input id="pw-old" type="password" required autocomplete="current-password" placeholder="Your password today" class="w-full px-3 border rounded-xl dark:bg-slate-800"></label><label class="ip-field"><span>New password</span><input id="pw-new" type="password" minlength="5" required autocomplete="new-password" placeholder="At least 8 characters" class="w-full px-3 border rounded-xl dark:bg-slate-800"></label><label class="ip-field"><span>Confirm new password</span><input id="pw-confirm" type="password" minlength="5" required autocomplete="new-password" placeholder="Type it again" class="w-full px-3 border rounded-xl dark:bg-slate-800"></label><div class="flex justify-end gap-3"><button type="button" onclick="app.closeModal()" class="px-4 py-2 border rounded-xl">Cancel</button><button class="px-4 py-2 bg-emerald-600 text-white rounded-xl">Change Password</button></div></form>`;document.getElementById('modal-container').classList.remove('hidden');document.getElementById('pw-form').onsubmit=async e=>{e.preventDefault();const old=document.getElementById('pw-old').value,nw=document.getElementById('pw-new').value,cf=document.getElementById('pw-confirm').value; if(nw==='12345'){ alert('Choose a password other than the default 12345.'); return; }if(nw.length<8)return alert('Use at least 8 characters.');if(nw!==cf)return alert('New passwords do not match.');try{await this.vault.decryptData(await this.storage.getItem('aifico_vault'),old);this.currentPassword=nw;const saved=await this.saveVault();if(saved!==true)throw new Error('The new encrypted vault could not be saved.');this.closeModal();alert('Master password changed successfully.');}catch(_. Side effects, if any, are described by the statements below.
              */
             openPasswordChangeModal() {
+                if (this.remote) return this.remoteBlocked?.('Changing the password');
                 setTimeout(()=>{ const f=document.getElementById('pw-form'); if(f&&!f.dataset.dpw){ f.dataset.dpw='1'; f.addEventListener('submit',()=>setTimeout(()=>this.checkDefaultPassword(),1500)); } },0); const box=document.getElementById('modal-box');box.innerHTML=`<h3 class="font-bold text-lg border-b border-slate-200 dark:border-slate-800 pb-3">Change master password</h3><p class="pw-default-note">The default password is <b>12345</b>. If you are still using it, change it immediately.</p><form id="pw-form" class="ip-form"><label class="ip-field"><span>Current password</span><input id="pw-old" type="password" required autocomplete="current-password" placeholder="Your password today" class="w-full px-3 border rounded-xl dark:bg-slate-800"></label><label class="ip-field"><span>New password</span><input id="pw-new" type="password" minlength="5" required autocomplete="new-password" placeholder="At least 8 characters" class="w-full px-3 border rounded-xl dark:bg-slate-800"></label><label class="ip-field"><span>Confirm new password</span><input id="pw-confirm" type="password" minlength="5" required autocomplete="new-password" placeholder="Type it again" class="w-full px-3 border rounded-xl dark:bg-slate-800"></label><div class="flex justify-end gap-3"><button type="button" onclick="app.closeModal()" class="px-4 py-2 border rounded-xl">Cancel</button><button class="px-4 py-2 bg-emerald-600 text-white rounded-xl">Change Password</button></div></form>`;document.getElementById('modal-container').classList.remove('hidden');document.getElementById('pw-form').onsubmit=async e=>{e.preventDefault();const old=document.getElementById('pw-old').value,nw=document.getElementById('pw-new').value,cf=document.getElementById('pw-confirm').value; if(nw==='12345'){ alert('Choose a password other than the default 12345.'); return; }if(nw.length<8)return alert('Use at least 8 characters.');if(nw!==cf)return alert('New passwords do not match.');try{await this.vault.decryptData(await this.storage.getItem('aifico_vault'),old);this.currentPassword=nw;const saved=await this.saveVault();if(saved!==true)throw new Error('The new encrypted vault could not be saved.');this.closeModal();alert('Master password changed successfully.');}catch(_){alert('Current password is incorrect.');}}; }
 
             /**

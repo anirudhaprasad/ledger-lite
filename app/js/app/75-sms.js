@@ -1,5 +1,5 @@
 // AificoApp methods: sms (23 methods). Part of the AificoApp prototype chain.
-        class AificoAppSms extends AificoAppShared {
+        class AificoAppSms extends AificoAppPcAccess {
             /**
              * Returns or checks is sms tx.
              * Parameters: t. Side effects, if any, are described by the statements below.
@@ -363,12 +363,6 @@ Type REMOVE SMS to continue:`);
                     this.saveVault(); this.closeModal(); this.renderSmsRulesCard(); this.renderSmsReconciliation();
                     this.showToast(res.added?`Added to the SMS review list${sender?`, and remembered for ${sender}`:''}.`:'It is already in the SMS review list.'); };
             }
-            /** An investment-type account whose keywords (its Bank name, comma separated: "NPS, SIP, Mutual, LIC") appear in
-             * the SMS; the longest matching keyword wins. Returns the account or null. */
-            smsInvestmentAccount(line){
-                const inv=(this.data.accounts||[]).filter(a=>/invest|mutual|demat|stock|nps|ppf|pension|insurance|fixed deposit|recurring deposit/i.test(String(a.type||'')));
-                let best=null,len=0; inv.forEach(a=>String(a.bankName||'').split(',').map(k=>k.trim()).filter(k=>k.length>=2).forEach(k=>{ if(k.length>len&&this.smsWordAt(line,k)>=0){ best=a; len=k.length; } }));
-                return best; }
             /** When an SMS arrived: {date:'YYYY-MM-DD', time:'HH:MM'} from the phone's SMS inbox timestamp, else the date read
              * from the SMS and a time written in it ("08:15:45", "10:15 PM"); time is '' when unknown */
             smsWhen(x){ const o=String(x?.originalSmsDate||''); if(/^\d{10,13}$/.test(o)){ const d=new Date(Number(o)<1e12?Number(o)*1000:Number(o)); if(!Number.isNaN(d.getTime()))return {date:this.todayISO(d),time:String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}; }
@@ -439,26 +433,38 @@ Type REMOVE SMS to continue:`);
             /** Pending SMS the list shows now (search, status and year applied), drawn or not */
             smsShownPending(){ const shown=this._smsShown||new Set(); return (this.data.smsInbox||[]).filter(x=>(x.status||'pending')==='pending'&&shown.has(String(x.id))).map(x=>String(x.id)); }
             // One button: merges the SMS you ticked, or, with none ticked, every pending SMS the list shows
-            renderSmsSelectBar(){ const bar=document.getElementById('sms-select-bar'); if(!bar)return; const pend=new Set((this.data.smsInbox||[]).filter(x=>(x.status||'pending')==='pending').map(x=>String(x.id)));
-                const s=this.smsPicked(); [...s].forEach(id=>{ if(!pend.has(id))s.delete(id); }); const shown=this.smsShownPending().length;
-                bar.hidden=!shown; bar.innerHTML=s.size?`<button type="button" class="s-btn sms-merge-btn" onclick="app.mergeSelectedSms()">Merge ${s.size} ticked</button><button type="button" class="s-btn s-secondary" onclick="app.clearSmsPicks()">Clear ticks</button><p class="sms-pick-hint">Only the SMS you ticked are merged.</p>`
-                    :`<button type="button" class="s-btn sms-merge-btn" onclick="app.mergeSelectedSms()">Merge all ${shown} shown</button><p class="sms-pick-hint">Search or filter first to narrow the list, or tick some SMS to merge only those. They go to Core Ledger as Excluded, so you can check or bulk edit them there before including.</p>`; }
+            renderSmsSelectBar(){ const bar=document.getElementById('sms-select-bar'); if(!bar)return; const inbox=this.data.smsInbox||[]; const pend=new Set(inbox.filter(x=>(x.status||'pending')==='pending').map(x=>String(x.id)));
+                const s=this.smsPicked(); [...s].forEach(id=>{ if(!pend.has(id))s.delete(id); }); const shownIds=new Set(this.smsShownPending()); const out=inbox.filter(x=>shownIds.has(String(x.id))&&x.type!=='Income').length;
+                const pickedOut=inbox.filter(x=>s.has(String(x.id))&&x.type!=='Income').length, pickedIn=s.size-pickedOut;
+                // Merging many at once is for money out (as Expense, category None); money in stays pending for its own card
+                bar.hidden=!shownIds.size; bar.innerHTML=s.size?`<button type="button" class="s-btn sms-merge-btn" ${pickedOut?'':'disabled'} onclick="app.mergeSelectedSms()">Merge ${pickedOut} ticked as Expense</button><button type="button" class="s-btn s-secondary" onclick="app.clearSmsPicks()">Clear ticks</button><p class="sms-pick-hint">Only the SMS you ticked are merged, as Expense with category None.${pickedIn?` ${pickedIn} ticked money-in SMS stay pending.`:''}</p>`
+                    :`<button type="button" class="s-btn sms-merge-btn" ${out?'':'disabled'} onclick="app.mergeSelectedSms()">Merge all ${out} money-out SMS shown</button><p class="sms-pick-hint">They go to Core Ledger as Expense with category None, as Excluded, so you can set categories (bulk edit works) before including them. Money-in SMS (+) are not merged in bulk: merge each on its own card. Search or filter first, or tick some SMS to merge only those.</p>`; }
             /** Merge many: the ticked SMS (or, none ticked, all shown) go to Core Ledger as Excluded (parked), read as on their cards; include them there when right */
             async mergeSelectedSms(){
-                const ids=this.smsPicked().size?[...this.smsPicked()]:this.smsShownPending(); const items=(this.data.smsInbox||[]).filter(x=>ids.includes(String(x.id))&&(x.status||'pending')==='pending'); if(!items.length)return;
+                const ids=this.smsPicked().size?[...this.smsPicked()]:this.smsShownPending(); const all=(this.data.smsInbox||[]).filter(x=>ids.includes(String(x.id))&&(x.status||'pending')==='pending'); if(!all.length)return;
+                // Money in (a credit, "+") is not merged in bulk: it stays pending for you to merge on its own
+                // …and an SMS Core Ledger already has (a statement line or an entry you made: same reference, or same amount within
+                // 3 days on its account) stays pending too, so merging in bulk never adds a second copy; confirm it on its card
+                const inLedger=x=>this.findSmsMatches(x).some(m=>m.exactRef||(m.dateDiff<=3&&m.sameAccount!==false));
+                const debits=all.filter(x=>x.type!=='Income'), credits=all.length-debits.length, items=debits.filter(x=>!inLedger(x)), known=debits.length-items.length;
+                if(!items.length)return alert([credits?`${credits} SMS ${credits===1?'is':'are'} money in: merge ${credits===1?'it':'each one'} on its own card.`:'',known?`${known} SMS already ${known===1?'has':'have'} a matching Core Ledger entry: confirm ${known===1?'it':'them'} on ${known===1?'its':'their'} card.`:''].filter(Boolean).join(' '));
                 const accounts=this.data.accounts||[]; if(!accounts.length)return alert('Create an account in Accounts & Wallets first.');
-                if(!await this.uiConfirm(`Merge ${items.length} SMS into Core Ledger?\n\nThey are added as Excluded: they don't count in totals or change balances until you include them. In Core Ledger, filter Excluded, check or bulk edit them, then Include selected.`,{okLabel:'Merge'}))return;
+                if(!await this.uiConfirm(`Merge ${items.length} SMS into Core Ledger as Expense, category None?${credits?`
+
+${credits} money-in SMS stay pending (merge those one by one).`:''}${known?`
+
+${known} SMS already in Core Ledger (e.g. from a bank statement) stay pending: confirm the match on their card.`:''}
+
+They are added as Excluded: they don't count in totals or change balances until you include them. In Core Ledger, filter Excluded, set the category (bulk edit works), then Include selected.`,{okLabel:'Merge'}))return;
                 let n=0; const def=this.getGlobalDefaultAccount()||accounts[0];
-                for(const item of items){ const own=this.smsResolveAccount(item); const account=(own?.account||def).name; const type=item.type||'Expense';
-                    let dest=''; if(type==='Transfer')dest=own?.to?.name||''; if(type==='Investment')dest=item.investTo&&item.investTo!==account?item.investTo:'';
-                    const transfer=type==='Transfer';
-                    const tx={id:'sms_merge_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),uid:this.newUid(),date:item.date,type,amount:Number(item.amount)||0,account,category:transfer?'Transfer':(item.category||'Uncategorized'),...(!transfer&&item.subcategory?{subcategory:item.subcategory}:{}),payee:item.payee||'',notes:'',
-                        ...(dest?{destinationAccount:dest}:(transfer?{transferDirection:'out'}:{})),description:item.description||'',reference:item.reference||'',originalSmsDate:item.originalSmsDate||item.date,...(this.smsWhen(item).time?{time:this.smsWhen(item).time}:{}),source:'sms-reconciled',smsInboxId:item.id,
+                for(const item of items){ const own=this.smsResolveAccount(item); const account=(own?.account||def).name; const cat=this.matchCategory(item.category);
+                    // Expense with category None (or your own Payee → category rule's category); no subcategory is made up
+                    const tx={id:'sms_merge_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),uid:this.newUid(),date:item.date,type:'Expense',amount:Number(item.amount)||0,account,category:cat||'Uncategorized',...(cat&&item.subcategory?{subcategory:item.subcategory}:{}),payee:item.payee||'',notes:'',
+                        description:item.description||'',reference:item.reference||'',originalSmsDate:item.originalSmsDate||item.date,...(this.smsWhen(item).time?{time:this.smsWhen(item).time}:{}),source:'sms-reconciled',smsInboxId:item.id,smsUid:item.smsUid||this.smsUid(item.sender,item.originalSmsDate,item.description),
                         ...(item.custom?{custom:{...item.custom}}:{}),excludedFromLedger:true,balanceEffectRemoved:true,parkedFromSms:true};
-                    if(!transfer)this.ensureCategoryAndSubcategory(tx.category,tx.subcategory||'');
                     this.data.tx.unshift(tx); item.status='merged'; item.mergedTransactionId=tx.id; item.mergedAt=new Date().toISOString(); item.mergedAccount=account; this.smsLearnAccount?.(item,account); n++; }
                 this.smsPicked().clear(); await this.saveVault(); this.renderAll(); this.renderSmsReconciliation();
-                this.showToast(`${n} SMS added to Core Ledger as Excluded. Filter Excluded there to review and include them.`,{action:{label:'Review',run:()=>this.openExcludedInLedger()}}); }
+                this.showToast(`${n} SMS added to Core Ledger as Excluded${credits?`; ${credits} money-in SMS left pending`:''}${known?`; ${known} already in Core Ledger left pending`:''}. Filter Excluded there to set categories and include them.`,{action:{label:'Review',run:()=>this.openExcludedInLedger()}}); }
             /** Core Ledger showing only excluded entries, ready to select and include */
             openExcludedInLedger(){ this.switchTab('ledger'); this.ledgerPeriod='all'; const f=document.getElementById('ledger-excluded-filter'); if(f){ const opt=[...f.options].find(o=>/exclu/i.test(o.value)&&!/all|active/i.test(o.value)); if(opt)f.value=opt.value; } this.filterLedger(); }
             /** My fields on one SMS record (saved straight away; carried into the merge form) */
@@ -479,58 +485,15 @@ Type REMOVE SMS to continue:`);
                 return note;
             }
             /**
-             * Handles the classify sms transaction workflow. See the implementation below for its inputs, state changes, and side effects.
-             * Parameters: line, baseType, payee=''. Side effects, if any, are described by the statements below.
+             * An SMS's type and category. Only money in (Income) or out (Expense) is read from the SMS; the category is None
+             * (Uncategorized) and there is no subcategory, so you choose them. Your own Settings → SMS rules → Payee → category
+             * rules still apply, and only with a category you have. Reading SMS never adds a category or subcategory.
              */
-            classifySmsTransaction(line, baseType, payee='') {
-                const text=`${line||''} ${payee||''}`.toLowerCase();
-                // Explicit money movement takes priority over merchant/category matching.
-                // NEFT/IMPS/RTGS are only how the money moved: money credited to you that way is income (e.g. salary), so only
-                // debits by those channels (unless they say what they paid for, like rent or an EMI) and anything marked as your own
-                // account count as transfers.
-                if (/\b(own account|between own accounts|self transfer|sweep to|sweep transfer)\b/i.test(text) || (baseType!=='Income'&&/\b(transfer to|transferred to|imps|neft|rtgs|fund transfer|upi transfer|a\/c transfer|account transfer)\b/i.test(text)&&!/\b(rent|emi|loan|insurance|premium|bill|fees?|maintenance)\b/i.test(text))) {
-                    return {type:'Transfer',category:'Transfer',subcategory:'Own Account Transfer'};
-                }
-                // Money coming in from an FD/RD closure, a broker refund or a fund redemption is income, not an investment going out
-                if (baseType==='Income' && /\b(fd|rd|fixed deposit|recurring deposit|deposit)\b[^.]{0,40}\b(closed|matured|maturity|closure)\b|\b(closed|matured|maturity|closure)\b[^.]{0,40}\b(fd|rd|deposit)\b/i.test(text)) return {type:'Income',category:'Investments',subcategory:'Deposit maturity'};
-                if (baseType==='Income' && /\b(refund|redemption|redeemed|settlement|dividend|interest)\b/i.test(text) && /\b(mutual fund|sip\b|sebi|broker|zerodha|groww|stocks?|equity|demat|fund)\b/i.test(text)) return {type:'Income',category:'Investments',subcategory:/dividend/i.test(text)?'Dividend':/interest/i.test(text)?'Interest':'Redemption / refund'};
-                if (baseType!=='Income' && /\b(mutual fund|sip\b|nps\b|ppf\b|public provident|ssa\b|sukanya|recurring deposit|\brd\b|fixed deposit|\bfd\b|investment|zerodha|groww|stocks?|equity|demat|smallcase|kuvera|coin by zerodha)\b/i.test(text)) {
-                    return {type:'Investment',category:'Investments',subcategory:/mutual fund|sip\b|groww|zerodha|kuvera|smallcase|coin by zerodha/i.test(text)?'Mutual Funds / SIP':/\bnps\b/i.test(text)?'NPS':/\bppf\b|public provident/i.test(text)?'PPF':/recurring deposit|\brd\b/i.test(text)?'Recurring Deposit':/fixed deposit|\bfd\b/i.test(text)?'Fixed Deposit':/stocks?|equity|demat/i.test(text)?'Stocks & Shares':'Investment'};
-                }
-                if (/\b(insurance|premium|lic\b|life cover|health cover|policy renewal|term plan|scooter insurance|car insurance|hdfc ergo|icici lombard|star health|care health|acko)\b/i.test(text)) {
-                    return {type:'Expense',category:'Insurance',subcategory:/vehicle|car|scooter|motor|two.?wheeler/i.test(text)?'Vehicle Insurance':/health|medical|star health|care health/i.test(text)?'Health Insurance':/lic\b|life cover|term plan/i.test(text)?'Life Insurance':'Insurance Premium'};
-                }
-                if (/\b(auto[ -]?debit|autodebit|nach|e-?mandate|ecs debit|standing instruction|si debit|mandate debit|recurring payment|subscription renewal)\b/i.test(text)) {
-                    if (/\b(insurance|premium|lic\b|policy|health cover|term plan)\b/i.test(text)) return {type:'Expense',category:'Insurance',subcategory:/health/i.test(text)?'Health Insurance':/lic\b|life|term/i.test(text)?'Life Insurance':'Insurance Premium'};
-                    if (/\b(sip|mutual fund|investment|nps|ppf|fixed deposit|recurring deposit|\bfd\b|\brd\b)\b/i.test(text)) return {type:'Investment',category:'Investments',subcategory:/sip|mutual fund/i.test(text)?'Mutual Funds / SIP':/\bppf\b/i.test(text)?'PPF':/\bnps\b/i.test(text)?'NPS':/fixed deposit|\bfd\b/i.test(text)?'Fixed Deposit':'Recurring Deposit'};
-                    if (/\b(loan|emi|installment|instalment|mortgage)\b/i.test(text)) return {type:'EMI',category:'Loan',subcategory:'EMI / Auto Debit'};
-                    if (/\b(rent|house rent|pg rent)\b/i.test(text)) return {type:'Expense',category:'Rent',subcategory:/pg/i.test(text)?'PG':'HouseRent'};
-                    if (/\b(electricity|bescom|utility|broadband|internet|mobile|telephone|water bill)\b/i.test(text)) return {type:'Expense',category:'Bills',subcategory:/electricity|bescom/i.test(text)?'Electric':/broadband|internet/i.test(text)?'Broadband':/mobile|telephone/i.test(text)?'Mobile':'Utilities'};
-                    return {type:'Expense',category:'Subscriptions & Auto Debit',subcategory:/subscription|renewal/i.test(text)?'Subscription':'Auto Debit'};
-                }
-                if (/\b(emi|installment|instalment|loan repayment|loan emi)\b/i.test(text)) {
-                    return {type:'EMI',category:/car|vehicle/i.test(text)?'Car -EMI':'Loan',subcategory:'EMI'};
-                }
-                if (/\b(salary|payroll|wages)\b/i.test(text)) return {type:'Income',category:'Salary',subcategory:'Salary'};
-                if (/\b(refund|cashback|reversal)\b/i.test(text) && baseType==='Income') return {type:'Income',category:'Refunds & Cashback',subcategory:'Refund/Cashback'};
-                const rules=[
-                    [/zomato|swiggy|restaurant|cafe|food delivery|eating out|dining/i,'Outing-EatingOut','EatingOut'],
-                    [/bigbasket|blinkit|zepto|grocery|groceries|supermarket|ration/i,'Groceries','Ration'],
-                    [/uber|ola|rapido|metro|bus ticket|namma metro|irctc|train ticket/i,'PublicTransport','Public'],
-                    [/petrol|fuel|diesel|shell|indian oil|bharat petroleum|hpcl/i,'Vehicle','Fuel'],
-                    [/electricity|bescom|power bill/i,'Bills','Electric'],
-                    [/broadband|internet bill|airtel xstream|jiofiber/i,'Bills','Broadband'],
-                    [/mobile recharge|prepaid recharge|postpaid|airtel bill|jio bill|vi recharge/i,'Bills','Mobile'],
-                    [/hospital|clinic|pharmacy|medical store|medicine|apollo pharmacy/i,'Health','Medicine'],
-                    [/rent|house rent|pg rent/i,'Rent',/pg/i.test(text)?'PG':'HouseRent'],
-                    [/amazon|flipkart|lenovo|computer|laptop|keyboard|mouse|headphone|electronics/i,'Devices','Computer'],
-                    [/school fee|tuition|academy|textbook|stationery/i,'School','Academy'],
-                    [/netflix|spotify|prime video|hotstar|ott subscription/i,'Outing-EatingOut','OTT'],
-                    [/society maintenance|maintenance charge/i,'Maintenance','Society Maintenance'],
-                    [/gift|birthday|present/i,'Social Life','Gift']
-                ];
-                for(const [re,category,subcategory] of rules) if(re.test(text)) return {type:baseType||'Expense',category,subcategory};
-                return {type:baseType||'Expense',category:baseType==='Income'?'Salary':'Uncategorized',subcategory:''};
+            smsTypeAndCategory(line,baseType,payee=''){
+                const R=this.smsRules(); const type=baseType==='Income'?'Income':'Expense';
+                const pc=R.payeeCats.find(r=>r.match&&(String(payee).toLowerCase().includes(r.match.toLowerCase())||String(line).toLowerCase().includes(r.match.toLowerCase())));
+                const own=pc?this.matchCategory(pc.category):''; const sub=own&&pc.subcategory&&(this.categorySubcategoryMap()[own]||[]).map(x=>typeof x==='string'?x:x.name).find(x=>this.categoryKey(x)===this.categoryKey(pc.subcategory));
+                return {type,category:own||'Uncategorized',subcategory:sub||''};
             }
 
 
@@ -538,9 +501,31 @@ Type REMOVE SMS to continue:`);
              * Parses or imports sms messages and validates it before use.
              * Parameters: messages, sourceName, opts.quiet (no pop-ups; used by the automatic phone SMS check). Returns {added, ignored}.
              */
+            /** An SMS's own identity: who sent it, the exact time it arrived and its text (a phone never repeats all three); pasted SMS without a time use their text. */
+            smsUid(sender,stamp,body){ const t=String(body||'').replace(/s+/g,' ').trim().toLowerCase(); let h=0; for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;
+                return `${this.smsSenderKey(sender)||'-'}|${/^d{10,13}$/.test(String(stamp||''))?String(stamp):''}|${(h>>>0).toString(36)}`; }
+            /** The same SMS staged more than once (older versions keyed SMS by how they were read): keep one, the merged/matched one if any. */
+            smsRemoveDuplicates(){ const inbox=this.data.smsInbox||[]; const seen=new Map(); let removed=0;
+                inbox.forEach(x=>{ x.smsUid ||= this.smsUid(x.sender,x.originalSmsDate,x.description); const k=x.smsUid; const cur=seen.get(k);
+                    if(!cur){ seen.set(k,x); return; } const pend=y=>(y.status||'pending')==='pending'; if(pend(cur)&&!pend(x))seen.set(k,x); });
+                // Core Ledger entries merged from an SMS carry the same ID (older ones get it from their SMS)
+                const byId=new Map(inbox.map(x=>[String(x.id),x.smsUid])); (this.data.tx||[]).forEach(t=>{ if(t&&t.smsInboxId!=null&&!t.smsUid&&byId.get(String(t.smsInboxId)))t.smsUid=byId.get(String(t.smsInboxId)); });
+                const keep=new Set([...seen.values()]); this.data.smsInbox=inbox.filter(x=>{ if(keep.has(x)||(x.status||'pending')!=='pending')return true; removed++; return false; });
+                // A pending SMS whose ID is already on a Core Ledger entry (and on no other SMS here) was merged before: show it as merged
+                const inLedger=new Map((this.data.tx||[]).filter(t=>t&&t.smsUid).map(t=>[t.smsUid,t])); const linked=new Set(this.data.smsInbox.filter(x=>(x.status||'pending')!=='pending').map(x=>x.smsUid));
+                this.data.smsInbox.forEach(x=>{ const t=(x.status||'pending')==='pending'&&!linked.has(x.smsUid)&&inLedger.get(x.smsUid); if(t){ x.status='merged'; x.mergedTransactionId=t.id; x.mergedAccount=t.account; linked.add(x.smsUid); } });
+                if(this._smsSel)[...this._smsSel].forEach(id=>{ if(!this.data.smsInbox.some(x=>String(x.id)===id))this._smsSel.delete(id); }); return removed; }
+            /** Pending SMS read again with today's rules (type, category, payee, accounts), once after the rules change; merged ones are left as they are. */
+            smsRereadPending(){ const V=4; if((this.data.smsReadVersion||0)>=V)return 0; let n=0;
+                (this.data.smsInbox||[]).forEach(x=>{ if((x.status||'pending')!=='pending'||!x.description)return; const out=[];
+                    this.importSmsMessages([{address:x.sender,body:x.description,date:x.originalSmsDate}],'reread',{quiet:true,noSkipLog:true,collect:out}); const y=out[0]; if(!y)return;
+                    ['type','category','subcategory','payee','accountHint','accountRefs','reference','messageKey','smsUid'].forEach(k=>{ if(y[k]!==undefined)x[k]=y[k]; }); if(!y.subcategory)delete x.subcategory; delete x.investTo; n++; });
+                this.data.smsReadVersion=V; return n; }
             importSmsMessages(messages, sourceName, opts={}) {
                 const inbox=Array.isArray(this.data.smsInbox)?this.data.smsInbox:(this.data.smsInbox=[]);
                 const existing=new Set(inbox.map(t=>String(t.messageKey||`${t.date}|${t.amount}|${t.type}|${t.description||''}`)));
+                // Each SMS's own identity (sender, arrival time, text): the same SMS is never staged twice, however it is read
+                const uids=new Set([...inbox.map(t=>t.smsUid||this.smsUid(t.sender,t.originalSmsDate,t.description)),...(this.data.tx||[]).map(t=>t&&t.smsUid).filter(Boolean)]);
                 let added=0,ignored=0; const R=this.smsRules();
                 for(const msg of messages){
                     const line=String(msg.body||'').trim(); if(!line)continue;
@@ -582,20 +567,13 @@ Type REMOVE SMS to continue:`);
                         if(numeric)date=`${numeric[1]}-${numeric[2]}-${numeric[3]}`;else if(d){const months={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};let y=Number(d[3]);if(y<100)y+=2000;date=`${y}-${String(months[d[2].toLowerCase()]||1).padStart(2,'0')}-${d[1].padStart(2,'0')}`;}else if(validDmy){let y=Number(dmy[3]);if(y<100)y+=2000;date=`${y}-${dmy[2].padStart(2,'0')}-${dmy[1].padStart(2,'0')}`;}else date=this.todayISO();}
                     const payee=opts.payee||this.smsTaughtPayee(line,srule)||this.smsPayee(line,typeMatch)||this.smsFallbackPayee(line,typeMatch);
                     const accountRefs=this.smsAccountRefs(line);
-                    let mapped=this.classifySmsTransaction(line,typeMatch,payee);
-                    // Money leaving a bank account into an investment account found by its keywords (NPS, SIP, Mutual, LIC…)
-                    const investAcc=typeMatch!=='Income'&&mapped.type!=='Transfer'?this.smsInvestmentAccount(line):null;
-                    if(investAcc)mapped={type:'Investment',category:'Investments',subcategory:mapped.type==='Investment'?mapped.subcategory:investAcc.name};
-                    // Settings → SMS rules → Payee → category
-                    const pc=mapped.type!=='Transfer'&&R.payeeCats.find(r=>r.match&&(payee.toLowerCase().includes(r.match.toLowerCase())||line.toLowerCase().includes(r.match.toLowerCase())));
-                    if(pc)mapped={...mapped,category:pc.category,subcategory:pc.subcategory||''};
-                    // "a/c XX123 debited … and a/c XX456 credited" between two of your own accounts is a transfer
-                    if(mapped.type!=='Transfer'&&typeMatch!=='Income'&&accountRefs.length>1){ const r=this.smsResolveAccount({accountRefs,sender:msg.address}); if(r?.to)mapped={type:'Transfer',category:'Transfer',subcategory:'Own Account Transfer'}; }// The bank reference in its usual wordings: "UPI:6278…", "UPI Ref. no. 6278…", "Ref no 6279…", "UTR …", "IMPS/6282…/"
+                    const mapped=this.smsTypeAndCategory(line,typeMatch,payee);// The bank reference in its usual wordings: "UPI:6278…", "UPI Ref. no. 6278…", "Ref no 6279…", "UTR …", "IMPS/6282…/"
                     const reference=(line.match(/\b(?:UTR|RRN|UPI(?:\s*Ref(?:erence)?)?|IMPS(?:\s*Ref(?:erence)?)?|Ref(?:erence)?|Txn(?:\s*ID)?)\.?\s*(?:no\.?|number)?\s*[:#\/-]?\s*([A-Z0-9]{6,})/i)||[])[1]||'';
                     const messageKey=`${date}|${amount.toFixed(2)}|${mapped.type}|${reference||line.replace(/\s+/g,' ').toLowerCase()}`;
-                    if(existing.has(messageKey)){ignored++;continue;} existing.add(messageKey);
-                    inbox.unshift({id:'sms_inbox_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8),messageKey,date,type:mapped.type,amount,accountHint:accountRefs[0]?.digits||'',accountRefs,...(this.payeeFieldsFor(payee)?{custom:this.payeeFieldsFor(payee)}:{}),account:'SMS (Unreconciled)',category:mapped.category,subcategory:mapped.subcategory,payee,notes:`${payee}${mapped.subcategory?' — '+mapped.subcategory:''}`.slice(0,160),description:line,reference,originalSmsDate:msg.date||'',sender:msg.address||'',...(opts.account?{accountChoice:opts.account}:{}),...(investAcc?{investTo:investAcc.name}:{}),sourceFile:sourceName,status:'pending',importedAt:new Date().toISOString()});added++;
+                    const smsUid=this.smsUid(msg.address,msg.date,line); if(!opts.collect){ if(existing.has(messageKey)||uids.has(smsUid)){ignored++;continue;} existing.add(messageKey); uids.add(smsUid); }
+                    (opts.collect||inbox).unshift({smsUid,id:'sms_inbox_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8),messageKey,date,type:mapped.type,amount,accountHint:accountRefs[0]?.digits||'',accountRefs,...(this.payeeFieldsFor(payee)?{custom:this.payeeFieldsFor(payee)}:{}),account:'SMS (Unreconciled)',category:mapped.category,subcategory:mapped.subcategory,payee,notes:`${payee}${mapped.subcategory?' — '+mapped.subcategory:''}`.slice(0,160),description:line,reference,originalSmsDate:msg.date||'',sender:msg.address||'',...(opts.account?{accountChoice:opts.account}:{}),sourceFile:sourceName,status:'pending',importedAt:new Date().toISOString()});added++;
                 }
+                if(opts.collect)return {added,ignored};   // read only: nothing saved
                 if(!added){ if(!opts.quiet)alert(`No new SMS records were staged. ${ignored} message(s) were unsupported or already present in the SMS Ledger.`); return {added,ignored}; }
                 this.saveVault();this.renderAll();this.renderSmsReconciliation();
                 const status=document.getElementById('sms-import-status');if(status){status.textContent=`Staged ${added} SMS record(s) in Core SMS Ledger. ${ignored} unsupported or repeated message(s) skipped. No account balances or Core Ledger records were changed.`;status.classList.remove('hidden','text-rose-600');status.classList.add('text-emerald-600');}
@@ -741,6 +719,8 @@ Type REMOVE SMS to continue:`);
             renderSmsReconciliation(){
                 const body=document.getElementById('sms-reconcile-tbody'); if(!body)return;
                 { const reset=this.repairSmsMatches(); if(reset){ this.saveVault(); this.showToast(`${reset} SMS ${reset===1?'was':'were'} matched to a Core Ledger entry that another SMS already stands for, or that is gone. ${reset===1?'It is':'They are'} back in Pending review: merge ${reset===1?'it':'them'} to add ${reset===1?'it':'them'}.`,{ms:9000}); } }
+                // Pending SMS read with older rules are read again once; the same SMS staged twice is kept once
+                { const reread=this.smsRereadPending(), dupes=this.smsRemoveDuplicates(); if(reread||dupes)this.saveVault(); if(dupes)this.showToast?.(`${dupes} SMS ${dupes===1?'was':'were'} listed twice; the extra ${dupes===1?'copy was':'copies were'} removed.`); }
                 const inbox=this.data.smsInbox||(this.data.smsInbox=[]);
                 const counts={pending:0,matched:0,merged:0,ignored:0,duplicate:0,error:0};
                 inbox.forEach(x=>{const st=x.status||'pending';counts[st]=(counts[st]||0)+1;});
@@ -822,7 +802,7 @@ Type REMOVE SMS to continue:`);
              * Parameters: inboxId. Side effects, if any, are described by the statements below.
              */
             /** Merge: open the SMS as a transaction to review and edit. Saving parks it in Core Ledger as Excluded (see saveSmsReview). */
-            async mergeSmsInbox(inboxId){const item=(this.data.smsInbox||[]).find(x=>String(x.id)===String(inboxId));if(!item||item.status!=='pending')return;if(this.findSmsMatches(item).length&&!await this.uiConfirm('A possible bank match exists for this SMS. Review it as a new Core Ledger entry anyway?'))return;const accounts=this.data.accounts||[];if(!accounts.length)return alert('Create an account in Accounts & Wallets first.');const own=this.smsResolveAccount(item);const account=own?.account||this.getGlobalDefaultAccount()||accounts[0];this.openTransactionModal({smsInboxId:item.id,type:item.type,date:item.date,amount:item.amount,payee:item.payee||'',category:item.category,subcategory:item.subcategory,account:account.name,...(item.type==='Transfer'&&own?.to?{destinationAccount:own.to.name}:{}),...(item.type==='Investment'&&item.investTo&&item.investTo!==account.name?{destinationAccount:item.investTo}:{}),note:'',description:item.description||'',smsDate:item.originalSmsDate||item.date||''});}
+            async mergeSmsInbox(inboxId){const item=(this.data.smsInbox||[]).find(x=>String(x.id)===String(inboxId));if(!item||item.status!=='pending')return;if(this.findSmsMatches(item).length&&!await this.uiConfirm('A possible bank match exists for this SMS. Review it as a new Core Ledger entry anyway?'))return;const accounts=this.data.accounts||[];if(!accounts.length)return alert('Create an account in Accounts & Wallets first.');const own=this.smsResolveAccount(item);const account=own?.account||this.getGlobalDefaultAccount()||accounts[0];this.openTransactionModal({smsInboxId:item.id,type:item.type==='Income'?'Income':'Expense',date:item.date,amount:item.amount,payee:item.payee||'',category:item.category,subcategory:item.subcategory,account:account.name,note:'',description:item.description||'',smsDate:item.originalSmsDate||item.date||''});}
             /**
              * Handles the ignore sms inbox workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: inboxId. Side effects, if any, are described by the statements below.

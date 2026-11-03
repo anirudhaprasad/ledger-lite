@@ -288,8 +288,6 @@ body.nav-bottom #app-toast { bottom: calc(146px + env(safe-area-inset-bottom, 0p
 /* Lock screen: edition as a small tag after the name; first run (no vault yet) shows only "Restore backup" */
 .vault-edition{display:inline-block;vertical-align:middle;margin-left:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.02em;line-height:1.5;background:#ecfdf5;color:#047857;white-space:nowrap}
 .dark .vault-edition{background:rgba(16,185,129,.15);color:#6ee7b7}
-.vault-first-run .vault-only{display:none}
-.vault-first-run .vault-links{justify-content:center}
 /* Edit form: original SMS date; Description (often the whole bank SMS) as a small label over a bigger box with smaller text */
 .af-note { margin: 4px 0 2px; font-size: 12px; color: #64748b; }
 .dark .af-note { color: #94a3b8; }
@@ -658,3 +656,99 @@ body.nav-bottom #to-top { right: 21px; bottom: calc(146px + env(safe-area-inset-
 .cc-h { font-size: 13px; font-weight: 700; color: #334155; margin-top: 6px; } .cc-add { display: flex; flex-wrap: wrap; gap: 8px; } .cc-none { padding: 12px; font-size: 13px; color: #64748b; }
 .cb-preview { border: 1px dashed #cbd5e1; border-radius: 12px; padding: 10px; }
 .dark .cc-list { border-color: #334155; } .dark .cc-row { border-top-color: #1e293b; } .dark .cc-b { background: #1e293b; border-color: #334155; color: #e2e8f0; } .dark .cc-h { color: #cbd5e1; } .dark .cb-preview { border-color: #475569; }
+/* Categories: look-alike names found, with one tap to merge them */
+.cat-dups { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; margin-bottom: 12px; border: 1px solid #fcd34d; border-radius: 12px; background: #fffbeb; color: #78350f; font-size: 13px; }
+.cat-dups b { font-size: 14px; } .cat-dups .s-btn { align-self: flex-start; }
+.dark .cat-dups { background: #422006; border-color: #92400e; color: #fde68a; }
+#pj-fchips { margin: 8px 0 0; }
+/* Clean up categories: each proposed change as a tick box */
+.cu-list { display: flex; flex-direction: column; border: 1px solid #e2e8f0; border-radius: 12px; max-height: 40dvh; overflow-y: auto; }
+.cu-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-top: 1px solid #f1f5f9; cursor: pointer; } .cu-row:first-child { border-top: 0; }
+.cu-row input { width: 20px; height: 20px; margin-top: 2px; flex-shrink: 0; } .cu-row span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cu-row b { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; } .cu-row small { font-size: 12px; color: #64748b; }
+.cat-cleanup-btn { margin-bottom: 12px; }
+.dark .cu-list { border-color: #334155; } .dark .cu-row { border-top-color: #1e293b; } .dark .cu-row small { color: #94a3b8; }
+/* Reconcile & Check (PC): a wide-screen page; on phones the menu item is hidden and the page says to use a computer */
+.rc-phone-note { display: none; padding: 16px; border: 1px dashed #cbd5e1; border-radius: 14px; color: #475569; font-size: 14px; }
+@media (max-width: 1023px) { [data-pc-only][data-tab] { display: none !important; } #panel-recon .rc-phone-note { display: block; } #panel-recon #recon-root { display: none; } }
+.rc-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+.rc-card-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; } .rc-card-head h3 { font-size: 17px; font-weight: 700; color: #0f172a; } .rc-card-head span { font-size: 13px; color: #64748b; flex: 1; } .rc-card-head .s-btn { margin-left: auto; }
+.rc-find { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; } .rc-find > summary { display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; list-style: none; } .rc-find > summary::-webkit-details-marker { display: none; }
+.rc-find > summary > span { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; } .rc-find > summary b { font-size: 14.5px; } .rc-find > summary small { font-size: 12.5px; color: #64748b; }
+.rc-dot { width: 10px; height: 10px; border-radius: 999px; flex-shrink: 0; background: #0ea5e9; } .rc-bad .rc-dot { background: #e11d48; } .rc-warn .rc-dot { background: #f59e0b; }
+.rc-bad { border-color: #fda4af; } .rc-warn { border-color: #fcd34d; }
+.rc-list { display: flex; flex-direction: column; border-top: 1px solid #f1f5f9; } .rc-card > .rc-list { border: 1px solid #e2e8f0; border-radius: 12px; }
+.rc-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-top: 1px solid #f1f5f9; font-size: 13.5px; } .rc-row:first-child { border-top: 0; } .rc-row > span:first-child { flex: 1; min-width: 0; } .rc-row small { color: #64748b; }
+.rc-acts { display: flex; gap: 8px; flex-shrink: 0; } .rc-acts .s-btn, .rc-find summary .s-btn { min-height: 36px; padding: 6px 12px; font-size: 13px; }
+.rc-allgood { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: #ecfdf5; color: #065f46; font-weight: 600; } .rc-allgood svg { width: 20px; height: 20px; }
+.rc-pick { display: flex; flex-wrap: wrap; gap: 8px; }
+.rc-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; } .rc-tiles > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 12px; } .rc-tiles span { font-size: 12px; color: #64748b; } .rc-tiles b { font-size: 16px; font-variant-numeric: tabular-nums; }
+.rc-ok-t { color: #059669; } .rc-bad-t { color: #e11d48; }
+.rc-table { display: flex; flex-direction: column; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+.rc-tr { display: grid; grid-template-columns: 100px 1fr 130px 150px 80px; align-items: center; gap: 10px; padding: 8px 14px; border-top: 1px solid #f1f5f9; font-size: 13.5px; } .rc-tr:first-child { border-top: 0; }
+.rc-payee { display: flex; flex-direction: column; min-width: 0; } .rc-payee small { color: #64748b; font-size: 12px; } .rc-amt { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; } .rc-out { color: #e11d48; } .rc-in { color: #059669; }
+.rc-chip { font-style: normal; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: #f1f5f9; color: #334155; white-space: nowrap; }
+.rc-ok { background: #d1fae5; color: #065f46; } .rc-bank { background: #e0e7ff; color: #3730a3; } .rc-bad { background: #ffe4e6; color: #9f1239; } .rc-ex { background: #fef3c7; color: #78350f; } .rc-app { background: #f1f5f9; color: #334155; }
+.rc-find.rc-bad { background: transparent; color: inherit; }
+.rc-empty { font-size: 13.5px; color: #64748b; }
+.dark .rc-card { background: #0f172a; border-color: #1e293b; } .dark .rc-card-head h3 { color: #f1f5f9; } .dark .rc-find, .dark .rc-tiles > div, .dark .rc-table, .dark .rc-card > .rc-list { border-color: #334155; } .dark .rc-row, .dark .rc-tr, .dark .rc-list { border-top-color: #1e293b; }
+.dark .rc-chip { background: #1e293b; color: #e2e8f0; } .dark .rc-ok { background: #064e3b; color: #a7f3d0; } .dark .rc-bank { background: #312e81; color: #e0e7ff; } .dark .rc-ex { background: #422006; color: #fde68a; } .dark .rc-allgood { background: #022c22; color: #a7f3d0; }
+.dark .rc-find > summary small, .dark .rc-row small, .dark .rc-tiles span, .dark .rc-payee small { color: #94a3b8; }
+/* Phone readability: nothing under 11px; the whole Year/Month pill opens its list */
+#bottom-nav button span, #bottom-nav a span { font-size: 11.5px !important; }
+.yr-tag { font-size: 11px; }
+@media (max-width: 767px) {
+  #dashboard-tx-tbody, #panel-dashboard thead th, #panel-dashboard th.pb-3 { font-size: 11px !important; }
+  #panel-ledger small { font-size: 11px !important; }
+}
+.pie-pill select { align-self: stretch; height: auto !important; min-height: 36px; padding-right: 22px !important; margin-right: -22px !important; position: relative; z-index: 1; }
+/* Shared & Split lists: on phones each row is a small card with labels instead of a wide table */
+@media (max-width: 767px) {
+  #panel-shared .ss-tablewrap:has(> table.ss-cards:not(.ss-fit)) { overflow: visible !important; border: 0 !important; }
+  #panel-shared table.ss-cards:not(.ss-fit), #panel-shared table.ss-cards:not(.ss-fit) tbody { display: block; min-width: 0 !important; width: 100% !important; }
+  #panel-shared table.ss-cards:not(.ss-fit) thead { display: none; }
+  #panel-shared table.ss-cards:not(.ss-fit) tr { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; }
+  #panel-shared table.ss-cards:not(.ss-fit) td { display: flex; flex-direction: column; gap: 1px; padding: 0 !important; border: 0 !important; white-space: normal !important; font-size: 13.5px; text-align: left !important; min-width: 0; overflow-wrap: anywhere; }
+  #panel-shared table.ss-cards:not(.ss-fit) td::before { content: attr(data-l); font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .03em; }
+  #panel-shared table.ss-cards:not(.ss-fit) td[data-l=""]::before { content: none; }
+  .dark #panel-shared table.ss-cards:not(.ss-fit) tr { background: #0f172a; border-color: #334155; } .dark #panel-shared table.ss-cards:not(.ss-fit) td::before { color: #94a3b8; }
+}
+/* Core Ledger rows on phones: the payee gets the full width (no narrow column), the category goes on the line under it */
+@media (max-width: 767px) {
+  .lx-row { grid-template-columns: 22px minmax(0, 1fr) auto 28px !important; grid-template-areas: "sel main amt inc" "sel cat amt inc"; column-gap: 10px; row-gap: 3px; }
+  .lx-row > .lx-sel { grid-area: sel; } .lx-row > .lx-main { grid-area: main; } .lx-row > .lx-cat { grid-area: cat; } .lx-row > .lx-amt { grid-area: amt; } .lx-row > .lx-inc { grid-area: inc; }
+  .lx-row > .lx-cat { font-size: 12px; } .lx-row > .lx-cat > span { flex-direction: row; gap: 6px; align-items: baseline; } .lx-row > .lx-cat small::before { content: "· "; }
+  .lx-row .lx-payee { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .lx-row .lx-sub { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+/* Forms on phones: every Cancel / Save footer like New transaction's: full width, Save twice as wide, 48px tall */
+@media (max-width: 767px) {
+  #modal-box .flex.justify-end:has(> button + button):not(:has(> button + button + button)) { display: grid !important; grid-template-columns: 1fr 2fr; gap: 8px; width: 100%; }
+  #modal-box .flex.justify-end:has(> button + button):not(:has(> button + button + button)) > button { width: 100%; min-height: 48px; justify-content: center; text-align: center; margin: 0 !important; }
+}
+@media (max-width: 767px) { .lx-row > .lx-cat b { flex-shrink: 0; max-width: 60%; } }
+/* PC access: the phone's card and "In use on your PC" screen; the PC's lock-screen button and connected banner */
+.pca-live { display: flex; flex-direction: column; gap: 8px; }
+.pca-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 14px; } .pca-row span { color: #475569; }
+.pca-addr { font-variant-numeric: tabular-nums; text-align: right; } .pca-code { font-size: 24px; letter-spacing: .12em; color: #047857; font-family: ui-monospace, Consolas, monospace; }
+.pca-on { color: #047857; }
+#pc-chip { position: relative; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid #cbd5e1; background: #fff; color: #475569; }
+#pc-chip svg { width: 20px; height: 20px; } #pc-chip .pcc-dot { position: absolute; top: 6px; right: 6px; width: 9px; height: 9px; border-radius: 999px; background: #94a3b8; border: 2px solid #fff; }
+#pc-chip.on { color: #047857; border-color: #6ee7b7; } #pc-chip.on .pcc-dot { background: #10b981; }
+.pca-on svg { display: inline-block; width: 16px; height: 16px; vertical-align: -3px; }
+.vault-phone { width: 100%; min-height: 44px; margin-top: 10px; border: 1px solid #a7f3d0; border-radius: 12px; background: #ecfdf5; color: #065f46; font-weight: 600; }
+.vault-phone[hidden] { display: none !important; }
+/* Login: Unlock and the fingerprint icon on one row; the eye shows/hides the password */
+.vault-act-row { display: flex; gap: 8px; align-items: stretch; }
+.vault-act-row > #vault-action-btn { flex: 1; min-width: 0; }
+.vault-bio { flex: 0 0 auto; width: 52px; display: flex; align-items: center; justify-content: center; border: 1px solid #cbd5e1; border-radius: 12px; background: #fff; color: #047857; }
+.vault-bio svg { width: 24px; height: 24px; }
+#vault-password-toggle { display: flex; align-items: center; justify-content: center; } #vault-password-toggle svg { width: 20px; height: 20px; } .vault-bio[hidden] { display: none !important; }
+.dark .vault-bio { background: #0f172a; border-color: #334155; color: #a7f3d0; }
+/* Opened from the phone (Lite PC access): the phone's data is the only way in, so the own-vault form is hidden */
+body.served-by-phone #vault-form-container > :not(#vault-phone-btn) { display: none !important; }
+#remote-banner { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 60; display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 14px; border-radius: 999px; background: #065f46; color: #fff; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.2); max-width: calc(100% - 24px); }
+#remote-banner.rb-down { background: #9f1239; } #remote-banner svg { width: 16px; height: 16px; flex-shrink: 0; }
+#remote-banner button { border: 1px solid rgba(255,255,255,.6); border-radius: 999px; padding: 4px 12px; color: #fff; background: transparent; font-weight: 600; }
+.dark #pc-chip { background: #1e293b; border-color: #475569; color: #cbd5e1; } .dark #pc-chip .pcc-dot { border-color: #1e293b; } .dark .pca-row span { color: #cbd5e1; } .dark .pca-code, .dark .pca-on { color: #34d399; }
+.dark .vault-phone { background: #022c22; border-color: #065f46; color: #a7f3d0; }
