@@ -218,7 +218,7 @@ ${lines.join('\n')}`;
                 plan.accounts={count:acc.length,detail:acc.map(a=>a.name).slice(0,4).join(', ')};
                 const cats=(inc.categories||[]).filter(c=>!(cur.categories||[]).includes(c)); let subs=0; Object.entries(inc.subcategories||{}).forEach(([c,l])=>{ const h=new Set(((cur.subcategories||{})[c]||[]).map(s=>typeof s==='string'?s:s.name)); (l||[]).forEach(s=>{ if(!h.has(typeof s==='string'?s:s.name))subs++; }); });
                 plan.categories={count:cats.length+subs,detail:[cats.length&&`${cats.length} categor${cats.length===1?'y':'ies'}`,subs&&`${subs} subcategor${subs===1?'y':'ies'}`].filter(Boolean).join(', ')};
-                const bud=Object.keys(inc.budgets||{}).filter(k=>!Object.prototype.hasOwnProperty.call(cur.budgets||{},k)); plan.budgets={count:bud.length,detail:bud.slice(0,4).join(', ')};
+                const bud=[...Object.keys(inc.budgets||{}).filter(k=>!Object.prototype.hasOwnProperty.call(cur.budgets||{},k)), ...Object.entries(inc.subBudgets||{}).flatMap(([c,m])=>Object.keys(m||{}).filter(s=>cur.subBudgets?.[c]?.[s]==null).map(s=>c+' › '+s))]; plan.budgets={count:bud.length,detail:bud.slice(0,4).join(', ')};
                 const goals=missing(inc.goals,idSet(cur.goals,'id'),'id'); plan.goals={count:goals.length,detail:goals.map(g=>g.title).slice(0,3).join(', ')};
                 const yr=missing(inc.yearly,idSet(cur.yearly,'id'),'id'); plan.yearly={count:yr.length,detail:yr.map(g=>g.title).slice(0,3).join(', ')};
                 const sms=missing(inc.smsInbox,idSet(cur.smsInbox,'id','messageKey'),'id','messageKey'); plan.smsInbox={count:sms.length,detail:`${sms.length} SMS`};
@@ -248,7 +248,9 @@ ${lines.join('\n')}`;
                     (inc.projects||[]).forEach(p=>{ const here=curP.get(String(p.id)); if(!here){ d.projects.push(JSON.parse(JSON.stringify(p))); n+=1+(p.steps||[]).length; return; }
                         const have=new Set((here.steps||[]).map(s=>String(s.id))); const miss=(p.steps||[]).filter(s=>!have.has(String(s.id))).map(s=>JSON.parse(JSON.stringify(s)));
                         if(miss.length){ here.steps=[...(here.steps||[]),...miss].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))); n+=miss.length; } }); added.projects=n; }
-                if(sel.has('budgets')){ let n=0; Object.entries(inc.budgets||{}).forEach(([k,v])=>{ if(!Object.prototype.hasOwnProperty.call(d.budgets||={},k)){ d.budgets[k]=v; n++; } }); added.budgets=n; }
+                if(sel.has('budgets')){ let n=0; Object.entries(inc.budgets||{}).forEach(([k,v])=>{ if(!Object.prototype.hasOwnProperty.call(d.budgets||={},k)){ d.budgets[k]=v; n++; } });
+                    if(inc.budgetMeta&&typeof inc.budgetMeta==='object'){ d.budgetMeta||={}; Object.entries(inc.budgetMeta).forEach(([k,v])=>{ if(d.budgetMeta[k]==null)d.budgetMeta[k]=v; }); }
+                    if(inc.subBudgets&&typeof inc.subBudgets==='object'){ d.subBudgets||={}; Object.entries(inc.subBudgets).forEach(([c,m])=>Object.entries(m||{}).forEach(([s,v])=>{ d.subBudgets[c]||={}; if(d.subBudgets[c][s]==null){ d.subBudgets[c][s]=v; n++; } })); } added.budgets=n; }
                 if(sel.has('goals')){ const g=take(inc.goals,idSet(d.goals,'id'),'id'); (d.goals||=[]).push(...g); added.goals=g.length; }
                 if(sel.has('yearly')){ const y=take(inc.yearly,idSet(d.yearly,'id'),'id'); (d.yearly||=[]).push(...y); added.yearly=y.length; }
                 if(sel.has('smsInbox')){ const s=take(inc.smsInbox,idSet(d.smsInbox,'id','messageKey'),'id','messageKey'); (d.smsInbox||=[]).push(...s); added.smsInbox=s.length; }
@@ -313,7 +315,7 @@ ${lines.join('\n')}`;
                 const copy=k=>{ if(data[k]!==undefined)out[k]=JSON.parse(JSON.stringify(data[k])); };
                 if(sel.has('projects')){ copy('projects'); copy('projectTemplates'); const ids=new Set((data.projects||[]).flatMap(p=>(p.steps||[]).map(s=>s.txId).filter(Boolean)).map(String)); if(!sel.has('tx'))out.tx=(data.tx||[]).filter(t=>ids.has(String(t.id))); }
                 if(sel.has('tx'))copy('tx'); if(sel.has('accounts'))copy('accounts'); if(sel.has('categories')){ copy('categories'); copy('subcategories'); copy('categoryColors'); }
-                if(sel.has('budgets'))copy('budgets'); if(sel.has('goals'))copy('goals'); if(sel.has('yearly'))copy('yearly'); if(sel.has('smsInbox'))copy('smsInbox'); if(sel.has('shared'))copy('splitShare');
+                if(sel.has('budgets')){ copy('budgets'); copy('subBudgets'); copy('budgetMeta'); } if(sel.has('goals'))copy('goals'); if(sel.has('yearly'))copy('yearly'); if(sel.has('smsInbox'))copy('smsInbox'); if(sel.has('shared'))copy('splitShare');
                 if(sel.has('extras')){ ['customFields','smsRules','projectTemplates','payeeFields','interestPlans'].forEach(copy); }
                 return out; }
             /** Which restore: "merge" handled here (returns "done"), "replace" continues the full restore, null = cancelled */

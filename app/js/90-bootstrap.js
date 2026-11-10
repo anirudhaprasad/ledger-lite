@@ -55,6 +55,22 @@
                 return queue;
             };
         })();
+        // Every form: a problem found when you tap Save is shown in red inside the form (not a pop-up); typing clears it.
+        // Amount boxes open the number keypad on phones; on a PC the cursor starts in the first empty field.
+        (function installFormHelpers(){
+            const shown=()=>{ const b=document.getElementById('modal-box'); return !!b&&!!b.getClientRects().length&&!!b.querySelector('form'); };
+            let current=null; const popup=window.alert;
+            document.addEventListener('submit',e=>{ const f=e.target; if(!(f instanceof HTMLFormElement)||!f.closest('#modal-box'))return; current=f; setTimeout(()=>{ if(current===f)current=null; },0); },true);
+            window.alert=function(message){ const f=current; if(f&&document.body.contains(f)&&shown()){ let p=f.querySelector('#af-err,#bd-err,.form-msg');
+                    if(!p){ p=document.createElement('p'); p.className='af-err form-msg'; p.setAttribute('role','alert'); const act=f.querySelector('.af-actions')||f.querySelector('[type="submit"]')?.parentElement; if(act&&act.parentElement===f)f.insertBefore(p,act); else f.appendChild(p); }
+                    p.textContent=String(message??''); p.hidden=false; p.scrollIntoView?.({block:'nearest'}); return Promise.resolve(); }
+                return popup.apply(this,arguments); };
+            document.addEventListener('input',e=>{ const f=e.target.closest?.('#modal-box form'); const p=f?.querySelector('.form-msg'); if(p)p.hidden=true; });
+            const tidy=()=>{ const box=document.getElementById('modal-box'); if(!box||!shown())return;
+                box.querySelectorAll('input[type="number"]:not([inputmode])').forEach(i=>i.setAttribute('inputmode','decimal'));
+                if(window.matchMedia('(pointer: fine)').matches&&!box.contains(document.activeElement)){ const first=[...box.querySelectorAll('form input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([readonly]), form select, form textarea')].find(x=>!x.disabled&&x.getClientRects().length&&!x.value); first?.focus({preventScroll:true}); } };
+            const mc=document.getElementById('modal-container'); if(mc)new MutationObserver(()=>setTimeout(tidy,60)).observe(mc,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
+        })();
         // v14 accessibility: keep keyboard focus inside an open modal surface.
         // Forms and detail windows open inside the page (they replace the page content, like a page of their own) instead of
         // over a dimmed page. Short questions (uiDialog) and anything opened on the lock screen stay pop-ups.
@@ -82,6 +98,13 @@
             const ml=document.getElementById('main-layout'); if(ml)new MutationObserver(sync).observe(ml,{attributes:true,attributeFilter:['class']});
         })();
         // Accessibility: every button and field has a name screen readers can say (icon-only buttons get one from what they do)
+        // Keyboard (PC): N opens a new entry; Ctrl+Enter (Cmd+Enter) saves the form that is open
+        document.addEventListener('keydown',e=>{
+            if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){ const f=[...document.querySelectorAll('#modal-box form')].find(x=>x.getClientRects().length); if(f){ e.preventDefault(); f.requestSubmit?f.requestSubmit():f.submit(); } return; }
+            if(e.key!=='n'&&e.key!=='N')return; if(e.ctrlKey||e.metaKey||e.altKey)return;
+            const t=e.target, typing=t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)); if(typing||typeof app==='undefined'||!app.currentPassword)return;
+            if([...document.querySelectorAll('#modal-box form, [role="dialog"]')].some(x=>x.getClientRects().length))return; e.preventDefault(); app.openTransactionModal();
+        });
         (function installAccessibleNames(){
             const byAction=[['toggleTheme','Switch light or dark theme'],['openTransactionModal','Add transaction'],['openAccountModal','Add account'],['openBudgetModal','Add budget'],['openGoalModal','Add goal'],['ssEventForm','New shared event'],['openProjectForm','New project'],['addCategory','Add category'],['closeModal','Close'],['toggleNavigation','Open menu']];
             const byIcon={'plus':'Add','x':'Close','chevron-left':'Previous','chevron-right':'Next','menu':'Open menu','search':'Search','filter':'Filters','settings-2':'Settings','pencil':'Edit','trash-2':'Delete','download':'Download','upload':'Upload','copy':'Copy','sun':'Switch light or dark theme','moon':'Switch light or dark theme','calendar':'Choose date','info':'More information'};

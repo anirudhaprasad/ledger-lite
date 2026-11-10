@@ -662,7 +662,7 @@
                 const box = document.getElementById('modal-box');
                 box.innerHTML = `
                     <div class="flex justify-between items-center pb-2">
-                        <h3 class="font-bold text-base" id="af-title">${edit?'Edit transaction':smsItem?'Review SMS entry':p.type?'Copy transaction':'New transaction'}</h3>
+                        <h3 class="font-bold text-base" id="af-title">${edit?'Edit transaction':smsItem?'Review SMS entry':p.type&&!p.again?'Copy transaction':'New transaction'}</h3>
                         <button type="button" onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600" aria-label="Close"><i data-lucide="x" class="w-5 h-5"></i></button>
                     </div>
                     <form id="af-form" onsubmit="${edit?`app.saveEditedTransaction(event,'${editJs}')`:smsItem?`app.saveSmsReview(event,'${smsJs}')`:'app.saveNewTransaction(event)'}" class="af-form" data-type="${type}">
@@ -672,23 +672,25 @@
                             <button type="button" role="tab" data-t="Transfer">Transfer</button>
                             <select id="af-more-type" aria-label="Other types"><option value="">More</option><option value="EMI">EMI</option><option value="Installment">Installment</option><option value="Investment">Investment</option></select>
                         </div>
-                        <select id="modal-tx-type" hidden aria-hidden="true" tabindex="-1">${['Expense','Income','Transfer','EMI','Installment','Investment'].map(x=>`<option value="${x}" ${x===type?'selected':''}>${x}</option>`).join('')}</select>
-                        <label class="af-row"><span>Date</span><input type="date" id="modal-tx-date" required value="${review&&p.date?esc(p.date):this.todayISO()}"></label>${review&&p.smsDate?`<p class="af-note">Original SMS date: ${esc(this.smsDateText(p.smsDate))} (kept separately)</p>`:''}
+                        ${review?'':'<div class="af-chips af-favs" id="af-favs" aria-label="Favourites"></div>'}
                         <label class="af-row af-amount"><span>Amount${CURL()}</span><input type="number" step="0.01" min="0.01" id="modal-tx-amount" data-money="0" required inputmode="decimal" placeholder="0.00" value="${p.amount?esc(p.amount):''}"><button type="button" class="af-calc" onclick="app.openAmountCalculator('modal-tx-amount')" aria-label="Calculator">🧮</button></label>
+                        <div class="af-row af-daterow"><span>Date</span><span class="af-dwrap"><input type="date" id="modal-tx-date" required aria-label="Date" value="${(review||p.again)&&p.date?esc(p.date):this.todayISO()}"><button type="button" class="af-dlink" id="af-dlink"></button></span></div>${review&&p.smsDate?`<p class="af-note">Original SMS date: ${esc(this.smsDateText(p.smsDate))} (kept separately)</p>`:''}
+                        <select id="modal-tx-type" hidden aria-hidden="true" tabindex="-1">${['Expense','Income','Transfer','EMI','Installment','Investment'].map(x=>`<option value="${x}" ${x===type?'selected':''}>${x}</option>`).join('')}</select>
                         <label class="af-row" data-show="cat"><span>Category</span><span class="af-cat"><i class="cat-dot" id="af-cat-dot"></i><select id="modal-tx-category">${cats.map(c=>`<option value="${esc(c)}" ${c===p.category?'selected':''}>${esc(c)}</option>`).join('')}</select></span></label>
-                        <div class="af-chips" id="af-cat-chips" data-show="cat" aria-label="Most used categories"></div>
+                        <div class="af-chips" id="af-cat-chips" data-show="cat" aria-label="Most used categories"></div><div class="af-grid" id="af-cat-grid" hidden aria-label="All categories"></div>
                         <label class="af-row" data-show="cat"><span>Subcategory</span><span class="af-sub"><select id="af-sub-pick" aria-label="Subcategory"></select><input id="modal-tx-subcategory" autocomplete="off" placeholder="Type a subcategory" value="${esc(p.subcategory||'')}"></span></label>
-                        <label class="af-row"><span id="af-account-label">Account</span><select id="modal-tx-account">${acctOpts(def)}</select></label>
+                        <label class="af-row"><span id="af-account-label">Account</span><select id="modal-tx-account">${acctOpts(def)}</select></label><div class="af-chips af-oneline" id="af-acct-chips" aria-label="Your usual accounts"></div>
                         <label class="af-row" id="modal-tx-destination-wrap" data-show="to"><span id="af-dest-label">To</span><select id="modal-tx-destination">${oneSided?`<option value="" selected>Not recorded (${edit.transferDirection==='in'?'money in':'money out'})</option>`:extraAcct(p.destinationAccount)}${accounts.map(a=>`<option value="${esc(a.name)}" ${String(a.name)===String(p.destinationAccount||'')?'selected':''}>${esc(a.name)} (${esc(a.type||'Account')})</option>`).join('')}</select></label>
-                        <label class="af-row"><span>Payee</span><input type="text" id="modal-tx-payee" required placeholder="Shop or person" value="${esc(p.payee||'')}"></label>
-                        <label class="af-row"><span>Note</span><input type="text" id="modal-tx-note" autocomplete="off" placeholder="Optional" value="${esc(p.note||'')}"></label><div class="af-chips" id="af-note-chips" hidden aria-label="Notes you used before"></div>${review?`<label class="af-desc"><span>Description</span><textarea id="modal-tx-description" rows="5" placeholder="Optional">${esc(p.description||'')}</textarea></label>`:''}
+                        <label class="af-row"><span>Payee</span><input type="text" id="modal-tx-payee" required placeholder="Shop or person" list="af-payees" autocomplete="off" value="${esc(p.payee||'')}"></label><datalist id="af-payees">${this.recentPayees().map(x=>`<option value="${esc(x)}"></option>`).join('')}</datalist><p id="af-filled" class="af-note" hidden></p>
+                        <label class="af-row"><span>Note</span><input type="text" id="modal-tx-note" autocomplete="off" placeholder="Optional" value="${esc(p.note||'')}"></label><div class="af-chips" id="af-note-chips" hidden aria-label="Notes you used before"></div>${review?'':'<button type="button" class="af-link" id="af-fav-save"><i data-lucide="star"></i><span>Save as favourite</span></button>'}${review?`<label class="af-desc"><span>Description</span><textarea id="modal-tx-description" rows="5" placeholder="Optional">${esc(p.description||'')}</textarea></label>`:''}
                         ${this.myFieldsInputs(edit?.custom||p.custom||smsItem?.custom||this.payeeFieldsFor(p.payee),'af-mf')}
-                        ${smsItem?`<p class="af-hint af-park">Saved to Core Ledger as <b>Excluded</b>: it doesn't count in totals or change balances until you include it (the eye icon on its row).</p>`:''}<div class="af-section"${review?' hidden':''}>
+                        ${smsItem?`<p class="af-hint af-park">Saved to Core Ledger as <b>Excluded</b>: it doesn't count in totals or change balances until you include it (the eye icon on its row).</p>`:''}<details class="af-section af-more"${review?' hidden':''}><summary>More options <small>repeat, installments</small></summary>
                             <label class="af-row"><span>Repeat</span><select id="af-repeat"><option value="">Never</option><option value="daily">Every day</option><option value="weekly">Every week</option><option value="monthly">Every month</option><option value="quarterly">Every 3 months</option><option value="yearly">Every year</option></select></label>
                             <div class="af-row" id="af-ends-row" hidden><span>Ends</span><span class="af-ends"><select id="af-ends" aria-label="Repeat ends"><option value="never">Never</option><option value="date">On date</option><option value="count">After</option></select><input type="date" id="af-ends-date" aria-label="Last date" hidden><input type="number" id="af-ends-count" data-money="0" min="1" max="600" step="1" value="12" aria-label="Number of times" hidden><em id="af-ends-unit" hidden>times</em></span></div>
                             <label class="af-row" id="af-inst-row" data-show="inst"><span>Installments</span><select id="af-inst"><option value="">None (pay in full)</option>${[2,3,4,5,6,9,12,15,18,24,36].map(n=>`<option value="${n}">${n} months</option>`).join('')}</select></label>
                             <p id="af-hint" class="af-hint" hidden></p>
-                        </div>
+                        </details>
+                        <p id="af-err" class="af-err" role="alert" hidden></p>
                         <div class="af-actions">
                             <button type="button" onclick="app.closeModal()" class="s-btn s-secondary">Cancel</button>
                             <button type="submit" class="s-btn s-primary" id="af-save">Save</button>
@@ -709,7 +711,7 @@
                     const invest=t==='Investment';
                     // 'Not tracked' is a choice for investments only (a transfer always needs its other account)
                     { const nt=dst.querySelector('option[data-nt]'); if(invest&&!nt){ const o=document.createElement('option'); o.value=''; o.dataset.nt='1'; o.textContent='Not tracked'; dst.prepend(o); if(!p.destinationAccount&&!dstTouched)dst.value=''; } else if(!invest&&nt){ const wasSel=dst.value===''; nt.remove(); if(wasSel&&!oneSided){ const other=[...dst.options].find(o=>o.value&&o.value!==src.value); if(other)dst.value=other.value; } } }
-                    form.querySelectorAll('[data-show="cat"]').forEach(r=>{ r.hidden=transfer; }); $('modal-tx-destination-wrap').hidden=!(transfer||invest); $('af-account-label').textContent=transfer?'From':invest?'Paid from':'Account'; $('af-dest-label').textContent=invest?'Invested in':'To';
+                    form.querySelectorAll('[data-show="cat"]').forEach(r=>{ r.hidden=transfer; }); if(transfer)$('af-cat-grid').hidden=true; $('modal-tx-destination-wrap').hidden=!(transfer||invest); $('af-account-label').textContent=transfer?'From':invest?'Paid from':'Account'; $('af-dest-label').textContent=invest?'Invested in':'To';
                     // A transfer needs a real destination; an investment defaults to your only investment account (else 'Not tracked')
                     if(transfer&&!oneSided&&!dst.value){ const other=[...dst.options].find(o=>o.value&&o.value!==src.value); if(other)dst.value=other.value; }
                     if(invest&&!dstTouched&&!dst.value){ const inv=accounts.filter(a=>/invest|demat|mutual|stock|nps|ppf/i.test(String(a.type)+' '+String(a.name))); if(inv.length===1&&inv[0].name!==src.value)dst.value=inv[0].name; }
@@ -733,8 +735,10 @@
                 const orderCats=()=>{ const cur=catSel.value; const top=this.categoryRanking(typeSel.value).filter(c=>cats.includes(c)).slice(0,5); const rest=cats.filter(c=>!top.includes(c)).sort((a,b)=>a.localeCompare(b));
                     const opt=c=>`<option value="${esc(c)}">${esc(c)}</option>`;
                     catSel.innerHTML=top.length?`<optgroup label="Most used">${top.map(opt).join('')}</optgroup><optgroup label="All categories">${rest.map(opt).join('')}</optgroup>`:rest.map(opt).join(''); if(cur)catSel.value=cur;
-                    const chips=$('af-cat-chips'); chips.innerHTML=top.slice(0,4).map(c=>`<button type="button" class="af-chip${c===catSel.value?' on':''}" data-c="${esc(c)}">${esc(c)}</button>`).join(''); chips.classList.toggle('af-empty',top.length<2); };
-                $('af-cat-chips').addEventListener('click',e=>{ const b=e.target.closest('[data-c]'); if(!b)return; catTouched=true; catSel.value=b.dataset.c; $('modal-tx-subcategory').value=''; subsFor(); orderCats(); });
+                    const chips=$('af-cat-chips'); chips.innerHTML=top.slice(0,4).map(c=>`<button type="button" class="af-chip${c===catSel.value?' on':''}" data-c="${esc(c)}">${esc(c)}</button>`).join('')+(cats.length>4?`<button type="button" class="af-chip af-all" data-grid="1" aria-label="All categories" title="All categories" aria-expanded="${!$('af-cat-grid').hidden}">${$('af-cat-grid').hidden?'⋯':'✕'}</button>`:''); chips.classList.toggle('af-empty',top.length<2&&cats.length<=4);
+                    const grid=$('af-cat-grid'); if(!grid.hidden)grid.innerHTML=[...top,...rest].map(c=>`<button type="button" class="af-tile${c===catSel.value?' on':''}" data-c="${esc(c)}"><i class="cat-dot" style="--c:${this.categoryColor(c)}"></i><span>${esc(c)}</span></button>`).join(''); };
+                $('af-cat-grid').addEventListener('click',e=>{ const b=e.target.closest('[data-c]'); if(!b)return; catTouched=true; catSel.value=b.dataset.c; $('modal-tx-subcategory').value=''; $('af-cat-grid').hidden=true; subsFor(); orderCats(); $('af-sub-pick')?.focus?.(); });
+                $('af-cat-chips').addEventListener('click',e=>{ if(e.target.closest('[data-grid]')){ const g=$('af-cat-grid'); g.hidden=!g.hidden; orderCats(); return; } const b=e.target.closest('[data-c]'); if(!b)return; catTouched=true; catSel.value=b.dataset.c; $('modal-tx-subcategory').value=''; subsFor(); orderCats(); });
                 const noteEl=$('modal-tx-note'), noteChips=$('af-note-chips');
                 const showNotes=()=>{ const list=this.noteSuggestions(noteEl.value); noteChips.innerHTML=list.map(v=>`<button type="button" class="af-chip" data-n="${esc(v)}">${esc(v)}</button>`).join(''); noteChips.hidden=!list.length; };
                 noteEl.addEventListener('input',showNotes); noteEl.addEventListener('focus',showNotes);
@@ -746,6 +750,39 @@
                 $('af-sub-pick').addEventListener('change',e=>{ const v=e.target.value, txt=$('modal-tx-subcategory'); if(v==='__type'){ txt.value=''; txt.hidden=false; txt.focus(); } else { txt.value=v; txt.hidden=true; } }); [src,dst,$('af-repeat'),$('af-ends'),$('af-inst')].forEach(el=>el.addEventListener('change',sync)); dst.addEventListener('change',()=>{ dstTouched=true; });
                 [$('modal-tx-amount'),$('modal-tx-date'),$('af-ends-count'),$('af-ends-date')].forEach(el=>el.addEventListener('input',sync));
                 orderCats(); subsFor(); pickCat(); orderCats(); sync();
+                // Date chips
+                const dateEl=$('modal-tx-date'), dLink=$('af-dlink'), yday=()=>this.todayISO(new Date(Date.now()-86400000));
+                const markDate=()=>{ dLink.textContent=dateEl.value===this.todayISO()?'Yesterday':'Today'; };
+                dLink.addEventListener('click',()=>{ dateEl.value=dateEl.value===this.todayISO()?yday():this.todayISO(); markDate(); sync(); }); dateEl.addEventListener('input',markDate); markDate();
+                // Account chips: the default account and the ones you used most recently
+                let srcTouched=!!p.account; const acctChips=$('af-acct-chips'), usual=this.usualAccounts(3).filter(n=>accounts.some(a=>a.name===n));
+                const markAcct=()=>acctChips.querySelectorAll('[data-a]').forEach(b=>b.classList.toggle('on',b.dataset.a===src.value));
+                const showAcct=accounts.length>=3&&usual.length>=2; acctChips.innerHTML=showAcct?usual.map(n=>`<button type="button" class="af-chip" data-a="${esc(n)}">${esc(n)}</button>`).join(''):''; acctChips.hidden=!showAcct; markAcct();
+                acctChips.addEventListener('click',e=>{ const b=e.target.closest('[data-a]'); if(!b)return; srcTouched=true; src.value=b.dataset.a; markAcct(); sync(); }); src.addEventListener('change',()=>{ srcTouched=true; markAcct(); });
+                // A payee you used before fills the category, subcategory and account (only the ones you haven't chosen yourself)
+                if(!review)$('modal-tx-payee').addEventListener('change',e=>{ const last=this.lastTxForPayee(e.target.value); const note=$('af-filled'); if(!last){ note.hidden=true; return; } const done=[];
+                    if(!catTouched&&last.category&&typeSel.value!=='Transfer'&&[...catSel.options].some(o=>o.value===last.category)){ catSel.value=last.category; $('modal-tx-subcategory').value=last.subcategory||''; subsFor(); orderCats(); done.push(last.subcategory?`${last.category} › ${last.subcategory}`:last.category); }
+                    if(!srcTouched&&last.account&&[...src.options].some(o=>o.value===last.account)&&last.account!==src.value){ src.value=last.account; markAcct(); sync(); done.push(last.account); }
+                    note.hidden=!done.length; note.textContent=done.length?`Filled from your last "${last.payee}" entry: ${done.join(' · ')}`:''; });
+                // Messages appear in the form; typing clears them. "Save & add another" keeps the form open for the next one.
+                form.addEventListener('input',()=>{ const er=$('af-err'); if(er&&!er.hidden){ er.hidden=true; } });
+                // Favourites: one tap fills type, amount, category, account, payee and note; Save as favourite keeps the current form
+                const favBox=$('af-favs'); let favEdit=false;
+                const drawFavs=()=>{ if(!favBox)return; const list=this.favourites(); favBox.innerHTML=list.map((f,i)=>`<button type="button" class="af-chip af-fav${favEdit?' editing':''}" data-f="${i}" title="${esc(f.type)} · ${esc(f.category||'')}">${favEdit?'✕ ':'★ '}${esc(f.name)}</button>`).join('')+(list.length?`<button type="button" class="af-chip af-favedit" data-fe="1">${favEdit?'Done':'Edit'}</button>`:''); favBox.hidden=!list.length; };
+                const fillFav=f=>{ typeSel.value=f.type||'Expense'; orderCats(); sync(); if(f.amount)$('modal-tx-amount').value=f.amount;
+                    if(f.category&&[...catSel.options].some(o=>o.value===f.category)){ catTouched=true; catSel.value=f.category; $('modal-tx-subcategory').value=f.subcategory||''; subsFor(); orderCats(); }
+                    if(f.account&&[...src.options].some(o=>o.value===f.account)){ srcTouched=true; src.value=f.account; markAcct(); }
+                    if(f.destinationAccount&&[...dst.options].some(o=>o.value===f.destinationAccount)){ dstTouched=true; dst.value=f.destinationAccount; }
+                    $('modal-tx-payee').value=f.payee||''; noteEl.value=f.note||''; sync(); this.showToast?.(`Filled from "${f.name}". Check the date and save.`,{ms:2500}); };
+                favBox?.addEventListener('click',e=>{ if(e.target.closest('[data-fe]')){ favEdit=!favEdit; drawFavs(); return; } const b=e.target.closest('[data-f]'); if(!b)return; const list=this.favourites(), f=list[Number(b.dataset.f)]; if(!f)return;
+                    if(favEdit){ list.splice(Number(b.dataset.f),1); this.saveVault(); if(!list.length)favEdit=false; drawFavs(); return; } fillFav(f); });
+                $('af-fav-save')?.addEventListener('click',async()=>{ const payee=$('modal-tx-payee').value.trim(), t=typeSel.value, category=t==='Transfer'?'':catSel.value;
+                    const amount=Number($('modal-tx-amount').value)||0; const sug=(payee||category||t)+(amount?` ${CUR()}${amount}`:'');
+                    const name=await this.uiPrompt('Save as favourite','A short name for this entry, shown as a one-tap chip at the top of the form.',sug); if(name===null)return; const n=String(name).trim().slice(0,40); if(!n)return;
+                    const list=this.favourites(); const fav={name:n,type:t,amount:amount||'',category,subcategory:t==='Transfer'?'':$('modal-tx-subcategory').value.trim(),account:src.value,destinationAccount:(t==='Transfer'||t==='Investment')?dst.value:'',payee,note:noteEl.value.trim()};
+                    const at=list.findIndex(x=>x.name.toLowerCase()===n.toLowerCase()); if(at>=0)list[at]=fav; else list.push(fav); this.saveVault(); drawFavs(); this.showToast?.(`Saved "${n}" as a favourite.`,{ms:2500}); });
+                drawFavs();
+                $('af-again')?.addEventListener('click',()=>{ this._afAgain=true; }); $('af-save').addEventListener('click',()=>{ this._afAgain=false; });
                 // My fields: a known payee fills the fields that are still empty with what was used for them last time
                 if(!edit)$('modal-tx-payee').addEventListener('change',e=>{ const mem=this.payeeFieldsFor(e.target.value); if(!mem)return; Object.entries(mem).forEach(([id,v])=>{ const el=$(`af-mf-${id}`); if(el&&!el.value)el.value=v; }); });
                 window.lucide?.createIcons?.();
@@ -757,6 +794,19 @@
              * With Repeat or Installments it saves a schedule instead, and the schedule posts each entry on its date.
              * Parameters: event. Side effects, if any, are described by the statements below.
              */
+            /** A problem with what was typed: shown in the open form (or as a message when there is no form). */
+            formError(msg){ const e=document.getElementById('af-err'); if(!e){ alert(msg); return; } e.textContent=msg; e.hidden=false; e.scrollIntoView({block:'nearest'}); }
+            /** After a new entry is saved: "Save & add another" opens a fresh form with the same type, date and account. */
+            afterTxSaved(k){ if(!this._afAgain){ if(k.tx)this.showToast?.('Saved.',{undo:()=>this.undoNewTx(k.tx.id),ms:6000}); return; } this._afAgain=false; this.showToast?.('Saved. Add the next one.',{ms:2500}); setTimeout(()=>this.openTransactionModal({again:true,type:k.type,date:k.date,account:k.account}),60); }
+            /** Undo a just-saved entry: its balance effect is reversed and it is removed. */
+            undoNewTx(id){ const tx=(this.data.tx||[]).find(t=>String(t.id)===String(id)); if(!tx)return; this.applyTxEffects(tx,-1); this.data.tx=this.data.tx.filter(t=>t!==tx); this.saveVault(); this.renderAll(); this.showToast?.('Removed.',{ms:2500}); }
+            /** Favourite entries (settings.favourites): one-tap chips at the top of the Add form. */
+            favourites(){ const st=(this.data.settings ||= {}); if(!Array.isArray(st.favourites))st.favourites=[]; return st.favourites; }
+            /** Payees from your entries, most recent first. */
+            recentPayees(n=40){ const out=[], seen=new Set(); [...(this.data.tx||[])].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).forEach(t=>{ const v=String(t?.payee||'').trim(); const k=v.toLowerCase(); if(v&&!seen.has(k)&&out.length<n){ seen.add(k); out.push(v); } }); return out; }
+            lastTxForPayee(name){ const k=String(name||'').trim().toLowerCase(); if(!k)return null; return [...(this.data.tx||[])].filter(t=>t&&t.type!=='Transfer'&&String(t.payee||'').trim().toLowerCase()===k).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0]||null; }
+            /** The default account first, then the accounts used most recently. */
+            usualAccounts(n=3){ const out=[]; const d=this.getGlobalDefaultAccount?.()?.name; if(d)out.push(d); [...(this.data.tx||[])].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).forEach(t=>{ if(t?.account&&!out.includes(t.account)&&out.length<n)out.push(t.account); }); (this.data.accounts||[]).forEach(a=>{ if(out.length<n&&!out.includes(a.name))out.push(a.name); }); return out.slice(0,n); }
             saveNewTransaction(event) {
                 event.preventDefault();
                 const val=id=>document.getElementById(id)?.value??'';
@@ -769,16 +819,16 @@
                 const note = val('modal-tx-note').trim();
                 const account = val('modal-tx-account') || this.getGlobalDefaultAccount()?.name || '';
                 const date = val('modal-tx-date');
-                if (!Number.isFinite(amount) || amount <= 0) return alert('Enter an amount greater than zero.');
-                if (!account || !date) return alert('Select an account and date.');
+                if (!Number.isFinite(amount) || amount <= 0) return this.formError('Enter an amount greater than zero.');
+                if (!account || !date) return this.formError('Select an account and date.');
                 const destinationAccount = (transfer||type==='Investment') ? (val('modal-tx-destination')===account&&!transfer?'':val('modal-tx-destination')) : '';
-                if (transfer && (!destinationAccount || destinationAccount === account)) return alert('Choose a destination account that is different from the source account.');
+                if (transfer && (!destinationAccount || destinationAccount === account)) return this.formError('Choose a destination account that is different from the source account.');
                 if (this.isLockedDate(date)) return this.lockedAlert(date);
                 const inst=Number(val('af-inst'))||0, repeat=val('af-repeat');
                 if (inst>1 || repeat) {
                     const src=this.data.accounts.find(a=>a.name===account), dst=transfer?this.data.accounts.find(a=>a.name===destinationAccount):null;
                     const ends=val('af-ends'), count=inst>1?0:ends==='count'?Math.max(1,Math.round(Number(val('af-ends-count'))||1)):0, endDate=inst>1?'':ends==='date'?val('af-ends-date'):'';
-                    if (endDate && endDate < date) return alert('The last date must be on or after the first date.');
+                    if (endDate && endDate < date) return this.formError('The last date must be on or after the first date.');
                     const each=inst>1?Math.floor(amount/inst*100)/100:amount;
                     const item={id:'sched_'+Date.now(),title:payee,payee,note,amount:each,sourceAccount:String(src?.id||account),sourceAccountName:account,
                         destinationType:transfer?'account':'category',destinationAccount:dst?String(dst.id||dst.name):'',destinationAccountName:dst?dst.name:'',
@@ -790,7 +840,7 @@
                     this.data.yearly ||= []; this.data.yearly.push(item);
                     this.processRecurringPayments();
                     const flagged = this.autoFlagSmsDuplicates();
-                    this.saveVault(); this.renderAll(); this.closeModal();
+                    this.saveVault(); this.renderAll(); this.closeModal(); this.afterTxSaved({type,date,account});
                     const first=date>this.todayISO()?` The first one is added on ${new Date(date+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'})}.`:'';
                     this.showToast(inst>1?`Saved ${inst} installments. Find them in Schedules.${first}`:`Saved. ${this.frequencyLabel(repeat)} — find it in Schedules.${first}`);
                     if (flagged) alert(this.smsDuplicateNotice(flagged));
@@ -805,7 +855,7 @@
                 const flagged = this.autoFlagSmsDuplicates();
                 this.saveVault();
                 this.renderAll();
-                this.closeModal();
+                this.closeModal(); this.afterTxSaved({type,date,account,tx:newTx});
                 if (flagged) alert(this.smsDuplicateNotice(flagged));
             }
 
@@ -815,12 +865,13 @@
              */
             async deleteTransaction(id) {
                 const tx=this.data.tx.find(t=>String(t.id)===String(id)); if(!tx)return; if(this.isLockedDate(tx.date))return this.lockedAlert(tx.date);
-                if (await this.uiConfirm('Delete this transaction? The account balance will be adjusted where possible.')) {
-                    this.applyTxEffects(tx,-1);
-                    this.data.tx=this.data.tx.filter(t=>String(t.id)!==String(id));
-                    await this.releaseDuplicatesOf([id]);
-                    this.saveVault(); this.renderAll();
-                }
+                // Deleted straight away, with Undo for a few seconds (instead of an "Are you sure?" box)
+                const at=this.data.tx.indexOf(tx);
+                this.applyTxEffects(tx,-1);
+                this.data.tx=this.data.tx.filter(t=>String(t.id)!==String(id));
+                await this.releaseDuplicatesOf([id]);
+                this.saveVault(); this.renderAll();
+                this.showToast?.('Transaction deleted.',{undo:()=>{ if(this.data.tx.some(t=>String(t.id)===String(id)))return; this.data.tx.splice(Math.min(at,this.data.tx.length),0,tx); this.applyTxEffects(tx,1); this.saveVault(); this.renderAll(); this.showToast?.('Restored.',{ms:2500}); },ms:8000});
             }
 
         }

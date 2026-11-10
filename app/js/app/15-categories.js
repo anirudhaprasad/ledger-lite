@@ -50,12 +50,12 @@
              * Updates subcategory.
              * Parameters: index,subIndex. Side effects, if any, are described by the statements below.
              */
-            async editSubcategory(index,subIndex){const cat=this.data.categories[index];const subs=this.categorySubcategoryMap();if(!cat||!Array.isArray(subs[cat]))return;const old=subs[cat][subIndex];if(old===undefined)return;const name=await this.uiPrompt('Rename subcategory','Update the subcategory name.',typeof old==='string'?old:old.name);if(name===null)return;const v=name.trim();if(!v)return alert('Subcategory name cannot be empty.');if(subs[cat].some((x,j)=>j!==subIndex&&String(typeof x==='string'?x:x.name).toLowerCase()===v.toLowerCase()))return alert('That subcategory already exists.');subs[cat][subIndex]=v;this.data.tx.forEach(t=>{if(t.category===cat&&t.subcategory===(typeof old==='string'?old:old.name))t.subcategory=v;});this.saveVault();this.renderAll();}
+            async editSubcategory(index,subIndex){const cat=this.data.categories[index];const subs=this.categorySubcategoryMap();if(!cat||!Array.isArray(subs[cat]))return;const old=subs[cat][subIndex];if(old===undefined)return;const name=await this.uiPrompt('Rename subcategory','Update the subcategory name.',typeof old==='string'?old:old.name);if(name===null)return;const v=name.trim();if(!v)return alert('Subcategory name cannot be empty.');if(subs[cat].some((x,j)=>j!==subIndex&&String(typeof x==='string'?x:x.name).toLowerCase()===v.toLowerCase()))return alert('That subcategory already exists.');subs[cat][subIndex]=v;this.data.tx.forEach(t=>{if(t.category===cat&&t.subcategory===(typeof old==='string'?old:old.name))t.subcategory=v;});{const sb=this.subBudgets?.()?.[cat],on=typeof old==='string'?old:old.name;if(sb&&sb[on]!=null&&sb[v]==null){sb[v]=sb[on];delete sb[on];const bm=this.data.budgetMeta||{},ok=cat+' › '+on;if(bm[ok]){bm[cat+' › '+v]=bm[ok];delete bm[ok];}}}this.saveVault();this.renderAll();}
             /**
              * Removes subcategory, including associated cleanup where applicable.
              * Parameters: index,subIndex. Side effects, if any, are described by the statements below.
              */
-            async deleteSubcategory(index,subIndex){const cat=this.data.categories[index];const subs=this.categorySubcategoryMap();if(!cat||!Array.isArray(subs[cat]))return;const old=subs[cat][subIndex];if(old===undefined)return;const name=typeof old==='string'?old:old.name;const used=this.data.tx.filter(t=>t.category===cat&&t.subcategory===name).length;if(!await this.uiConfirm(`Remove subcategory "${name}"?${used?` ${used} existing transaction(s) use it; their history will be preserved.`:''}`))return;subs[cat].splice(subIndex,1);this.saveVault();this.renderCategoriesManager();}
+            async deleteSubcategory(index,subIndex){const cat=this.data.categories[index];const subs=this.categorySubcategoryMap();if(!cat||!Array.isArray(subs[cat]))return;const old=subs[cat][subIndex];if(old===undefined)return;const name=typeof old==='string'?old:old.name;const used=this.data.tx.filter(t=>t.category===cat&&t.subcategory===name).length;if(!await this.uiConfirm(`Remove subcategory "${name}"?${used?` ${used} existing transaction(s) use it; their history will be preserved.`:''}`))return;subs[cat].splice(subIndex,1);this.removeBudget?.(cat,name);this.saveVault();this.renderCategoriesManager();}
             /**
              * Handles the ensure category and subcategory workflow. See the implementation below for its inputs, state changes, and side effects.
              * Parameters: category, subcategory. Side effects, if any, are described by the statements below.
@@ -90,6 +90,8 @@
                 (this.data.projects||[]).forEach(p=>{ if(p&&p.category===old)p.category=keep; });
                 (this.smsRules?.().payeeCats||[]).forEach(r=>{ if(r&&r.category===old)r.category=keep; });
                 if(this.data.budgets[old]!=null){ if(this.data.budgets[keep]==null)this.data.budgets[keep]=this.data.budgets[old]; delete this.data.budgets[old]; }
+                { const bm=this.data.budgetMeta||{}; Object.keys(bm).forEach(x=>{ if(x===old||x.startsWith(old+' › ')){ const nk=keep+x.slice(old.length); if(bm[nk]==null)bm[nk]=bm[x]; delete bm[x]; } }); }
+                { const sb=this.subBudgets?.()||{}; if(sb[old]){ sb[keep]||={}; Object.entries(sb[old]).forEach(([k,v])=>{ if(sb[keep][k]==null)sb[keep][k]=v; }); delete sb[old]; } }
                 (Array.isArray(subs[old])?subs[old]:[]).forEach(x=>this.ensureCategoryAndSubcategory(keep,typeof x==='string'?x:x.name)); delete subs[old];
                 if(this.data.categoryColors?.[old]){ this.data.categoryColors[keep] ||= this.data.categoryColors[old]; delete this.data.categoryColors[old]; }
                 this.data.categories=(this.data.categories||[]).filter(c=>c!==old); }
@@ -104,7 +106,7 @@
                 (this.data.tx||[]).forEach(t=>{ if(!t)return; useC(t.category); useS(t.category,t.subcategory); });
                 (this.data.smsInbox||[]).forEach(t=>{ if(t&&(t.status||'pending')==='pending'){ useC(t.category); useS(t.category,t.subcategory); } });
                 (Array.isArray(this.data.yearly)?this.data.yearly:[]).forEach(y=>{ if(!y)return; useC(y.category); useS(y.category,y.subcategory); });
-                (this.data.projects||[]).forEach(p=>useC(p?.category)); Object.keys(this.data.budgets||{}).forEach(useC);
+                (this.data.projects||[]).forEach(p=>useC(p?.category)); Object.keys(this.data.budgets||{}).forEach(useC); Object.keys(this.data.subBudgets||{}).forEach(useC);
                 (this.smsRules?.().payeeCats||[]).forEach(r=>{ useC(r?.category); useS(r?.category,r?.subcategory); });
                 const pseudo=cats.filter(c=>/^(uncategori[sz]ed|none|transfer)$/i.test(String(c).trim()));
                 const real=cats.filter(c=>!pseudo.includes(c));

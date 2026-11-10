@@ -211,6 +211,7 @@ button.lmon-row:not([disabled]):hover { background: #f8fafc; }
 .af-hint { margin-top: 10px; padding: 8px 10px; border-radius: 10px; background: #f8fafc; font-size: 12.5px; line-height: 1.45; color: #475569; }
 .dark .af-hint { background: #1e293b; color: #cbd5e1; }
 .af-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; margin-top: 16px; }
+.af-actions .s-btn { padding-left: 8px; padding-right: 8px; white-space: nowrap; }
 .af-actions .s-primary { background: var(--af-btn, #047857) !important; border-color: var(--af-btn, #047857) !important; color: #fff !important; }
 @media (max-width: 359px) { .af-row, .af-amount { grid-template-columns: 78px minmax(0, 1fr) auto; } .af-types { grid-template-columns: repeat(3, minmax(0, 1fr)); } #modal-box #af-more-type { grid-column: 1 / -1; } }
 
@@ -752,3 +753,60 @@ body.served-by-phone #vault-form-container > :not(#vault-phone-btn) { display: n
 #remote-banner button { border: 1px solid rgba(255,255,255,.6); border-radius: 999px; padding: 4px 12px; color: #fff; background: transparent; font-weight: 600; }
 .dark #pc-chip { background: #1e293b; border-color: #475569; color: #cbd5e1; } .dark #pc-chip .pcc-dot { border-color: #1e293b; } .dark .pca-row span { color: #cbd5e1; } .dark .pca-code, .dark .pca-on { color: #34d399; }
 .dark .vault-phone { background: #022c22; border-color: #065f46; color: #a7f3d0; }
+/* Budgets: category cards with subcategory budgets underneath, icon actions, suggestion in the form */
+.bd-row { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; }
+.bd-row > .cat-name, .bd-row > .bd-sname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bd-fig { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bd-act { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; color: #2563eb; flex: none; }
+.bd-act svg { width: 16px; height: 16px; } .bd-act:hover { background: #e2e8f0; } .bd-del { color: #e11d48; }
+.dark .bd-act:hover { background: #334155; }
+.bd-tag { font-size: 11px; color: #64748b; background: #e2e8f0; border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
+.dark .bd-tag { background: #334155; color: #cbd5e1; }
+.bd-sub { margin-left: 14px; padding: 8px 0 2px 12px; border-left: 2px solid #cbd5e1; }
+.dark .bd-sub { border-color: #475569; }
+.bd-sub .bd-row { font-size: 13px; font-weight: 500; }
+.bd-note { font-size: 12px; color: #64748b; margin-top: 4px; }
+.bd-other .bd-sname { color: #64748b; font-style: italic; }
+.bd-warn { font-size: 12px; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 6px 8px; }
+.dark .bd-warn { background: #451a03; border-color: #92400e; color: #fde68a; }
+.bd-empty { text-align: center; padding: 24px 12px; color: #64748b; display: grid; gap: 12px; justify-items: center; }
+.bd-suggest { font-size: 13px; color: #334155; background: #ecfdf5; border-radius: 10px; padding: 8px 10px; }
+.bd-suggest:empty { display: none; } .dark .bd-suggest { background: #022c22; color: #d1fae5; }
+.bd-use { margin-left: 6px; font-weight: 600; color: #047857; text-decoration: underline; }
+.dark .bd-use { color: #6ee7b7; }
+.bd-err { font-size: 13px; color: #e11d48; min-height: 0; } .bd-err:empty { display: none; }
+/* Add form: amount first and larger; Today / Yesterday next to the date; messages inside the form */
+#modal-box .af-amount input { font-size: 26px; }
+#af-acct-chips[hidden] { display: none; }
+.af-err { font-size: 13px; color: #be123c; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 8px 10px; margin: 4px 0; }
+.af-err[hidden] { display: none; } .dark .af-err { background: #4c0519; border-color: #9f1239; color: #fecdd3; }
+/* Add form: every category as tiles ("All categories"), favourites row, Save as favourite link */
+.af-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; margin: 6px 0 4px; max-height: 240px; overflow-y: auto; padding: 2px; }
+.af-grid[hidden] { display: none !important; }
+.af-tile { display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #1e293b; font-size: 13px; text-align: left; }
+.af-tile span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .af-tile .cat-dot { margin-right: 0; }
+.af-tile.on { border-color: #3b82f6; background: #dbeafe; font-weight: 600; }
+.dark .af-tile { background: #0f172a; border-color: #475569; color: #e2e8f0; } .dark .af-tile.on { background: #1e3a8a; border-color: #60a5fa; color: #fff; }
+.af-all { color: #2563eb; } .dark .af-all { color: #93c5fd; }
+.af-favs { margin: 2px 0 6px; } .af-favs[hidden] { display: none !important; }
+.af-fav { border-color: #fbbf24; background: #fffbeb; color: #92400e; }
+.af-fav.editing { border-color: #fda4af; background: #fff1f2; color: #be123c; }
+.dark .af-fav { background: #451a03; border-color: #b45309; color: #fde68a; }
+.af-favedit { color: #475569; } .dark .af-favedit { color: #cbd5e1; }
+.af-link { display: inline-flex; align-items: center; gap: 6px; margin: 2px 0 6px; padding: 4px 2px; font-size: 13px; color: #b45309; font-weight: 600; }
+.af-link svg { width: 15px; height: 15px; } .dark .af-link { color: #fbbf24; }
+/* Tidy Add form: Today/Yesterday as a link in the date row; ⋯ for all categories; accounts on one line; More options */
+.af-dwrap { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.af-dwrap input { flex: 1; min-width: 0; }
+.af-dlink { flex: none; font-size: 13px; font-weight: 600; color: #2563eb; padding: 4px 2px; }
+.dark .af-dlink { color: #93c5fd; }
+.af-all { min-width: 40px; font-size: 16px; font-weight: 700; color: #475569; padding: 2px 10px; }
+.af-oneline { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; }
+.af-oneline::-webkit-scrollbar { display: none; } .af-oneline .af-chip { flex: none; }
+.af-more { margin-top: 6px; border-top: 1px solid #e2e8f0; padding-top: 4px; }
+.af-more > summary { cursor: pointer; list-style: none; padding: 10px 0; font-size: 14px; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 6px; }
+.af-more > summary::-webkit-details-marker { display: none; }
+.af-more > summary::before { content: '▸'; font-size: 12px; transition: transform .15s; } .af-more[open] > summary::before { transform: rotate(90deg); }
+.af-more > summary small { font-weight: 400; color: #94a3b8; }
+.af-more[hidden] { display: none !important; }
+.dark .af-more { border-color: #334155; } .dark .af-more > summary { color: #cbd5e1; }

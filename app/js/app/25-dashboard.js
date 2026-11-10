@@ -85,6 +85,9 @@
                 (Array.isArray(this.data.yearly)?this.data.yearly:[]).filter(y=>y.enabled!==false&&y.startDate).forEach(y=>{ try{ const nx=this.scheduleProgress?this.scheduleProgress(y,0).next:''; if(nx&&nx>=today&&nx<=week)due.push({y,nx}); }catch(e){} });
                 due.sort((a,b)=>a.nx.localeCompare(b.nx));
                 if(due.length)items.push({text:n(due.length,'payment due this week','payments due this week'),detail:due.slice(0,3).map(d=>`${d.y.title||'Payment'} on ${new Date(d.nx+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'})}`).join(' · ')+(due.length>3?' …':''),go:"app.switchTab('yearly')"});
+                { const al=this.budgetAlerts?this.budgetAlerts():[]; const over=al.filter(a=>a.pct>100), near=al.filter(a=>a.pct<=100);
+                  if(over.length)items.push({text:n(over.length,'budget is over its limit','budgets are over their limit'),detail:over.slice(0,3).map(a=>`${a.name} ${a.pct}%`).join(' · '),go:"app.switchTab('budgets')",bad:true});
+                  if(near.length)items.push({text:n(near.length,'budget is nearly used','budgets are nearly used'),detail:near.slice(0,3).map(a=>`${a.name} ${a.pct}%`).join(' · '),go:"app.switchTab('budgets')"}); }
                 (this.data.accounts||[]).filter(a=>['Checking','Cash','Savings','Savings Account'].includes(a.type)&&Number(a.balance)<0).slice(0,2).forEach(a=>items.push({text:`${a.name} is below zero`,detail:`Balance ${this.fmtMoney(Number(a.balance))}: check its entries or set the balance`,go:"app.switchTab('accounts')",bad:true}));
                 // Shown like notifications: a dot, a title, one line of detail; tap to go there
                 box.hidden=!items.length; box.innerHTML=items.length?`<div class="da-h">Needs attention <span class="da-n">${items.length}</span></div>${items.map(i=>`<button type="button" class="da-i${i.bad?' da-bad':''}" onclick="${i.go}"><span class="da-dot" aria-hidden="true"></span><span class="da-t"><b>${this.escapeHtml(i.text)}</b><small>${this.escapeHtml(i.detail)}</small></span><i data-lucide="chevron-right"></i></button>`).join('')}`:''; window.lucide?.createIcons?.(); }
@@ -242,7 +245,9 @@
             /** Each budget this month: its limit and what was spent in that category, most used (as a share) first. */
             budgetVsActual(){ const mk=this.todayISO().slice(0,7), spent={};
                 this.countedTx().forEach(t=>{ if(!this.isSpending(t)||!(this.normalizeLedgerDate(t.date)||'').startsWith(mk))return; const c=this.spendingCategory(t); spent[c]=(spent[c]||0)+Math.abs(Number(t.amount)||0); });
-                return Object.entries(this.data.budgets||{}).map(([category,limit])=>({category,limit:Number(limit)||0,spent:Math.round(spent[category]||0)})).filter(x=>x.limit>0).sort((a,b)=>b.spent/b.limit-a.spent/a.limit); }
+                if(this.budgetGroups)return this.budgetGroups().map(g=>({category:g.cat,limit:Math.round(g.limit),spent:Math.round(g.spent)})).filter(x=>x.limit>0).sort((a,b)=>b.spent/b.limit-a.spent/a.limit);
+                const limits=this.data.budgets||{};
+                return Object.entries(limits).map(([category,limit])=>({category,limit:Number(limit)||0,spent:Math.round(spent[category]||0)})).filter(x=>x.limit>0).sort((a,b)=>b.spent/b.limit-a.spent/a.limit); }
             dashPeriodRange(p){ const now=new Date(), y=now.getFullYear(), m=now.getMonth(), first=k=>this.todayISO(new Date(y,m-k,1));
                 return p==='month'?[first(0),'9999']:p==='lastmonth'?[first(1),this.todayISO(new Date(y,m,0))]:p==='3m'?[first(2),'9999']:p==='6m'?[first(5),'9999']:p==='12m'?[first(11),'9999']:p==='year'?[`${y}-01-01`,'9999']:['0000','9999']; }
             dashSpecLabel(s){ const m={spending:'Spending',income:'Income',invested:'Invested'}[s.measure]||'', by={category:'by category',account:'by account',payee:'by payee',month:'by month',weekday:'by weekday'}[s.by]||'';
